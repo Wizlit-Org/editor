@@ -11,7 +11,7 @@ import { createPortal } from 'react-dom'
 import { Surface } from '@/components/ui/Surface'
 import { Toolbar } from '@/components/ui/Toolbar'
 import { Icon } from '@/components/ui/Icon'
-import { useCollaboration } from '@/hooks/useCollaboration'
+// import { useCollaboration } from '@/hooks/useCollaboration'
 
 const useDarkmode = () => {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(
@@ -45,10 +45,10 @@ export default function Document({ params }: { params: { room: string } }) {
   const { isDarkMode, darkMode, lightMode } = useDarkmode()
   const [aiToken, setAiToken] = useState<string | null | undefined>()
   const searchParams = useSearchParams()
-  const providerState = useCollaboration({
-    docId: params.room,
-    enabled: parseInt(searchParams?.get('noCollab') as string) !== 1,
-  })
+  // const providerState = useCollaboration({
+  //   docId: params.room,
+  //   enabled: parseInt(searchParams?.get('noCollab') as string) !== 1,
+  // })
 
   useEffect(() => {
     // fetch data
@@ -82,7 +82,7 @@ export default function Document({ params }: { params: { room: string } }) {
     dataFetch()
   }, [])
 
-  if (providerState.state === 'loading' || aiToken === undefined) return
+  // if (providerState.state === 'loading' || aiToken === undefined) return
 
   const DarkModeSwitcher = createPortal(
     <Surface className="flex items-center gap-1 fixed bottom-6 right-6 z-[99999] p-1">
@@ -99,7 +99,13 @@ export default function Document({ params }: { params: { room: string } }) {
   return (
     <>
       {DarkModeSwitcher}
-      <BlockEditor aiToken={aiToken ?? undefined} ydoc={providerState.yDoc} provider={providerState.provider} />
+      <BlockEditor
+        aiToken={aiToken ?? undefined}
+        content={'<p>Hello</p>'}
+        limit={5000}
+        // doc={providerState.yDoc}
+        // provider={providerState.provider}
+      />
     </>
   )
 }

@@ -2,17 +2,17 @@ import { WebSocketStatus } from '@hocuspocus/provider'
 import { memo } from 'react'
 import { EditorUser } from '../types'
 import { cn } from '../../../lib/utils'
-import { getConnectionText } from '../../../lib/utils/getConnectionText'
+// import { getConnectionText } from '../../../lib/utils/getConnectionText'
 import Tooltip from '../../ui/Tooltip'
 
 export type EditorInfoProps = {
   characters: number
   words: number
-  collabState: WebSocketStatus
-  users: EditorUser[]
+  // collabState: WebSocketStatus
+  // users: EditorUser[]
 }
 
-export const EditorInfo = memo(({ characters, collabState, users, words }: EditorInfoProps) => {
+export const EditorInfo = memo(({ characters, words }: EditorInfoProps) => {
   return (
     <div className="flex items-center">
       <div className="flex flex-col justify-center pr-4 mr-4 text-right border-r border-neutral-200 dark:border-neutral-800">
@@ -23,7 +23,7 @@ export const EditorInfo = memo(({ characters, collabState, users, words }: Edito
           {characters} {characters === 1 ? 'character' : 'characters'}
         </div>
       </div>
-      <div className="flex items-center gap-2 mr-2">
+      {/* <div className="flex items-center gap-2 mr-2">
         <div
           className={cn('w-2 h-2 rounded-full', {
             'bg-yellow-500 dark:bg-yellow-400': collabState === 'connecting',
@@ -60,7 +60,7 @@ export const EditorInfo = memo(({ characters, collabState, users, words }: Edito
             )}
           </div>
         </div>
-      )}
+      )} */}
     </div>
   )
 })

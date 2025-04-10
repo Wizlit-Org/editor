@@ -18,26 +18,30 @@ import { TiptapCollabProvider } from '@hocuspocus/provider'
 
 export const BlockEditor = ({
   aiToken,
-  ydoc,
-  provider,
+  content,
+  limit,
+  // ydoc,
+  // provider,
 }: {
   aiToken?: string
-  ydoc: Y.Doc | null
-  provider?: TiptapCollabProvider | null | undefined
+  content: string
+  limit: number
+  // ydoc: Y.Doc | null
+  // provider?: TiptapCollabProvider | null | undefined
 }) => {
   const [isEditable, setIsEditable] = useState(true)
   const menuContainerRef = useRef(null)
 
-  const { editor, users, collabState } = useBlockEditor({
+  const { editor } = useBlockEditor({
     aiToken,
-    ydoc,
-    provider,
+    editable: isEditable,
+    content,
     onTransaction({ editor: currentEditor }) {
       setIsEditable(currentEditor.isEditable)
     },
   })
 
-  if (!editor || !users) {
+  if (!editor) {
     return null
   }
 
@@ -46,8 +50,8 @@ export const BlockEditor = ({
       <div className="relative flex flex-col flex-1 h-full overflow-hidden">
         <EditorHeader
           editor={editor}
-          collabState={collabState}
-          users={users}
+          // collabState={collabState}
+          // users={users}
         />
         <EditorContent editor={editor} className="flex-1 overflow-y-auto" />
         <ContentItemMenu editor={editor} isEditable={isEditable} />

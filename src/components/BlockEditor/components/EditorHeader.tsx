@@ -11,11 +11,11 @@ import { useCallback } from 'react'
 
 export type EditorHeaderProps = {
   editor: Editor
-  collabState: WebSocketStatus
-  users: EditorUser[]
+  // collabState: WebSocketStatus
+  // users: EditorUser[]
 }
 
-export const EditorHeader = ({ editor, collabState, users }: EditorHeaderProps) => {
+export const EditorHeader = ({ editor }: EditorHeaderProps) => {
   const { characters, words } = useEditorState({
     editor,
     selector: (ctx): { characters: number; words: number } => {
@@ -39,7 +39,7 @@ export const EditorHeader = ({ editor, collabState, users }: EditorHeaderProps) 
           </Toolbar.Button>
         </div>
       </div>
-      <EditorInfo characters={characters} words={words} collabState={collabState} users={users} />
+      <EditorInfo characters={characters} words={words} />
     </div>
   )
 }
