@@ -1,0 +1,32 @@
+.ProseMirror {
+  /* Youtube embed */
+  div[data-youtube-video] {
+    cursor: move;
+
+    iframe {
+      border: 0.2rem solid white;
+      display: block;
+      min-height: 200px;
+      min-width: 200px;
+      outline: 0px solid transparent;
+      pointer-events: none;
+      margin-bottom: 2rem;
+    }
+
+    &.ProseMirror-selectednode iframe {
+      outline: 3px solid red;
+      transition: outline 0.15s;
+    }
+  }
+
+  img {
+    cursor: move;
+    padding: 0.2rem;
+    box-sizing: border-box;
+    
+    &.ProseMirror-selectednode {
+      outline: 3px solid red;
+      transition: outline 0.15s;
+    }
+  }
+}

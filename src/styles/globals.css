@@ -1,89 +1,61 @@
+@import './editor.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer components {
-  .wizlit-editor {
-    @apply border border-gray-200 rounded-md overflow-hidden;
-  }
+@layer base {
+  body {
+    @apply bg-white text-neutral-900 dark:text-white dark:bg-black;
+    @apply antialiased;
 
-  .wizlit-editor-toolbar {
-    @apply flex gap-2 p-2 bg-gray-50 border-b border-gray-200;
+    font-size: 16px;
   }
+}
 
-  .wizlit-toolbar-button {
-    @apply px-2 py-1 border border-gray-200 rounded bg-white cursor-pointer transition-all hover:bg-gray-100;
-  }
+html,
+body {
+  @apply bg-white text-neutral-900 dark:bg-black dark:text-white;
+}
 
-  .wizlit-editor-content {
-    @apply p-4 min-h-[200px] outline-none focus:ring-2 focus:ring-blue-500/50;
-  }
+input::placeholder,
+textarea::placeholder {
+  @apply text-black/50 dark:text-white/40;
+}
 
-  /* TipTap Editor Styles */
-  .ProseMirror {
-    @apply min-h-[200px] p-4;
-  }
+input::-webkit-input-placeholder,
+textarea::-webkit-input-placeholder {
+  @apply text-black/50 dark:text-white/40;
+}
 
-  .ProseMirror:focus {
-    @apply outline-none;
-  }
+input::-moz-placeholder,
+textarea::-moz-placeholder {
+  @apply text-black/40 dark:text-white/40;
+}
 
-  .ProseMirror > * + * {
-    @apply mt-4;
-  }
+.react-colorful {
+  width: 100% !important;
+}
 
-  .ProseMirror p {
-    @apply leading-relaxed;
-  }
+[data-reference-hidden] {
+  opacity: 0;
+  pointer-events: none;
+}
 
-  .ProseMirror h1 {
-    @apply text-4xl font-bold mt-8 mb-4;
-  }
+::-webkit-scrollbar {
+  @apply w-1 h-1 bg-neutral-500/20;
+}
 
-  .ProseMirror h2 {
-    @apply text-3xl font-bold mt-6 mb-3;
-  }
+::-webkit-scrollbar-thumb {
+  @apply bg-neutral-500/50 rounded-full;
+}
 
-  .ProseMirror h3 {
-    @apply text-2xl font-bold mt-4 mb-2;
-  }
+input[type='range'] {
+  @apply h-2.5 bg-neutral-200 border-0 rounded appearance-none active:bg-neutral-300 transition-all;
+  @apply dark:bg-neutral-700 dark:active:bg-neutral-600;
 
-  .ProseMirror ul,
-  .ProseMirror ol {
-    @apply pl-4;
+  &::-webkit-slider-thumb {
+    @apply appearance-none w-3 h-5 bg-neutral-800 rounded-full active:bg-neutral-900 active:w-4 active:h-6 transition-all;
+    @apply dark:bg-neutral-100 dark:active:bg-white;
   }
-
-  .ProseMirror ul {
-    @apply list-disc;
-  }
-
-  .ProseMirror ol {
-    @apply list-decimal;
-  }
-
-  .ProseMirror blockquote {
-    @apply border-l-4 border-gray-300 pl-4 italic;
-  }
-
-  .ProseMirror pre {
-    @apply bg-gray-100 p-4 rounded-md;
-  }
-
-  .ProseMirror code {
-    @apply bg-gray-100 px-1 rounded;
-  }
-
-  .ProseMirror a {
-    @apply text-blue-500 underline;
-  }
-
-  .ProseMirror img {
-    @apply max-w-full h-auto rounded-lg;
-  }
-
-  /* Placeholder styles */
-  .ProseMirror p.is-editor-empty:first-child::before {
-    @apply text-gray-400 float-left h-0 pointer-events-none;
-    content: attr(data-placeholder);
-  }
-} 
+}
