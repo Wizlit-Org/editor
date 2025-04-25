@@ -38,19 +38,24 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
 
         const _pos = pos || state.selection.from
 
-        const imageFiles = files.filter(file => file.type.startsWith('image/'));
+        const imageFiles = files.filter(file => {
+          if (!this.options.accept) return file.type.startsWith('image/');
+          return file.type.match(new RegExp(this.options.accept.replace('*', '.*')));
+        });
         if (imageFiles.length === 0) return false;
         const limitedFiles = imageFiles.slice(0, this.options.maxImages)
 
         uploadImageQueue.setEditor(editor)
         limitedFiles.forEach(file => {
-          uploadImageQueue.add({
-            file,
-            pos: _pos,
-            upload: this.options.onUpload,
-            maxSize: this.options.maxSize,
-            forceReduceSize: true,
-          })
+          setTimeout(() => {
+            uploadImageQueue.add({
+              file,
+              pos: _pos,
+              upload: this.options.onUpload,
+              maxSize: this.options.maxSize,
+              forceReduceSize: true,
+            })
+          }, 0)
         })
 
         return true
@@ -65,39 +70,24 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
         props: {
           handlePaste: (view, event) => {
             const items = (event as ClipboardEvent).clipboardData?.items
-            if (!items) return false
-
-            const imageItems = Array.from(items).filter(item => 
-              item.type.startsWith('image/')
-            )
-            if (imageItems.length === 0) return false
-
-            const files = imageItems
+            if (!items || items.length === 0) return false
+            
+            const files = Array.from(items)
               .map(item => item.getAsFile())
               .filter((file): file is File => file !== null)
+            if (files.length === 0) return false
 
-            if (files.length > 0) {
-              this.editor.commands.uploadImages({ files })
-              return true
-            }
-
-            return false
+            this.editor.commands.uploadImages({ files });
+            return true
           },
           handleDrop: (view, event, slice, moved) => {
             if (moved) return false
 
-            const dt = (event as DragEvent).dataTransfer
-            if (!dt) return false
-
-            const files = dt.files
+            const files = Array.from(event.dataTransfer?.files || []);
             if (!files.length) return false
 
-            const { pos } = view.posAtCoords({
-              left: event.clientX,
-              top: event.clientY,
-            }) || {}
-
-            this.editor.commands.uploadImages({ files: Array.from(files), pos: pos || 0 })
+            const coords = view.posAtCoords({ left: event.clientX, top: event.clientY }) || { pos: 0 };
+            this.editor.commands.uploadImages({ files, pos: coords.pos });
             return true
           },
         },

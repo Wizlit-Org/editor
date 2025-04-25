@@ -19,7 +19,7 @@ export const Default: Story = {
     content: '<p>Hello, World! 👋</p>',
     onUploadImage: async (file: File) => {
       console.log('Image upload is disabled in the demo... Please implement the API.uploadImage method in your project.')
-      await new Promise(r => setTimeout(r, 2500))
+      await new Promise(r => setTimeout(r, Math.floor(Math.random() * 5000) + 1000))
       return `https://picsum.photos/${Math.floor(Math.random() * 300) + 100}/${Math.floor(Math.random() * 200) + 100}`
     },
   },
@@ -30,7 +30,7 @@ export const Empty: Story = {
     content: '',
     onUploadImage: async (file: File) => {
       console.log('Image upload is disabled in the demo... Please implement the API.uploadImage method in your project.')
-      await new Promise(r => setTimeout(r, 2500))
+      await new Promise(r => setTimeout(r, Math.floor(Math.random() * 5000) + 1000))
       return `https://picsum.photos/${Math.floor(Math.random() * 300) + 100}/${Math.floor(Math.random() * 200) + 100}`
     },
   },
@@ -52,9 +52,10 @@ export const WithRichContent: Story = {
     `,
     onUploadImage: async (file: File) => {
       console.log('Image upload is disabled in the demo... Please implement the API.uploadImage method in your project.')
-      await new Promise(r => setTimeout(r, 2500))
+      await new Promise(r => setTimeout(r, Math.floor(Math.random() * 5000) + 1000))
       return `https://picsum.photos/${Math.floor(Math.random() * 300) + 100}/${Math.floor(Math.random() * 200) + 100}`
     },
+    maxSize: 1024 * 10,
   },
 };
 
@@ -64,7 +65,7 @@ export const WithCustomClass: Story = {
     className: 'bg-gray-100 p-4 rounded-lg',
     onUploadImage: async (file: File) => {
       console.log('Image upload is disabled in the demo... Please implement the API.uploadImage method in your project.')
-      await new Promise(r => setTimeout(r, 2500))
+      await new Promise(r => setTimeout(r, Math.floor(Math.random() * 5000) + 1000))
       return `https://picsum.photos/${Math.floor(Math.random() * 300) + 100}/${Math.floor(Math.random() * 200) + 100}`
     },
   },
