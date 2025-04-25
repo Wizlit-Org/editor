@@ -19,6 +19,21 @@
     }
   }
 
+  /* When editor is not editable */
+  &:not([contenteditable="true"]) {
+    div[data-youtube-video] {
+      cursor: default;
+
+      iframe {
+        pointer-events: auto;
+      }
+
+      &.ProseMirror-selectednode iframe {
+        outline: none;
+      }
+    }
+  }
+/* 
   img {
     cursor: move;
     padding: 0.2rem;
@@ -28,5 +43,5 @@
       outline: 3px solid red;
       transition: outline 0.15s;
     }
-  }
+  } */
 }

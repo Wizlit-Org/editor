@@ -48,7 +48,7 @@ export const WithRichContent: Story = {
   args: {
     content: `
       <h1>Rich Content Example</h1>
-      <p>This is a paragraph with <strong>bold</strong> and <em>italic</em> text.</p>
+      <p>This is a <code>paragraph</code> with <strong>bold</strong> and <em>italic</em> text.</p>
       <ul>
         <li>Bullet point 1</li>
         <li>Bullet point 2</li>
@@ -56,14 +56,30 @@ export const WithRichContent: Story = {
       <blockquote>
         <p>This is a blockquote</p>
       </blockquote>
-      <pre><code>const code = "example";</code></pre>
+      <pre><code class="language-javascript">const code = "example";const code = "example";const code = "example";const code = "example";
+function red() {
+  String show = "hello"
+}</code></pre>
     `,
     onUploadImage: async (file: File) => {
       console.log('Image upload is disabled in the demo... Please implement the API.uploadImage method in your project.')
       await new Promise(r => setTimeout(r, Math.floor(Math.random() * 5000) + 1000))
       return `https://picsum.photos/${Math.floor(Math.random() * 300) + 100}/${Math.floor(Math.random() * 200) + 100}`
     },
+    onChange: (content, stats) => {
+      console.log(content, stats)
+    },
     maxSize: 1024 * 10,
+    maxCharacters: 5000,
+    showDebug: true,
+  },
+};
+
+export const ShortMaxCharacters: Story = {
+  args: {
+    content: '<p>This editor has custom styling</p>',
+    maxCharacters: 100,
+    showDebug: true,
   },
 };
 

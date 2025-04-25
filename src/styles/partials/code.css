@@ -1,15 +1,19 @@
 .ProseMirror {
   code {
-    @apply caret-white text-white bg-neutral-900 rounded-sm shadow-lg font-mono;
+    @apply font-mono text-[#EB5757] bg-[rgba(135,131,120,.15)] rounded-[4px] text-[85%] px-[0.4em] py-[0.2em];
+    font-family: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace;
 
     &::selection {
-      @apply bg-white/30;
+      @apply bg-black/20;
     }
   }
 
   pre {
-    @apply caret-white bg-neutral-700 text-white rounded my-12 p-4 pt-8 border border-black dark:bg-neutral-900 dark:border-neutral-800;
+    @apply caret-white bg-neutral-700 text-white rounded-lg p-4 pt-10 border border-black dark:bg-neutral-900 dark:border-neutral-800;
     line-height: 1.5;
+    overflow-x: auto;
+    width: 100%;
+    min-width: 100%;
 
     *::selection {
       @apply bg-white/20;
@@ -17,6 +21,15 @@
 
     code {
       @apply bg-inherit text-inherit p-0 shadow-none;
+      white-space: pre !important;
+    }
+  
+    code.wrap {
+      white-space: pre-wrap !important;
+    }
+  
+    code.nowrap {
+      white-space: pre !important;
     }
 
     .hljs-comment,

@@ -43,6 +43,8 @@ import {
   // UniqueID,
   History,
   Youtube,
+  ColorHighlighter,
+  SmilieReplacer,
 } from '.'
 
 import { isChangeOrigin } from '@tiptap/extension-collaboration'
@@ -169,6 +171,8 @@ export const ExtensionKit = ({
   // drawIoExtension.configure({
   //   openDialog: 'dblclick',
   // }),
+  ColorHighlighter,
+  SmilieReplacer,
 ]
 
 export default ExtensionKit

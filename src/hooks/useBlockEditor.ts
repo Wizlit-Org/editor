@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { useEditor, useEditorState } from '@tiptap/react'
 import type { AnyExtension, Editor, EditorOptions } from '@tiptap/core'
 // import Collaboration from '@tiptap/extension-collaboration'
@@ -26,9 +25,9 @@ export const uploadImageQueue = new UploadQueue()
 export const useBlockEditor = ({
   content,
   onUploadImage,
-  limit = 5000,
   maxSize,
   maxImages,
+  maxCharacters,
   className = '',
   // ydoc,
   // provider,
@@ -37,9 +36,9 @@ export const useBlockEditor = ({
   // ydoc: YDoc | null
   // provider?: TiptapCollabProvider | null | undefined
   onUploadImage?: (file: File) => Promise<string>
-  limit?: number
   maxSize?: number
   maxImages?: number
+  maxCharacters?: number
   className?: string
 } & Partial<Omit<EditorOptions, 'extensions'>>) => {
   const editor = useEditor(
@@ -64,7 +63,7 @@ export const useBlockEditor = ({
       // },
       extensions: ExtensionKit({ 
         editable: editorOptions.editable, 
-        limit,
+        limit: maxCharacters,
         onUploadImage,
         maxSize,
         maxImages,
@@ -78,7 +77,7 @@ export const useBlockEditor = ({
         },
       },
       content,
-      onPaste: async (event, slice) => {
+      onPaste: async (event) => {
         // Check for YouTube links in text content
         const textContent = (event as ClipboardEvent).clipboardData?.getData('text');
         if (textContent) {
@@ -86,7 +85,6 @@ export const useBlockEditor = ({
           const match = textContent.match(youtubeRegex);
           if (match) {
             const videoId = match[1];
-            const pos = editor.state.selection.from;
             editor.commands.setYoutubeVideo({
               src: `https://www.youtube.com/embed/${videoId}`,
             });
@@ -95,7 +93,7 @@ export const useBlockEditor = ({
         }
       },
     },
-    [content, maxSize, maxImages],
+    [content, maxSize, maxImages, editorOptions.editable],
     // [ydoc, provider],
   )
 

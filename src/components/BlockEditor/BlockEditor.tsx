@@ -3,8 +3,8 @@ import '@/styles/index.css'
 
 import { useBlockEditor } from '@/hooks/useBlockEditor'
 
-import { EditorContent } from '@tiptap/react'
-import React, { useRef, useEffect } from 'react'
+import { EditorContent, useEditorState } from '@tiptap/react'
+import React, { useRef, useEffect, useCallback } from 'react'
 
 import ImageBlockMenu from '@/extensions/ImageBlock/components/ImageBlockMenu'
 import { ColumnsMenu } from '@/extensions/MultiColumn/menus'
@@ -12,15 +12,18 @@ import { TableColumnMenu, TableRowMenu } from '@/extensions/Table/menus'
 import { TextMenu } from '@/components/menus/TextMenu'
 // import { ContentItemMenu } from '@/components/menus/ContentItemMenu'
 import { LinkMenu } from '@/components/menus/LinkMenu'
+import { EditorState } from '@tiptap/pm/state'
 
 export interface BlockEditorProps {
   content?: string
-  onChange?: (content: string) => void
+  onChange?: (content: string, stats: { characters: number; words: number; percentage: number }) => void
   className?: string
   readOnly?: boolean
   onUploadImage: (file: File) => Promise<string>
   maxSize?: number // Maximum file size in bytes (default: 5MB)
   maxImages?: number // Maximum number of images (default: 3)
+  maxCharacters?: number // Maximum number of characters (default: 5000)
+  showDebug?: boolean
 }
 
 export const BlockEditor: React.FC<BlockEditorProps> = ({
@@ -31,6 +34,8 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   onUploadImage,
   maxSize = 5 * 1024 * 1024, // Default 5MB
   maxImages = 3, // Default maximum number of images
+  maxCharacters, // Default maximum number of characters
+  showDebug = false,
 }) => {
   const menuContainerRef = useRef(null)
 
@@ -54,13 +59,46 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     editable: !readOnly,
     content,
     onUpdate: ({ editor }) => {
-      onChange?.(editor.getHTML())
+      const characters = editor.storage.characterCount.characters()
+      const words = editor.storage.characterCount.words()
+      const percentage = maxCharacters ? Math.round((100 / maxCharacters) * characters) : 0
+      
+      onChange?.(editor.getHTML(), { characters, words, percentage })
     },
     onUploadImage,
     maxSize,
     maxImages,
     className,
+    maxCharacters,
   })
+
+  const { characters, words } = useEditorState({
+    editor,
+    selector: (ctx): { characters: number; words: number } => {
+      const { characters, words } = ctx.editor?.storage.characterCount || { characters: () => 0, words: () => 0 }
+      return { characters: characters(), words: words() }
+    },
+  })
+
+  const percentage = editor && maxCharacters
+    ? Math.round((100 / maxCharacters) * editor.storage.characterCount.characters())
+    : 0
+
+  const handleEditable = useCallback((_editable = !editor.isEditable) => {
+    editor.setEditable(_editable);
+    
+    const { state, view } = editor;
+    const freshState = EditorState.create({
+      schema: state.schema,
+      plugins: state.plugins,
+      doc: state.doc,
+    });
+    view.updateState(freshState);
+  }, [editor]);
+
+  useEffect(() => {
+    handleEditable(!readOnly)
+  }, [readOnly])
 
   if (!editor) {
     return null
@@ -83,6 +121,23 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
         <TableColumnMenu editor={editor} appendTo={menuContainerRef} />
         <ImageBlockMenu editor={editor} appendTo={menuContainerRef} />
       </div>
+
+      {showDebug && (
+        <div className="absolute top-0 left-0 p-4 bg-white/80 rounded-lg shadow-lg">
+          <button onClick={() => handleEditable()} className="bg-blue-500 text-white px-3 py-2 rounded-md mb-2 text-sm">
+            {editor.isEditable ? 'Editable' : 'Read Only'}
+          </button>
+          <div className="space-y-1">
+            <p className="text-xs">Characters: {characters}</p>
+            <p className="text-xs">Words: {words}</p>
+            {maxCharacters && (
+              <p className="text-xs">
+                Progress: {percentage}% ({characters}/{maxCharacters})
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

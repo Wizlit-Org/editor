@@ -1,4 +1,4 @@
-import { Node } from '@tiptap/core'
+import { mergeAttributes, Node } from '@tiptap/core'
 
 export const QuoteCaption = Node.create({
   name: 'quoteCaption',
@@ -20,7 +20,34 @@ export const QuoteCaption = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    return ['figcaption', HTMLAttributes, 0]
+    return ['figcaption', mergeAttributes(HTMLAttributes), 0]
+  },
+  
+  addNodeView() {
+    return ({ node }) => {
+      // Create the root element
+      const dom = document.createElement('figcaption')
+      dom.classList.add('quote-caption')
+
+      // Create a container for editable content
+      const contentDOM = document.createElement('div')
+      dom.appendChild(contentDOM)
+
+      // Initial empty check
+      if (node.textContent.trim().length === 0) {
+        dom.classList.add('empty-content')
+      }
+
+      return {
+        dom,
+        contentDOM,
+        update(updatedNode) {
+          const isEmpty = updatedNode.textContent.trim().length === 0
+          dom.classList.toggle('empty-content', isEmpty)
+          return true
+        },
+      }
+    }
   },
 
   addKeyboardShortcuts() {
