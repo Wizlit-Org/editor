@@ -1,16 +1,6 @@
-'use client'
-
+import '@/styles/globals.css'
 import '@/styles/index.css'
 
-import 'cal-sans'
-
-import '@fontsource/inter/100.css'
-import '@fontsource/inter/200.css'
-import '@fontsource/inter/300.css'
-import '@fontsource/inter/400.css'
-import '@fontsource/inter/500.css'
-import '@fontsource/inter/600.css'
-import '@fontsource/inter/700.css'
 import { useBlockEditor } from '@/hooks/useBlockEditor'
 
 import { EditorContent } from '@tiptap/react'
@@ -23,7 +13,7 @@ import { TextMenu } from '@/components/menus/TextMenu'
 // import { ContentItemMenu } from '@/components/menus/ContentItemMenu'
 import { LinkMenu } from '@/components/menus/LinkMenu'
 
-export interface EditorProps {
+export interface BlockEditorProps {
   content?: string
   onChange?: (content: string) => void
   className?: string
@@ -33,7 +23,7 @@ export interface EditorProps {
   maxImages?: number // Maximum number of images (default: 3)
 }
 
-export const BlockEditor: React.FC<EditorProps> = ({
+export const BlockEditor: React.FC<BlockEditorProps> = ({
   content = '',
   onChange,
   className = '',

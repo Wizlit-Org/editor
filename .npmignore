@@ -1,0 +1,8 @@
+src
+node_modules
+
+.storybook
+.idea
+*.iml
+*.config.js
+.babelrc.json

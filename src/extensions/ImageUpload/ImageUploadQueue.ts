@@ -33,11 +33,7 @@ const resizeFile = async (file: File, maxSize?: number, forceReduceSize?: boolea
   if (!maxSize || file.size <= maxSize) {
     return file;
   }
-
-  if (typeof window === 'undefined' || !window.crypto?.subtle) {
-    return new Error('crypto.subtle not available, skipping image compression');
-  }
-
+  
   try {
     const img = new Image();
     const imgLoadPromise = new Promise<HTMLImageElement>((resolve, reject) => {

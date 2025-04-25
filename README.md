@@ -12,37 +12,112 @@ A modern editor component library for Next.js and React applications.
 
 ## Installation
 
-Install the plugin from npm:
+### 1. Install Dependencies
+
+First, install the required dependencies:
+
 ```bash
-npm install -D @tailwindcss/typography
-```
-Then add the plugin to your main `style.css` file:
-```
-  @import "tailwindcss";
-+ @plugin "@tailwindcss/typography";
-```
-Install library
-```bash
+npm install -D tailwindcss @tailwindcss/postcss postcss @tailwindcss/typography tailwindcss-animate
+npm install @fontsource/inter cal-sans
 npm install @wizlit/editor
-# or
-yarn add @wizlit/editor
 ```
 
-## Usage
+### 2. Configure Tailwind CSS
+
+Create a `tailwind.config.js` file in your project root:
+
+```javascript
+const defaultTheme = require('tailwindcss/defaultTheme')
+
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: ['class'],
+  content: [
+    './src/**/*.{ts,tsx}',
+  ],
+  safelist: ['ProseMirror'],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Inter', ...defaultTheme.fontFamily.sans],
+      },
+    },
+  },
+  plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],
+}
+```
+
+### 3. Configure PostCSS
+
+Create a `postcss.config.mjs` file in your project root:
+
+```javascript
+const config = {
+    plugins: {
+        "@tailwindcss/postcss": {},
+    },
+};
+export default config;
+```
+
+### 4. Set Up Fonts
+
+In your `src/app/layout.tsx` file, import the required fonts:
 
 ```tsx
-import { Editor } from '@wizlit/editor';
+import 'cal-sans'
+import '@fontsource/inter/100.css'
+import '@fontsource/inter/200.css'
+import '@fontsource/inter/300.css'
+import '@fontsource/inter/400.css'
+import '@fontsource/inter/500.css'
+import '@fontsource/inter/600.css'
+import '@fontsource/inter/700.css'
+```
+
+### 5. Configure Global Styles
+
+Add the following to your `globals.css` file:
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+### 6. Using the Editor
+
+Here's an example of how to use the editor in your component:
+
+```tsx
+import { BlockEditor } from "@wizlit/editor";
+import '@wizlit/editor/dist/styles/index.css'
 
 function MyComponent() {
-  const handleContentChange = (content: string) => {
-    console.log('Content changed:', content);
-  };
-
   return (
-    <Editor
-      content="<p>Hello, World!</p>"
-      onChange={handleContentChange}
-    />
+    <div className="w-full h-full">
+      <BlockEditor
+        content={`
+          <h1>Rich Content Example</h1>
+          <p>This is a paragraph with <strong>bold</strong> and <em>italic</em> text.</p>
+          <ul>
+            <li>Bullet point 1</li>
+            <li>Bullet point 2</li>
+          </ul>
+          <blockquote>
+            <p>This is a blockquote</p>
+          </blockquote>
+          <pre><code>const code = "example";</code></pre>
+        `}
+        onChange={(content: string) => console.log('Content changed:', content)}
+        onUploadImage={async (file: File) => {
+          console.log('Image upload is disabled in the demo... Please implement the API.uploadImage method in your project.')
+          await new Promise(r => setTimeout(r, 2500))
+          return `https://picsum.photos/${Math.floor(Math.random() * 300) + 100}/${Math.floor(Math.random() * 200) + 100}`
+        }}
+        className="w-[100vw] h-[100vh]"
+      />
+    </div>
   );
 }
 ```

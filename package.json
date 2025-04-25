@@ -15,14 +15,13 @@
   "scripts": {
     "build:css": "tailwindcss -i src/styles/globals.css -o dist/styles/globals.css --minify",
     "build": "npm run build:css && tsup src/index.ts --dts --format esm,cjs --clean",
-    "dev": "npm run build:css && tsup src/index.ts --dts --format esm,cjs --watch",
+    "dev": "npm run build && yalc publish --push",
     "clean": "rimraf dist",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"{src,apps,libs}/**/*.ts\"",
     "test": "jest",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
-    "prepare": "npm run build"
+    "build-storybook": "storybook build"
   },
   "peerDependencies": {
     "next": "^15.3.0",
@@ -120,9 +119,11 @@
     "react",
     "nextjs",
     "editor",
-    "component-library"
+    "component-library",
+    "wizlit",
+    "tiptap"
   ],
-  "author": "",
+  "author": "Wizlit",
   "license": "MIT",
   "eslintConfig": {
     "extends": [
