@@ -1,6 +1,8 @@
 # Wizlit Editor
 
-A modern editor component library for Next.js and React applications.
+[![GitHub](https://img.shields.io/badge/GitHub-Wizlit%20Editor-blue)](https://github.com/Wizlit-Org/editor) [![npm](https://img.shields.io/npm/dm/@wizlit/editor)](https://www.npmjs.com/package/@wizlit/editor) [![latest](https://img.shields.io/npm/v/@wizlit/editor)](https://www.npmjs.com/package/@wizlit/editor)
+
+Based on Tiptap editor, a modern editor component library for Next.js and React for Wizlit
 
 ## Features
 
@@ -122,71 +124,66 @@ function MyComponent() {
 }
 ```
 
+## BlockEditor Props
+
+The `BlockEditor` component accepts the following props:
+
+| Prop | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `content` | `string` | No | `''` | Initial HTML content for the editor |
+| `onChange` | `(content: string, stats: { characters: number; words: number; percentage: number }) => void` | No | - | Callback function called when editor content changes, includes character count, word count, and completion percentage |
+| `className` | `string` | No | `''` | Additional CSS classes to apply to the editor |
+| `readOnly` | `boolean` | No | `false` | Whether the editor is in read-only mode |
+| `onUploadImage` | `(file: File) => Promise<string>` | Yes | - | Function to handle image uploads. Must return a Promise that resolves to the image URL |
+| `maxSize` | `number` | No | `5 * 1024 * 1024` (5MB) | Maximum file size in bytes for image uploads |
+| `maxImages` | `number` | No | `3` | Maximum number of images allowed in the editor |
+| `maxCharacters` | `number` | No | - | Maximum number of characters allowed in the editor |
+| `showDebug` | `boolean` | No | `false` | Whether to show debug information including character count, word count, and editor state |
+
+### Example Usage with All Props
+
+```tsx
+import { BlockEditor } from "@wizlit/editor";
+import '@wizlit/editor/dist/styles/index.css'
+
+function MyComponent() {
+  const handleContentChange = (content: string) => {
+    console.log('Content changed:', content);
+  };
+
+  const handleImageUpload = async (file: File) => {
+    // Implement your image upload logic here
+    // This is just an example
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
+    
+    const data = await response.json();
+    return data.url;
+  };
+
+  return (
+    <div className="w-full h-full">
+      <BlockEditor
+        content="<p>Initial content</p>"
+        onChange={handleContentChange}
+        className="my-custom-class"
+        readOnly={false}
+        onUploadImage={handleImageUpload}
+        maxSize={10 * 1024 * 1024} // 10MB
+        maxImages={5}
+      />
+    </div>
+  );
+}
+```
+
 ## Development
-
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
-4. View Storybook:
-   ```bash
-   npm run storybook
-   ```
-
-## Local Testing with yalc
-
-For local development and testing in other projects, we recommend using [yalc](https://github.com/wclr/yalc) instead of npm link. yalc provides a more reliable way to test local packages.
-
-### Setup
-
-1. (Initial) Install yalc globally:
-   ```bash
-   npm install -g yalc
-   ```
-
-2. In the Wizlit Editor project directory, publish the package:
-   ```bash
-   yalc publish
-   ```
-
-3. In your test project directory, add the local package:
-   ```bash
-   yalc add @wizlit/editor
-   ```
-
-### Updating the Package
-
-When you make changes to the Wizlit Editor:
-
-1. Build the package:
-   ```bash
-   npm run build
-   ```
-
-2. Push the changes:
-   ```bash
-   yalc push
-   ```
-
-### Removing the Package
-
-To remove the local package from your test project:
-```bash
-yalc remove @wizlit/editor
-```
-
-## Building
-
-To build the library:
-
-```bash
-npm run build
-```
+For detailed development instructions, please refer to [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## License
 

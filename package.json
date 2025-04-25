@@ -1,7 +1,7 @@
 {
   "name": "@wizlit/editor",
-  "version": "0.1.0",
-  "description": "A modern editor component library for Next.js and React",
+  "version": "0.1.4",
+  "description": "Based on Tiptap editor, a modern editor component library for Next.js and React for Wizlit",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -12,16 +12,25 @@
   "sideEffects": [
     "**/*.css"
   ],
+  "author": "Wizlit",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "build:css": "tailwindcss -i src/styles/globals.css -o dist/styles/globals.css --minify",
     "build": "npm run build:css && tsup src/index.ts --dts --format esm,cjs --clean",
-    "dev": "npm run build && yalc publish --push",
+    "dev": "npm run build && yalc push",
     "clean": "rimraf dist",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"{src,apps,libs}/**/*.ts\"",
     "test": "jest",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "publish": "npm run build && npm publish && npm dist-tag add $(node -p \"require('./package.json').name\")@$(node -p \"require('./package.json').version\") latest",
+    "publish:push": "npm run build && npm publish && npm dist-tag add $(node -p \"require('./package.json').name\")@$(node -p \"require('./package.json').version\")",
+    "publish:remove": "npm unpublish $(node -p \"require('./package.json').name\")@$(node -p \"require('./package.json').version\")"
   },
   "peerDependencies": {
     "next": "^15.3.0",
@@ -123,8 +132,6 @@
     "wizlit",
     "tiptap"
   ],
-  "author": "Wizlit",
-  "license": "MIT",
   "eslintConfig": {
     "extends": [
       "plugin:storybook/recommended"
