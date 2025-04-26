@@ -35,9 +35,19 @@ export const ImageBlockView = (props: ImageBlockViewProps) => {
     editor.commands.setNodeSelection(getPos())
   }, [getPos, editor.commands])
 
+  const handleRetry = useCallback(() => {
+    if (src && src.startsWith('blob:')) {
+      editor.commands.retryImageUpload(src);
+    }
+  }, [editor.commands, src]);
+
   return (
     <NodeViewWrapper>
-      <div className={`${wrapperClassName} min-w-[50px] min-h-[50px]`} style={{ width: node.attrs.width }} data-drag-handle>
+      <div
+        className={`${wrapperClassName} min-h-[150px] bg-gray-100 border border-white rounded-xl`}
+        style={{ width: node.attrs.width }}
+        data-drag-handle
+      >
         <div contentEditable={false} ref={imageWrapperRef}>
           <img className="block" src={src} alt="" onClick={onClick} />
           {loading && (
@@ -47,10 +57,15 @@ export const ImageBlockView = (props: ImageBlockViewProps) => {
             </div>
           )}
           {error && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md">
+            <div className="absolute inset-0 flex items-center justify-center rounded-xl backdrop-blur-lg">
               <div className="text-center text-white">
                 <p className="text-sm font-medium">{error}</p>
-                <button className="bg-white text-black px-2 py-1 rounded text-sm">Click to retry</button>
+                <button 
+                  onClick={handleRetry}
+                  className="bg-white text-black px-2 py-1 rounded text-sm hover:bg-gray-100"
+                >
+                  Click to retry
+                </button>
               </div>
             </div>
           )}

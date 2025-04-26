@@ -13,6 +13,7 @@ declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     imageUpload: {
       uploadImages: (attributes: { files: File[], pos?: number }) => ReturnType
+      retryImageUpload: (localUrl: string) => ReturnType
     }
   }
 }
@@ -59,6 +60,13 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
         })
 
         return true
+      },
+      retryImageUpload: (localUrl: string) => ({ editor }) => {
+        uploadImageQueue.setEditor(editor);
+        setTimeout(() => {
+          uploadImageQueue.retryUpload(localUrl);
+        }, 0);
+        return true;
       },
     }
   },

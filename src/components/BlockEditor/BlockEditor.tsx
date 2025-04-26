@@ -19,19 +19,31 @@ export interface BlockEditorProps {
   onChange?: (content: string, stats: { characters: number; words: number; percentage: number }) => void
   className?: string
   readOnly?: boolean
-  onUploadImage: (file: File) => Promise<string>
+  onUploadImage?: (file: File) => Promise<string>
   maxSize?: number // Maximum file size in bytes (default: 5MB)
   maxImages?: number // Maximum number of images (default: 3)
   maxCharacters?: number // Maximum number of characters (default: 5000)
   showDebug?: boolean
 }
 
+const defaultUploadImage = async (): Promise<string> => {
+  console.warn(
+    'Image upload is disabled in the demo… implement your API.uploadImage'
+  );
+  await new Promise((r) =>
+    setTimeout(r, Math.floor(Math.random() * 5000) + 1000)
+  );
+  return `https://picsum.photos/${
+    Math.floor(Math.random() * 300) + 100
+  }/${Math.floor(Math.random() * 200) + 100}`;
+};
+
 export const BlockEditor: React.FC<BlockEditorProps> = ({
   content = '',
   onChange,
   className = '',
   readOnly,
-  onUploadImage,
+  onUploadImage = defaultUploadImage,
   maxSize = 5 * 1024 * 1024, // Default 5MB
   maxImages = 3, // Default maximum number of images
   maxCharacters, // Default maximum number of characters

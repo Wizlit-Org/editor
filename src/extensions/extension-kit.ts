@@ -108,7 +108,7 @@ export const ExtensionKit = ({
   CharacterCount.configure({ limit }),
   ImageBlock,
   ImageUpload.configure({
-    onUpload: onUploadImage || (() => Promise.reject('No upload handler provided')),
+    onUpload: onUploadImage,
     maxSize,
     maxImages,
   }),

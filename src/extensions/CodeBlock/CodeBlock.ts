@@ -1,6 +1,6 @@
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
 import { all, createLowlight } from 'lowlight'
-import { ReactNodeViewRenderer } from '@tiptap/react'
+import { NodeViewProps, ReactNodeViewRenderer } from '@tiptap/react'
 import { TextSelection } from 'prosemirror-state'
 import { CodeBlockView } from './components/CodeBlockView'
 
@@ -8,7 +8,7 @@ const lowlight = createLowlight(all)
 
 export const CodeBlock = CodeBlockLowlight.extend({
   addNodeView() {
-    return ReactNodeViewRenderer(CodeBlockView)
+    return ReactNodeViewRenderer(CodeBlockView as React.ComponentType<NodeViewProps>)
   },
 
   addKeyboardShortcuts() {
@@ -132,5 +132,5 @@ export const CodeBlock = CodeBlockLowlight.extend({
     lowlight,
     defaultLanguage: 'javascript',
     exitOnArrowDown: true,
-    exitOnTripleEnter: true,  
+    exitOnTripleEnter: true,
   })
