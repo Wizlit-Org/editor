@@ -1,78 +1,54 @@
-import { cn } from '@/lib/utils'
-import { Node } from '@tiptap/pm/model'
-import { Editor, NodeViewWrapper } from '@tiptap/react'
-import { useCallback, useRef } from 'react'
-import { Loader2 } from 'lucide-react'
+import React, { useState, useCallback } from 'react';
+import { Editor, NodeViewWrapper } from '@tiptap/react';
+import { Node } from '@tiptap/pm/model';
+import { cn } from '@/lib/utils';
 
 interface ImageBlockViewProps {
-  editor: Editor
-  getPos: () => number
-  node: Node
-  updateAttributes: (attrs: Record<string, string>) => void
+  editor: Editor;
+  getPos: () => number;
+  node: Node & { attrs: { src: string; align?: string; width?: string } };
+  updateAttributes: (attrs: Record<string, any>) => void;
 }
 
-export const ImageBlockView = (props: ImageBlockViewProps) => {
-  const { editor, getPos, node } = props as ImageBlockViewProps & {
-    node: Node & {
-      attrs: {
-        src: string
-        loading: boolean
-        error: string | null
-      }
-    }
-  }
-  const imageWrapperRef = useRef<HTMLDivElement>(null)
-  const { src, loading, error } = node.attrs
+export const ImageBlockView: React.FC<ImageBlockViewProps> = ({ editor, getPos, node }) => {
+  const [loaded, setLoaded] = useState(false);
+  const { src, align, width } = node.attrs;
 
   const wrapperClassName = cn(
-    node.attrs.align === 'left' ? 'ml-0' : 'ml-auto',
-    node.attrs.align === 'right' ? 'mr-0' : 'mr-auto',
-    node.attrs.align === 'center' && 'mx-auto',
-    'relative'
-  )
+    align === 'left' ? 'ml-0' : 'ml-auto',
+    align === 'right' ? 'mr-0' : 'mr-auto',
+    align === 'center' && 'mx-auto',
+    'bg-gray-100 wrapper',
+    loaded ? '' : 'animate-pulse'
+  );
 
   const onClick = useCallback(() => {
-    editor.commands.setNodeSelection(getPos())
-  }, [getPos, editor.commands])
-
-  const handleRetry = useCallback(() => {
-    if (src && src.startsWith('blob:')) {
-      editor.commands.retryImageUpload(src);
-    }
-  }, [editor.commands, src]);
+    editor.commands.setNodeSelection(getPos());
+  }, [editor, getPos]);
 
   return (
     <NodeViewWrapper>
       <div
-        className={`${wrapperClassName} min-h-[150px] bg-gray-100 border border-white rounded-xl`}
-        style={{ width: node.attrs.width }}
+        className={wrapperClassName}
+        style={{
+          width: width || '100%',
+          aspectRatio: loaded ? undefined : '16/9',
+        }}
         data-drag-handle
       >
-        <div contentEditable={false} ref={imageWrapperRef}>
-          <img className="block" src={src} alt="" onClick={onClick} />
-          {loading && (
-            <div className="absolute bottom-2 right-2 flex items-center gap-2 px-2 py-1 rounded">
-              <Loader2 className="h-3 w-3 animate-spin text-white" />
-              <span className="text-xs text-white">Uploading...</span>
-            </div>
+        <img
+          src={src}
+          alt=""
+          onClick={onClick}
+          onLoad={() => setLoaded(true)}
+          className={cn(
+            'block w-full h-auto transition-opacity duration-300',
+            loaded ? 'opacity-100' : 'opacity-0'
           )}
-          {error && (
-            <div className="absolute inset-0 flex items-center justify-center rounded-xl backdrop-blur-lg">
-              <div className="text-center text-white">
-                <p className="text-sm font-medium">{error}</p>
-                <button 
-                  onClick={handleRetry}
-                  className="bg-white text-black px-2 py-1 rounded text-sm hover:bg-gray-100"
-                >
-                  Click to retry
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        />
       </div>
     </NodeViewWrapper>
-  )
-}
+  );
+};
 
-export default ImageBlockView
+export default ImageBlockView;

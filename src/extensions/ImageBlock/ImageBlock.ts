@@ -11,13 +11,6 @@ declare module '@tiptap/core' {
       setImageBlockAt: (attributes: { src: string; pos: number | Range }) => ReturnType
       setImageBlockAlign: (align: 'left' | 'center' | 'right') => ReturnType
       setImageBlockWidth: (width: number) => ReturnType
-      uploadImage: (attributes: { 
-        file: File; 
-        upload: (file: File) => Promise<string>; 
-        pos?: number | Range;
-        maxSize?: number;
-        forceReduceSize?: boolean;
-      }) => ReturnType
     }
   }
 }
@@ -63,30 +56,16 @@ export const ImageBlock = Image.extend({
           alt: attributes.alt,
         }),
       },
-      loading: {
-        default: false,
-        parseHTML: element => element.getAttribute('data-loading') === 'true',
-        renderHTML: attributes => ({
-          'data-loading': attributes.loading,
-        }),
-      },
-      error: {
-        default: null,
-        parseHTML: element => element.getAttribute('data-error'),
-        renderHTML: attributes => ({
-          'data-error': attributes.error,
-        }),
-      },
     }
   },
 
-  parseHTML() {
-    return [
-      {
-        tag: 'img[src*="tiptap.dev"]:not([src^="data:"]), img[src*="windows.net"]:not([src^="data:"])',
-      },
-    ]
-  },
+  // parseHTML() {
+  //   return [
+  //     {
+  //       tag: 'img[src*="tiptap.dev"]:not([src^="data:"]), img[src*="windows.net"]:not([src^="data:"])',
+  //     },
+  //   ]
+  // },
 
   renderHTML({ HTMLAttributes }) {
     return ['img', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)]

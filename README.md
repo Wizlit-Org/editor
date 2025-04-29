@@ -94,66 +94,22 @@ Here's an example of how to use the editor in your component:
 ```tsx
 import { BlockEditor } from "@wizlit/editor";
 import '@wizlit/editor/dist/styles/index.css'
+import { useState } from 'react';
+import { UploadListDialog, UploadListDialogProps } from '@wizlit/editor';
 
 function MyComponent() {
-  return (
-    <div className="w-full h-full">
-      <BlockEditor
-        content={`
-          <h1>Rich Content Example</h1>
-          <p>This is a paragraph with <strong>bold</strong> and <em>italic</em> text.</p>
-          <ul>
-            <li>Bullet point 1</li>
-            <li>Bullet point 2</li>
-          </ul>
-          <blockquote>
-            <p>This is a blockquote</p>
-          </blockquote>
-          <pre><code>const code = "example";</code></pre>
-        `}
-        onChange={(content: string) => console.log('Content changed:', content)}
-        onUploadImage={async (file: File) => {
-          console.log('Image upload is disabled in the demo... Please implement the API.uploadImage method in your project.')
-          await new Promise(r => setTimeout(r, 2500))
-          return `https://picsum.photos/${Math.floor(Math.random() * 300) + 100}/${Math.floor(Math.random() * 200) + 100}`
-        }}
-        className="w-[100vw] h-[100vh]"
-      />
-    </div>
-  );
-}
-```
+  const [content, setContent] = useState('<p>Initial content</p>');
+  const [uploadDialogProps, setUploadDialogProps] = useState<UploadListDialogProps>({} as UploadListDialogProps);
 
-## BlockEditor Props
-
-The `BlockEditor` component accepts the following props:
-
-| Prop | Type | Required | Default | Description |
-|------|------|----------|---------|-------------|
-| `content` | `string` | No | `''` | Initial HTML content for the editor |
-| `onChange` | `(content: string, stats: { characters: number; words: number; percentage: number }) => void` | No | - | Callback function called when editor content changes, includes character count, word count, and completion percentage |
-| `className` | `string` | No | `''` | Additional CSS classes to apply to the editor |
-| `readOnly` | `boolean` | No | `false` | Whether the editor is in read-only mode |
-| `onUploadImage` | `(file: File) => Promise<string>` | Yes | - | Function to handle image uploads. Must return a Promise that resolves to the image URL |
-| `maxSize` | `number` | No | `5 * 1024 * 1024` (5MB) | Maximum file size in bytes for image uploads |
-| `maxImages` | `number` | No | `3` | Maximum number of images allowed in the editor |
-| `maxCharacters` | `number` | No | - | Maximum number of characters allowed in the editor |
-| `showDebug` | `boolean` | No | `false` | Whether to show debug information including character count, word count, and editor state |
-
-### Example Usage with All Props
-
-```tsx
-import { BlockEditor } from "@wizlit/editor";
-import '@wizlit/editor/dist/styles/index.css'
-
-function MyComponent() {
-  const handleContentChange = (content: string) => {
-    console.log('Content changed:', content);
+  const handleContentChange = (newContent: string, isChanged: { isChanged: boolean, isStrictChanged: boolean }, stats: EditorStats) => {
+    console.log('Content changed:', newContent);
+    console.log('Change status:', isChanged);
+    console.log('Stats:', stats);
+    setContent(newContent);
   };
 
   const handleImageUpload = async (file: File) => {
     // Implement your image upload logic here
-    // This is just an example
     const formData = new FormData();
     formData.append('image', file);
     
@@ -167,28 +123,90 @@ function MyComponent() {
   };
 
   return (
-    <div className="w-full h-full">
+    <div className="flex flex-col gap-4 p-4 h-screen relative">
+      <div className="flex justify-end">
+        <button 
+          onClick={() => setContent('<p>New content after button click! 🎉</p>')}
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+        >
+          Change Content
+        </button>
+      </div>
+      
       <BlockEditor
-        content="<p>Initial content</p>"
+        content={content}
         onChange={handleContentChange}
-        className="my-custom-class"
+        className="pr-8 pl-20 py-16 lg:pl-8 lg:pr-8"
         readOnly={false}
         onUploadImage={handleImageUpload}
         maxSize={10 * 1024 * 1024} // 10MB
-        maxImages={5}
+        maxEmbeddings={5}
+        maxCharacters={1000}
+        showDebug={true}
+        altCharacterCounter={true}
+        disableBuiltInUploadDialog={true}
+        getUploadDialogProps={props => {
+          setUploadDialogProps(props)
+        }}
+      />
+
+      <UploadListDialog
+        {...uploadDialogProps}
+        className="fixed bottom-4 left-4"
       />
     </div>
   );
 }
 ```
 
+## BlockEditor Props
+
+The `BlockEditor` component accepts the following props:
+
+| Prop | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `content` | `string` | No | `''` | Initial HTML content for the editor |
+| `onChange` | `(content: string, isChanged: { isChanged: boolean, isStrictChanged: boolean }, stats: EditorStats) => void` | No | - | Callback function called when editor content changes, includes change status and statistics |
+| `className` | `string` | No | `''` | Additional CSS classes to apply to the editor |
+| `readOnly` | `boolean` | No | `false` | Whether the editor is in read-only mode |
+| `onUploadImage` | `(file: File) => Promise<string>` | No | - | Function to handle image uploads. Must return a Promise that resolves to the image URL |
+| `maxSize` | `number` | No | `5 * 1024 * 1024` (5MB) | Maximum file size in bytes for image uploads |
+| `maxEmbeddings` | `number` | No | `3` | Maximum number of images allowed in the editor |
+| `maxCharacters` | `number` | No | - | Maximum number of characters allowed in the editor |
+| `showDebug` | `boolean \| { altCharacterCounter?: boolean }` | No | `false` | Whether to show debug information including character count, word count, and editor state |
+| `key` | `string` | No | - | Unique key for multiple editor instances |
+| `altCharacterCounter` | `boolean` | No | `false` | Use alternative character counting method |
+| `getUploadDialogProps` | `(props: UploadListDialogProps) => void` | No | - | Callback to get upload dialog props for custom implementation |
+| `disableBuiltInUploadDialog` | `boolean` | No | `false` | Whether to disable the built-in upload dialog |
+
+### EditorStats Interface
+
+The `EditorStats` interface returned in the `onChange` callback includes:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `characters` | `number` | Number of characters in the editor |
+| `words` | `number` | Number of words in the editor |
+| `percentage` | `number` | Completion percentage if maxCharacters is set |
+| `embedCount` | `number` | Number of embedded elements |
+| `embedList` | `string[]` | List of embedded element URLs |
+| `plainText` | `string` | Plain text content of the editor |
+
+### UploadListDialogProps Interface
+
+The `UploadListDialogProps` interface includes:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `items` | `UploadListItem[]` | List of upload items |
+| `onRetry` | `(id: string) => void` | Function to retry failed uploads |
+| `className` | `string` | Additional CSS classes for the dialog |
+| `pillClassName` | `string` | Additional CSS classes for the pill component |
+| `dialogClassName` | `string` | Additional CSS classes for the dialog container |
+
 ## Development
 For detailed development instructions, please refer to [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## License
 
-MIT 
-
-
-
-
+MIT

@@ -7,6 +7,9 @@ import type { AnyExtension, Editor, EditorOptions } from '@tiptap/core'
 
 import { ExtensionKit } from '@/extensions/extension-kit'
 import { UploadQueue } from '@/extensions/ImageUpload/ImageUploadQueue'
+import { useEffect, useMemo } from 'react'
+import { useState } from 'react'
+import { UploadListDialogProps, UploadListItem } from '@/extensions/ImageUpload/components/UploadListDialog.tsx'
 // import { userColors, userNames } from '../lib/constants'
 // import { randomElement } from '../lib/utils'
 // import type { EditorUser } from '../components/BlockEditor/types'
@@ -26,7 +29,7 @@ export const useBlockEditor = ({
   content,
   onUploadImage,
   maxSize,
-  maxImages,
+  maxEmbeddings,
   maxCharacters,
   className = '',
   // ydoc,
@@ -37,15 +40,16 @@ export const useBlockEditor = ({
   // provider?: TiptapCollabProvider | null | undefined
   onUploadImage?: (file: File) => Promise<string>
   maxSize?: number
-  maxImages?: number
+  maxEmbeddings?: number
   maxCharacters?: number
   className?: string
+  key?: string
 } & Partial<Omit<EditorOptions, 'extensions'>>) => {
   const editor = useEditor(
     {
       ...editorOptions,
       immediatelyRender: true,
-      shouldRerenderOnTransaction: false,
+      // shouldRerenderOnTransaction: false,
       autofocus: true,
       // onCreate: ctx => {
       //   if (provider && !provider.isSynced) {
@@ -66,7 +70,7 @@ export const useBlockEditor = ({
         limit: maxCharacters,
         onUploadImage,
         maxSize,
-        maxImages,
+        maxEmbeddings,
       }),
       editorProps: {
         attributes: {
@@ -93,11 +97,28 @@ export const useBlockEditor = ({
         }
       },
     },
-    [content, maxSize, maxImages, editorOptions.editable],
+    [maxSize, maxEmbeddings],
     // [ydoc, provider],
   )
 
-  window.editor = editor
+  const [uploadItems, setUploadItems] = useState<UploadListItem[]>([]);
+  
+  const uploadDialog = useMemo<UploadListDialogProps>(
+    () => ({
+      items: uploadItems,
+      onRetry: (id: string) => uploadImageQueue.retry(id),
+      onRemove: (id: string) => uploadImageQueue.remove(id),
+    }),
+    [uploadItems]
+  );
 
-  return { editor }
+  useEffect(() => {
+    uploadImageQueue.onStatusChange(items => {
+      setUploadItems(items);
+    });
+  }, []);
+
+  window.editor = editor
+  
+  return {editor, uploadDialog}
 }

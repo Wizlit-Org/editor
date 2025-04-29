@@ -45,6 +45,7 @@ import {
   Youtube,
   ColorHighlighter,
   SmilieReplacer,
+  LimitEmbedsPlugin,
 } from '.'
 
 import { isChangeOrigin } from '@tiptap/extension-collaboration'
@@ -57,7 +58,7 @@ interface ExtensionKitProps {
   editable?: boolean
   onUploadImage?: (file: File) => Promise<string>
   maxSize?: number
-  maxImages?: number
+  maxEmbeddings?: number
 }
 
 export const ExtensionKit = ({ 
@@ -65,7 +66,7 @@ export const ExtensionKit = ({
   limit,
   onUploadImage,
   maxSize,
-  maxImages,
+  maxEmbeddings,
 }: ExtensionKitProps) => [
   Document,
   Columns,
@@ -110,7 +111,8 @@ export const ExtensionKit = ({
   ImageUpload.configure({
     onUpload: onUploadImage,
     maxSize,
-    maxImages,
+    maxEmbeddings,
+    maxImagesPerAction: 3,
   }),
   // FileHandler.configure({
   //   allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
@@ -173,6 +175,7 @@ export const ExtensionKit = ({
   // }),
   ColorHighlighter,
   SmilieReplacer,
+  LimitEmbedsPlugin(maxEmbeddings),
 ]
 
 export default ExtensionKit

@@ -71,7 +71,6 @@ npm run dev
 
 2. Publish the package:
    - For production: `npm run publish` (publish with latest tag)
-   - For testing or staging: `npm run publish:push` (publish only version tag)
    - For removing: `npm run publish:remove`
 
 ### Version Management

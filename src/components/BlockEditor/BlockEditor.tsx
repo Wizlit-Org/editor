@@ -4,7 +4,7 @@ import '@/styles/index.css'
 import { useBlockEditor } from '@/hooks/useBlockEditor'
 
 import { EditorContent, useEditorState } from '@tiptap/react'
-import React, { useRef, useEffect, useCallback } from 'react'
+import React, { useRef, useEffect, useCallback, useState } from 'react'
 
 import ImageBlockMenu from '@/extensions/ImageBlock/components/ImageBlockMenu'
 import { ColumnsMenu } from '@/extensions/MultiColumn/menus'
@@ -13,17 +13,32 @@ import { TextMenu } from '@/components/menus/TextMenu'
 // import { ContentItemMenu } from '@/components/menus/ContentItemMenu'
 import { LinkMenu } from '@/components/menus/LinkMenu'
 import { EditorState } from '@tiptap/pm/state'
+import { UploadListDialog, UploadListDialogProps } from '../../extensions/ImageUpload/components/UploadListDialog.tsx'
+import { compareDocs, getStats } from '@/lib/utils/getStats'
+
+export interface EditorStats {
+  characters?: number;
+  words?: number;
+  percentage?: number;
+  embedCount?: number;
+  embedList?: string[];
+  plainText?: string;
+}
 
 export interface BlockEditorProps {
   content?: string
-  onChange?: (content: string, stats: { characters: number; words: number; percentage: number }) => void
+  onChange?: (content: string, isChanged: { isChanged: boolean, isStrictChanged: boolean }, stats: EditorStats) => void
   className?: string
   readOnly?: boolean
   onUploadImage?: (file: File) => Promise<string>
   maxSize?: number // Maximum file size in bytes (default: 5MB)
-  maxImages?: number // Maximum number of images (default: 3)
+  maxEmbeddings?: number // Maximum number of embeds (default: 3)
   maxCharacters?: number // Maximum number of characters (default: 5000)
-  showDebug?: boolean
+  showDebug?: boolean | { altCharacterCounter?: boolean }
+  key?: string // Unique key for multiple editor instances
+  altCharacterCounter?: boolean
+  getUploadDialogProps?: (props: UploadListDialogProps) => void
+  disableBuiltInUploadDialog?: boolean
 }
 
 const defaultUploadImage = async (): Promise<string> => {
@@ -33,6 +48,9 @@ const defaultUploadImage = async (): Promise<string> => {
   await new Promise((r) =>
     setTimeout(r, Math.floor(Math.random() * 5000) + 1000)
   );
+  if (Math.random() < 0.5) {
+    throw new Error('Demo upload failed');
+  }
   return `https://picsum.photos/${
     Math.floor(Math.random() * 300) + 100
   }/${Math.floor(Math.random() * 200) + 100}`;
@@ -45,12 +63,17 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   readOnly,
   onUploadImage = defaultUploadImage,
   maxSize = 5 * 1024 * 1024, // Default 5MB
-  maxImages = 3, // Default maximum number of images
+  maxEmbeddings = 3, // Default maximum number of images
   maxCharacters, // Default maximum number of characters
   showDebug = false,
+  altCharacterCounter = false,
+  key,
+  getUploadDialogProps: outputUploadDialogProps,
+  disableBuiltInUploadDialog = false,
 }) => {
   const menuContainerRef = useRef(null)
-
+  const [stats, setStats] = useState<EditorStats>({})
+  
   useEffect(() => {
     const preventDefault = (e: DragEvent) => {
       e.preventDefault()
@@ -66,22 +89,23 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     }
   }, [])
 
-  const { editor } = useBlockEditor({
+  const { editor, uploadDialog } = useBlockEditor({
     // aiToken,
     editable: !readOnly,
     content,
     onUpdate: ({ editor }) => {
-      const characters = editor.storage.characterCount.characters()
-      const words = editor.storage.characterCount.words()
-      const percentage = maxCharacters ? Math.round((100 / maxCharacters) * characters) : 0
-      
-      onChange?.(editor.getHTML(), { characters, words, percentage })
+      const { isChanged, isStrictChanged, compareHTML } = compareDocs(content, editor.getHTML())
+      const stats = getStats(editor, maxCharacters, altCharacterCounter)
+
+      setStats(stats)
+      onChange?.(compareHTML, { isChanged, isStrictChanged }, stats)
     },
     onUploadImage,
     maxSize,
-    maxImages,
+    maxEmbeddings,
     className,
     maxCharacters,
+    key,
   })
 
   const { characters, words } = useEditorState({
@@ -112,26 +136,38 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     handleEditable(!readOnly)
   }, [readOnly])
 
+  useEffect(() => {
+      editor?.commands.setContent(content, true)
+  }, [content])
+
+  useEffect(() => {
+    if (editor) {
+      outputUploadDialogProps?.(uploadDialog)
+    }
+  }, [outputUploadDialogProps, uploadDialog])
+
   if (!editor) {
     return null
   }
 
   return (
-    <div className="flex h-full" ref={menuContainerRef}>
-      <div className="relative flex flex-col flex-1 h-full overflow-hidden">
-        {/* <EditorHeader
-          editor={editor}
-          // collabState={collabState}
-          // users={users}
-        /> */}
-        <EditorContent editor={editor} className="flex-1 overflow-y-auto" />
-        {/* <ContentItemMenu editor={editor} isEditable={isEditable} /> */}
-        <LinkMenu editor={editor} appendTo={menuContainerRef} />
-        <TextMenu editor={editor} />
-        <ColumnsMenu editor={editor} appendTo={menuContainerRef} />
-        <TableRowMenu editor={editor} appendTo={menuContainerRef} />
-        <TableColumnMenu editor={editor} appendTo={menuContainerRef} />
-        <ImageBlockMenu editor={editor} appendTo={menuContainerRef} />
+    <>
+      <div className="flex" ref={menuContainerRef}>
+        <div className="relative flex flex-col flex-1 overflow-hidden">
+          {/* <EditorHeader
+            editor={editor}
+            // collabState={collabState}
+            // users={users}
+          /> */}
+          <EditorContent editor={editor} className="flex-1" />
+          {/* <ContentItemMenu editor={editor} isEditable={isEditable} /> */}
+          <LinkMenu editor={editor} appendTo={menuContainerRef} />
+          <TextMenu editor={editor} />
+          <ColumnsMenu editor={editor} appendTo={menuContainerRef} />
+          <TableRowMenu editor={editor} appendTo={menuContainerRef} />
+          <TableColumnMenu editor={editor} appendTo={menuContainerRef} />
+          <ImageBlockMenu editor={editor} appendTo={menuContainerRef} />
+        </div>
       </div>
 
       {showDebug && (
@@ -140,17 +176,25 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
             {editor.isEditable ? 'Editable' : 'Read Only'}
           </button>
           <div className="space-y-1">
-            <p className="text-xs">Characters: {characters}</p>
-            <p className="text-xs">Words: {words}</p>
+            <p className="text-xs">Characters: {altCharacterCounter ? characters : stats.characters}</p>
+            <p className="text-xs">Words: {altCharacterCounter ? words : stats.words}</p>
             {maxCharacters && (
               <p className="text-xs">
-                Progress: {percentage}% ({characters}/{maxCharacters})
+                Progress: {altCharacterCounter ? percentage : Math.round((100 / maxCharacters) * (stats.characters || 0))}% 
+                ({altCharacterCounter ? characters : stats.characters}/{maxCharacters})
               </p>
             )}
           </div>
         </div>
       )}
-    </div>
+
+      {!disableBuiltInUploadDialog && !readOnly && (
+        <UploadListDialog
+          {...uploadDialog}
+          className="fixed bottom-4 right-4"
+        />
+      )}
+    </>
   )
 }
 

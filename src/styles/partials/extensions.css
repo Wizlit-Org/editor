@@ -1,21 +1,20 @@
 .ProseMirror {
   /* Youtube embed */
   div[data-youtube-video] {
-    cursor: move;
+    @apply cursor-move w-full aspect-video mb-8 relative;
 
-    iframe {
-      border: 0.2rem solid white;
-      display: block;
-      min-height: 200px;
-      min-width: 200px;
-      outline: 0px solid transparent;
-      pointer-events: none;
-      margin-bottom: 2rem;
+    & iframe {
+      @apply outline outline-2 outline-offset-4 outline-transparent transition-all;
+      @apply pointer-events-none mb-8 w-full h-full rounded-xl bg-neutral-100 dark:bg-neutral-900;
     }
 
-    &.ProseMirror-selectednode iframe {
-      outline: 3px solid red;
-      transition: outline 0.15s;
+    &:hover iframe {
+      @apply outline-neutral-300 dark:outline-neutral-900;
+    }
+
+    &:has(.is-active) iframe,
+    &.has-focus iframe {
+      @apply outline-neutral-800 dark:outline-neutral-200;
     }
   }
 
@@ -28,8 +27,8 @@
         pointer-events: auto;
       }
 
-      &.ProseMirror-selectednode iframe {
-        outline: none;
+      &:hover iframe {
+        @apply outline-none;
       }
     }
   }

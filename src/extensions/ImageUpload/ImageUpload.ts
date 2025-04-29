@@ -1,12 +1,13 @@
 import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { uploadImageQueue } from '@/hooks/useBlockEditor'
-
+import { countEmbedNodes } from '@/lib/utils/isCustomNodeSelected'
 export interface ImageUploadOptions {
   onUpload: (file: File) => Promise<string>
   maxSize?: number
-  maxImages?: number
+  maxImagesPerAction?: number
   accept?: string
+  maxEmbeddings?: number
 }
 
 declare module '@tiptap/core' {
@@ -37,15 +38,30 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
           return false
         }
 
-        const _pos = pos || state.selection.from
+        const _pos = pos ?? editor.state.selection.from
+        let currentEmbeds = countEmbedNodes(editor)
 
+        // 2) Compute how many more we can embed
+        const remainingEmbeds = this.options.maxEmbeddings != null
+          ? Math.max(0, this.options.maxEmbeddings - currentEmbeds)
+          : files.length
+        
+        if (remainingEmbeds === 0) {
+          alert('Embedding limit reached')
+          return false
+        }
+
+        // 3) Filter and accept only image files
         const imageFiles = files.filter(file => {
           if (!this.options.accept) return file.type.startsWith('image/');
           return file.type.match(new RegExp(this.options.accept.replace('*', '.*')));
         });
         if (imageFiles.length === 0) return false;
-        const limitedFiles = imageFiles.slice(0, this.options.maxImages)
 
+        // 4) Slice to the lesser of remainingEmbeds or maxImagesPerAction
+        const maxPerAction = this.options.maxImagesPerAction ?? imageFiles.length
+        const limitedFiles = imageFiles.slice(0, Math.min(remainingEmbeds, maxPerAction))
+        
         uploadImageQueue.setEditor(editor)
         limitedFiles.forEach(file => {
           setTimeout(() => {
@@ -60,13 +76,6 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
         })
 
         return true
-      },
-      retryImageUpload: (localUrl: string) => ({ editor }) => {
-        uploadImageQueue.setEditor(editor);
-        setTimeout(() => {
-          uploadImageQueue.retryUpload(localUrl);
-        }, 0);
-        return true;
       },
     }
   },

@@ -101,17 +101,29 @@
   }
 
   .node-imageBlock {
+    & .wrapper {
+      @apply outline outline-2 outline-offset-4 outline-transparent rounded-xl transition-all;
+    }
+
     & img {
-      @apply border-2 border-transparent rounded-xl overflow-hidden;
+      @apply rounded-xl overflow-hidden;
     }
 
-    &:hover img {
-      @apply border-2 border-neutral-100 dark:border-neutral-900;
+    &:hover .wrapper {
+      @apply outline-neutral-300 dark:outline-neutral-900;
     }
 
-    &:has(.is-active) img,
-    &.has-focus img {
-      @apply border-2 border-neutral-800 dark:border-neutral-200;
+    &:has(.is-active) .wrapper,
+    &.has-focus .wrapper {
+      @apply outline-neutral-800 dark:outline-neutral-200;
+    }
+  }
+
+  &:not([contenteditable="true"]) {
+    .node-imageBlock {
+      &:hover .wrapper {
+        @apply outline-none;
+      }
     }
   }
 
