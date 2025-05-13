@@ -120,25 +120,42 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     ? Math.round((100 / maxCharacters) * editor.storage.characterCount.characters())
     : 0
 
-  const handleEditable = useCallback((_editable = !editor.isEditable) => {
-    editor.setEditable(_editable);
+  const handleEditable = useCallback((_editable = !editor?.isEditable) => {
+    if (!editor) return;
     
-    const { state, view } = editor;
-    const freshState = EditorState.create({
-      schema: state.schema,
-      plugins: state.plugins,
-      doc: state.doc,
-    });
-    view.updateState(freshState);
+    try {
+      editor.setEditable(_editable);
+      
+      // Only update state if the editor is properly initialized
+      if (editor.isDestroyed) return;
+      
+      const { state, view } = editor;
+      if (!state || !view) return;
+      
+      const freshState = EditorState.create({
+        schema: state.schema,
+        plugins: state.plugins,
+        doc: state.doc,
+      });
+      
+      if (view.isDestroyed) return;
+      view.updateState(freshState);
+    } catch (error) {
+      console.error('Error updating editor state:', error);
+    }
   }, [editor]);
 
   useEffect(() => {
-    handleEditable(!readOnly)
-  }, [readOnly])
+    if (editor && !editor.isDestroyed) {
+      handleEditable(!readOnly);
+    }
+  }, [readOnly, editor, handleEditable]);
 
   useEffect(() => {
-      editor?.commands.setContent(content, true)
-  }, [content])
+    if (editor && !editor.isDestroyed) {
+      editor.commands.setContent(content, true);
+    }
+  }, [content, editor]);
 
   useEffect(() => {
     if (editor) {

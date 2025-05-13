@@ -18,6 +18,10 @@ export const CodeBlock = CodeBlockLowlight.extend({
       ...parentShortcuts,
       
       Tab: ({ editor }) => {
+        if (!editor.isActive('codeBlock')) {
+          return false
+        }
+
         const event = window.event as KeyboardEvent
         if (event) {
           event.preventDefault()
@@ -60,6 +64,10 @@ export const CodeBlock = CodeBlockLowlight.extend({
       },
 
       'Shift-Tab': ({ editor }) => {
+        if (!editor.isActive('codeBlock')) {
+          return false
+        }
+
         const event = window.event as KeyboardEvent
         if (event) {
           event.preventDefault()
