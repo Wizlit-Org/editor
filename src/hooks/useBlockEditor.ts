@@ -79,23 +79,60 @@ export const useBlockEditor = ({
           autocapitalize: 'off',
           class: `min-h-full ${className}`,
         },
+        handlePaste: (view, event) => {
+          const clipboard = (event as ClipboardEvent).clipboardData;
+          if (!clipboard) return false;
+            
+          // 1) Handle YouTube URLs
+          const text = clipboard.getData('text');
+          if (text) {
+            const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+            const match = text.match(youtubeRegex);
+            if (match) {
+              event.preventDefault();
+              const videoId = match[1];
+              editor.commands.setYoutubeVideo({
+                src: `https://www.youtube.com/embed/${videoId}`,
+              });
+              return true;
+            }
+          }
+
+          // 2) Handle Base64 data URIs
+          const base64Match = text.match(
+            /^data:image\/(png|jpe?g|gif|webp);base64,([A-Za-z0-9+/]+=*)$/
+          );
+          if (base64Match) {
+            event.preventDefault();
+            const [, type, b64] = base64Match;
+            const byteString = atob(b64);
+            const array = new Uint8Array(byteString.length);
+            for (let i = 0; i < byteString.length; i++) {
+              array[i] = byteString.charCodeAt(i);
+            }
+            const blob = new Blob([array], { type: `image/${type}` });
+            const file = new File([blob], `pasted.${type}`, { type: blob.type });
+            editor.commands.uploadImages({ files: [file] });
+            return true;
+          }
+        
+          // 3) Handle valid image URLs
+          if (text) {
+            event.preventDefault();
+            const img = new Image();
+            img.onload = () => {
+              const pos = editor.state.selection.from;
+              editor.commands.setImageBlockAt({ src: text, pos });
+            };
+            img.src = text;
+            return true;
+          }
+        
+          // 4) Default: let Tiptap handle the paste normally
+          return false;
+        },
       },
       content,
-      onPaste: async (event) => {
-        // Check for YouTube links in text content
-        const textContent = (event as ClipboardEvent).clipboardData?.getData('text');
-        if (textContent) {
-          const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-          const match = textContent.match(youtubeRegex);
-          if (match) {
-            const videoId = match[1];
-            editor.commands.setYoutubeVideo({
-              src: `https://www.youtube.com/embed/${videoId}`,
-            });
-            return;
-          }
-        }
-      },
     },
     [maxSize, maxEmbeddings],
     // [ydoc, provider],
@@ -118,7 +155,10 @@ export const useBlockEditor = ({
     });
   }, []);
 
-  window.editor = editor
+  // Only set window.editor if editor is initialized
+  if (editor) {
+    window.editor = editor;
+  }
   
   return {editor, uploadDialog}
 }

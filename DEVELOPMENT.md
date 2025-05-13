@@ -9,11 +9,7 @@ This guide provides detailed information for developers working on the Wizlit Ed
    ```bash
    npm install
    ```
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
-4. View Storybook:
+3. View Storybook:
    ```bash
    npm run storybook
    ```
