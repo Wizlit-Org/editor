@@ -82,22 +82,45 @@ export const useBlockEditor = ({
         handlePaste: (view, event) => {
           const clipboard = (event as ClipboardEvent).clipboardData;
           if (!clipboard) return false;
-            
-          // 1) Handle YouTube URLs
           const text = clipboard.getData('text');
-          if (text) {
+          
+          // 1) Handle YouTube URLs
+          const url = (() => {
+            try {
+              return new URL(text);
+            } catch {
+              return null;
+            }
+          })();
+          if (url) {
+            event.preventDefault();
+
             const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-            const match = text.match(youtubeRegex);
-            if (match) {
-              event.preventDefault();
-              const videoId = match[1];
+            const isYoutube = text.match(youtubeRegex);
+
+            if (isYoutube) {
+              const videoId = isYoutube[1];
               editor.commands.setYoutubeVideo({
                 src: `https://www.youtube.com/embed/${videoId}`,
               });
               return true;
+
+            } else {
+              // Handle valid image URLs
+              const img = new Image();
+              img.onload = () => {
+                const pos = editor.state.selection.from;
+                editor.commands.setImageBlockAt({ src: text, pos });
+              };
+              img.onerror = () => {
+                // If image fails to load, let Tiptap handle the paste
+                editor.commands.insertContent(text);
+              };
+              img.src = text;
+              return true;
             }
           }
-
+        
           // 2) Handle Base64 data URIs
           const base64Match = text.match(
             /^data:image\/(png|jpe?g|gif|webp);base64,([A-Za-z0-9+/]+=*)$/
@@ -113,18 +136,6 @@ export const useBlockEditor = ({
             const blob = new Blob([array], { type: `image/${type}` });
             const file = new File([blob], `pasted.${type}`, { type: blob.type });
             editor.commands.uploadImages({ files: [file] });
-            return true;
-          }
-        
-          // 3) Handle valid image URLs
-          if (text) {
-            event.preventDefault();
-            const img = new Image();
-            img.onload = () => {
-              const pos = editor.state.selection.from;
-              editor.commands.setImageBlockAt({ src: text, pos });
-            };
-            img.src = text;
             return true;
           }
         

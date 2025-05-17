@@ -1,6 +1,6 @@
 {
   "name": "@wizlit/editor",
-  "version": "0.1.7",
+  "version": "0.1.9",
   "description": "Based on Tiptap editor, a modern editor component library for Next.js and React for Wizlit",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
