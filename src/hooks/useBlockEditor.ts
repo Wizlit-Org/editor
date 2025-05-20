@@ -106,6 +106,24 @@ export const useBlockEditor = ({
               return true;
 
             } else {
+              // 2) Handle Base64 data URIs
+              const dataUriRegex = /^data:([a-z]+\/[a-z0-9.+-]+)(?:;[a-z0-9-]+=.*?)*;base64,([A-Za-z0-9+/]+=*)$/i;
+              const base64Match = text.match(dataUriRegex);
+              if (base64Match) {
+                console.log('base64Match', base64Match)
+                event.preventDefault();
+                const [, type, b64] = base64Match;
+                const byteString = atob(b64);
+                const array = new Uint8Array(byteString.length);
+                for (let i = 0; i < byteString.length; i++) {
+                  array[i] = byteString.charCodeAt(i);
+                }
+                const blob = new Blob([array], { type: `image/${type}` });
+                const file = new File([blob], `pasted.${type}`, { type: blob.type });
+                editor.commands.uploadImages({ files: [file] });
+                return true;
+              }
+              
               // Handle valid image URLs
               const img = new Image();
               img.onload = () => {
@@ -119,24 +137,6 @@ export const useBlockEditor = ({
               img.src = text;
               return true;
             }
-          }
-        
-          // 2) Handle Base64 data URIs
-          const base64Match = text.match(
-            /^data:image\/(png|jpe?g|gif|webp);base64,([A-Za-z0-9+/]+=*)$/
-          );
-          if (base64Match) {
-            event.preventDefault();
-            const [, type, b64] = base64Match;
-            const byteString = atob(b64);
-            const array = new Uint8Array(byteString.length);
-            for (let i = 0; i < byteString.length; i++) {
-              array[i] = byteString.charCodeAt(i);
-            }
-            const blob = new Blob([array], { type: `image/${type}` });
-            const file = new File([blob], `pasted.${type}`, { type: blob.type });
-            editor.commands.uploadImages({ files: [file] });
-            return true;
           }
         
           // 4) Default: let Tiptap handle the paste normally

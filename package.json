@@ -1,6 +1,6 @@
 {
   "name": "@wizlit/editor",
-  "version": "0.1.9",
+  "version": "0.1.901",
   "description": "Based on Tiptap editor, a modern editor component library for Next.js and React for Wizlit",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -28,7 +28,8 @@
     "test": "jest",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "publish": "npm run build && npm publish && Start-Sleep -Seconds 15 && npm dist-tag add $(node -p \"require('./package.json').name\")@$(node -p \"require('./package.json').version\") latest",
+    "publish": "npm run build && npm publish",
+    "publish:latest": "npm dist-tag add $(node -p \"require('./package.json').name\")@$(node -p \"require('./package.json').version\") latest",
     "publish:remove": "npm unpublish $(node -p \"require('./package.json').name\")@$(node -p \"require('./package.json').version\")"
   },
   "peerDependencies": {
