@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import BlockEditor from './BlockEditor';
 import { useState } from 'react';
 import { UploadListDialog, UploadListDialogProps } from '@/extensions/ImageUpload/components/UploadListDialog.tsx';
+
 const meta: Meta<typeof BlockEditor> = {
   title: 'Components/Editor',
   component: BlockEditor,
@@ -10,8 +11,10 @@ const meta: Meta<typeof BlockEditor> = {
   },
   tags: ['autodocs'],
   argTypes: {
-    onUploadImage: {
-      action: false,
+    image: {
+      onUploadImage: {
+        action: false,
+      },
     },
     onChange: {
       action: false,
@@ -44,28 +47,42 @@ export const Empty: Story = {
 
 export const WithRichContent: Story = {
   args: {
-    content: `
-      <h1>Rich Content Example</h1>
-      <p>This is a <code>paragraph</code> with <strong>bold</strong> and <em>italic</em> text.</p>
-      <ul>
-        <li>Bullet point 1</li>
-        <li>Bullet point 2</li>
-      </ul>
-      <blockquote>
-        <p>This is a blockquote</p>
-      </blockquote>
-      <pre><code class="language-javascript">const code = "example";const code = "example";const code = "example";const code = "example";
+    // readOnly: true,
+    content: `<h1>Rich Content Example</h1><p>This is a <code>paragraph</code> with <strong>bold</strong> and <em>italic</em> text.</p><ul><li><p>Bullet point 1</p></li><li><p>Bullet point 2</p></li></ul><figure data-type="blockquoteFigure"><div><blockquote><p>This is a blockquote</p></blockquote><figcaption></figcaption></div></figure><pre><code class="language-javascript">const code = "example";const code = "example";const code = "example";const code = "example";
 function red() {
   String show = "hello"
-}</code></pre>
-    `,
+}</code></pre><p><a rel="noopener noreferrer nofollow" class="link" style="">https://www.google.com/search?sca_esv=bae98e363cc9bd77&amp;rlz=1C1GCEU_koKR…amp;biw=742&amp;bih=608&amp;dpr=1#vhid=-mNI5DBCB_iEPM&amp;vssid=mosaic</a></p><img src="https://lh7-rt.googleusercontent.com/docsz/AD_4nXdYjM8OgCA8iyur01v6LLW6sGoTBcCBuO0BcC5wGwn6zt4CsBS1R9Y__igexq5flbfFqXjG7UMdQ8ehu_rnoksX6BOSdQ0Z5_7DAjjFPgxeBqMS3xMuwA1Z1rqrlkBeacfFzCVEiQ?key=CBRRLTGNOJHyn-TSr094-w" data-width="100%" data-align="center">
+<img src="wizlit:Lif9WWbnfbdt1M3aTUAUQcPu7ioIfseo" data-width="100%" data-align="center">`,
     onChange: (content, isChanged, stats) => {
       console.log(content, isChanged, stats)
     },
-    maxSize: 1024 * 10,
+    image: {
+      maxSize: 1024 * 10,
+      convertSrc: (src: string) => {
+        if (!src.startsWith('wizlit:')) {
+            return "EXTERNAL_IMAGE";
+        }
+        const fileId = src.split(':')[1];
+        return `${'http://localhost:8081/api'}/file/${fileId}`;
+        // if (src.startsWith('https://picsum.photos/')) {
+        //   // return 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-nxJNnslmaqKYaovp4bvsKFhzMnVJjwVlr36FgOqORNiITwLrSBw6FOjp59CyqMJ3hcY&usqp=CAU'
+        // }
+        // return "EXTERNAL_IMAGE"
+      },
+      onClick: (url, event) => {
+        console.log(url, event)
+      }
+    },
+    link: {
+      disableDefaultAction: true,
+      onClick: (url: string) => {
+        if (url.startsWith('http')) {
+          console.log(url)
+        }
+      },
+    },
     maxCharacters: 5000,
     showDebug: true,
-    onUploadImage: undefined,
     className: 'pr-8 pl-20 py-16 lg:pl-8 lg:pr-8',
   },
 };
@@ -75,7 +92,6 @@ export const ShortMaxCharacters: Story = {
     content: '<p>This editor has custom styling</p>',
     maxCharacters: 100,
     showDebug: true,
-    onUploadImage: undefined,
     onChange: undefined,
     className: 'pr-8 pl-20 py-16 lg:pl-8 lg:pr-8',
   },
@@ -85,10 +101,12 @@ export const WithCustomClass: Story = {
   args: {
     content: '<p>This editor has custom styling</p>',
     className: 'bg-gray-100 p-4 rounded-lg',
-    onUploadImage: async (file: File) => {
-      console.log('Image upload is disabled in the demo... Please implement the API.uploadImage method in your project.')
-      await new Promise(r => setTimeout(r, Math.floor(Math.random() * 5000) + 1000))
-      return `https://picsum.photos/${Math.floor(Math.random() * 300) + 100}/${Math.floor(Math.random() * 200) + 100}`
+    image: {
+      onUploadImage: async (file: File) => {
+        console.log('Image upload is disabled in the demo... Please implement the API.uploadImage method in your project.')
+        await new Promise(r => setTimeout(r, Math.floor(Math.random() * 5000) + 1000))
+        return `https://picsum.photos/${Math.floor(Math.random() * 300) + 100}/${Math.floor(Math.random() * 200) + 100}`
+      },
     },
     onChange: (content, isChanged, stats) => {
       console.log(content, isChanged, stats)
@@ -126,9 +144,11 @@ export const ChangeContent: Story = {
           maxCharacters={1000}
           altCharacterCounter
           maxEmbeddings={8}
-          disableBuiltInUploadDialog
-          getUploadDialogProps={props => {
-            setUploadDialogProps(props)
+          image={{
+            disableBuiltInUploadDialog: true,
+            getUploadDialogProps: props => {
+              setUploadDialogProps(props)
+            }
           }}
         />
 

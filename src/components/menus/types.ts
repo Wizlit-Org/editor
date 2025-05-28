@@ -8,6 +8,8 @@ export interface MenuProps {
   editor: Editor
   appendTo?: React.RefObject<any>
   shouldHide?: boolean
+  onLinkClick?: (url: string) => void
+  disableDefaultAction?: boolean | ((url: string) => boolean)
 }
 
 export interface ShouldShowProps {

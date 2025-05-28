@@ -51,22 +51,25 @@ import {
 import { isChangeOrigin } from '@tiptap/extension-collaboration'
 import drawIoExtension from '@rcode-link/tiptap-drawio'
 import { ImageUpload } from './ImageUpload'
+import { ConvertSrc, OnImageClick } from './ImageBlock/components/ImageBlockView'
 
 interface ExtensionKitProps {
   // provider?: HocuspocusProvider | null
   limit?: number
-  editable?: boolean
   onUploadImage?: (file: File) => Promise<string>
+  convertSrc?: ConvertSrc
+  onImageClick?: OnImageClick
   maxSize?: number
   maxEmbeddings?: number
 }
 
 export const ExtensionKit = ({ 
-  editable, 
   limit,
   onUploadImage,
   maxSize,
   maxEmbeddings,
+  convertSrc,
+  onImageClick,
 }: ExtensionKitProps) => [
   Document,
   Columns,
@@ -100,14 +103,21 @@ export const ExtensionKit = ({
   // Color,
   TrailingNode,
   Link.configure({
-    openOnClick: !editable,
+    openOnClick: false,
     autolink: true,
     defaultProtocol: 'https',
+    HTMLAttributes: {
+      href: null,
+      target: null,
+    },
   }),
   Highlight.configure({ multicolor: true }),
   Underline,
   CharacterCount.configure({ limit }),
-  ImageBlock,
+  ImageBlock.configure({
+    convertSrc,
+    onImageClick,
+  }),
   ImageUpload.configure({
     onUpload: onUploadImage,
     maxSize,

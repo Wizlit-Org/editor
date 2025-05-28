@@ -15,6 +15,7 @@ import { LinkMenu } from '@/components/menus/LinkMenu'
 import { EditorState } from '@tiptap/pm/state'
 import { UploadListDialog, UploadListDialogProps } from '../../extensions/ImageUpload/components/UploadListDialog.tsx'
 import { compareDocs, getStats } from '@/lib/utils/getStats'
+import { ConvertSrc, OnImageClick } from '@/extensions/ImageBlock/components/ImageBlockView'
 
 export interface EditorStats {
   characters?: number;
@@ -26,19 +27,30 @@ export interface EditorStats {
 }
 
 export interface BlockEditorProps {
+  key?: string // Unique key for multiple editor instances
   content?: string
   onChange?: (content: string, isChanged: { isChanged: boolean, isStrictChanged: boolean }, stats: EditorStats) => void
   className?: string
   readOnly?: boolean
-  onUploadImage?: (file: File) => Promise<string>
-  maxSize?: number // Maximum file size in bytes (default: 5MB)
-  maxEmbeddings?: number // Maximum number of embeds (default: 3)
-  maxCharacters?: number // Maximum number of characters (default: 5000)
   showDebug?: boolean | { altCharacterCounter?: boolean }
-  key?: string // Unique key for multiple editor instances
+
+  maxCharacters?: number // Maximum number of characters (default: 5000)
   altCharacterCounter?: boolean
-  getUploadDialogProps?: (props: UploadListDialogProps) => void
-  disableBuiltInUploadDialog?: boolean
+
+  maxEmbeddings?: number // Maximum number of embeds (default: 3)
+  image?: {
+    maxSize?: number // Maximum file size in bytes (default: 5MB)
+    disableBuiltInUploadDialog?: boolean
+    convertSrc?: ConvertSrc
+    onUploadImage?: (file: File) => Promise<string>
+    getUploadDialogProps?: (props: UploadListDialogProps) => void
+    onClick?: OnImageClick
+  },
+
+  link?: {
+    disableDefaultAction?: boolean | ((url: string) => boolean)
+    onClick?: (url: string) => void
+  }
 }
 
 const defaultUploadImage = async (): Promise<string> => {
@@ -61,16 +73,19 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   onChange,
   className = '',
   readOnly,
-  onUploadImage = defaultUploadImage,
-  maxSize = 5 * 1024 * 1024, // Default 5MB
   maxEmbeddings = 3, // Default maximum number of images
   maxCharacters, // Default maximum number of characters
   showDebug = false,
   altCharacterCounter = false,
   key,
-  getUploadDialogProps: outputUploadDialogProps,
-  disableBuiltInUploadDialog = false,
+  image,
+  link,
 }) => {
+  const {
+    maxSize = 5 * 1024 * 1024, // Default 5MB
+    onUploadImage = defaultUploadImage,
+  } = image || {}
+  
   const menuContainerRef = useRef(null)
   const [stats, setStats] = useState<EditorStats>({})
   
@@ -101,6 +116,8 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       onChange?.(compareHTML, { isChanged, isStrictChanged }, stats)
     },
     onUploadImage,
+    convertSrc: image?.convertSrc,
+    onImageClick: image?.onClick,
     maxSize,
     maxEmbeddings,
     className,
@@ -159,9 +176,9 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
   useEffect(() => {
     if (editor) {
-      outputUploadDialogProps?.(uploadDialog)
+      image?.getUploadDialogProps?.(uploadDialog)
     }
-  }, [outputUploadDialogProps, uploadDialog])
+  }, [image?.getUploadDialogProps, uploadDialog])
 
   if (!editor) {
     return null
@@ -178,7 +195,12 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           /> */}
           <EditorContent editor={editor} className="flex-1" />
           {/* <ContentItemMenu editor={editor} isEditable={isEditable} /> */}
-          <LinkMenu editor={editor} appendTo={menuContainerRef} />
+          <LinkMenu
+            editor={editor}
+            appendTo={menuContainerRef}
+            disableDefaultAction={link?.disableDefaultAction}
+            onLinkClick={link?.onClick}
+          />
           <TextMenu editor={editor} />
           <ColumnsMenu editor={editor} appendTo={menuContainerRef} />
           <TableRowMenu editor={editor} appendTo={menuContainerRef} />
@@ -205,7 +227,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
         </div>
       )}
 
-      {!disableBuiltInUploadDialog && !readOnly && (
+      {!image?.disableBuiltInUploadDialog && !readOnly && (
         <UploadListDialog
           {...uploadDialog}
           className="fixed bottom-4 right-4"

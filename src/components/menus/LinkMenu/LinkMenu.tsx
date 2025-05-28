@@ -5,7 +5,7 @@ import { MenuProps } from '../types'
 import { LinkPreviewPanel } from '@/components/panels/LinkPreviewPanel'
 import { LinkEditorPanel } from '@/components/panels'
 
-export const LinkMenu = ({ editor, appendTo }: MenuProps): JSX.Element => {
+export const LinkMenu = ({ editor, appendTo, onLinkClick = () => false, disableDefaultAction = false }: MenuProps): JSX.Element => {
   const [showEdit, setShowEdit] = useState(false)
   const { link, target } = useEditorState({
     editor,
@@ -19,6 +19,8 @@ export const LinkMenu = ({ editor, appendTo }: MenuProps): JSX.Element => {
     const isActive = editor.isActive('link')
     return isActive
   }, [editor])
+
+  const editable = editor.isEditable
 
   const handleEdit = useCallback(() => {
     setShowEdit(true)
@@ -64,7 +66,14 @@ export const LinkMenu = ({ editor, appendTo }: MenuProps): JSX.Element => {
       {showEdit ? (
         <LinkEditorPanel initialUrl={link} initialOpenInNewTab={target === '_blank'} onSetLink={onSetLink} />
       ) : (
-        <LinkPreviewPanel url={link} onClear={onUnsetLink} onEdit={handleEdit} />
+        <LinkPreviewPanel
+          url={link}
+          onClear={onUnsetLink}
+          onEdit={handleEdit}
+          onOpen={onLinkClick}
+          editable={editable}
+          disableDefaultAction={disableDefaultAction}
+        />
       )}
     </BaseBubbleMenu>
   )

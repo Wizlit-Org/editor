@@ -2,6 +2,7 @@ import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { uploadImageQueue } from '@/hooks/useBlockEditor'
 import { countEmbedNodes } from '@/lib/utils/isCustomNodeSelected'
+
 export interface ImageUploadOptions {
   onUpload: (file: File) => Promise<string>
   maxSize?: number
@@ -13,6 +14,9 @@ export interface ImageUploadOptions {
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     imageUpload: {
+      uploadImageByUrl: (attributes: { url: string, pos?: number }) => ReturnType
+      uploadImageByBase64: (attributes: { base64: string, pos?: number }) => ReturnType
+      uploadImageByHtml: (attributes: { html: string, pos?: number }) => ReturnType
       uploadImages: (attributes: { files: File[], pos?: number }) => ReturnType
       retryImageUpload: (localUrl: string) => ReturnType
     }
@@ -33,6 +37,93 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
 
   addCommands() {
     return {
+      uploadImageByUrl: ({ url, pos }) => ({ editor, state, dispatch }) => {
+        if (!url || url.length === 0) return false;
+        
+        // URL 형식 검증
+        try { new URL(url) } catch { return false }
+
+        const img = document.createElement('img');
+        img.crossOrigin = 'anonymous';  
+        img.src = url;
+
+        const onError = (e: Error | string | Event | unknown) => {
+          console.error('onerror', e)
+          // If image fails to load, let Tiptap handle the paste
+          if (pos !== undefined) {
+            editor.commands.setTextSelection(pos);
+          }
+          editor.commands.insertContent(url);
+        }
+        
+        img.onload = async () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width  = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              onError('Canvas 2D 컨텍스트를 가져올 수 없습니다.')
+              return;
+            }
+            ctx.drawImage(img, 0, 0);
+        
+            // 3) 캔버스를 Blob으로 변환
+            canvas.toBlob((blob) => {
+              if (!blob) {
+                onError('Blob 생성 실패')
+                return;
+              }
+              // 4) File 객체로 래핑 및 업로드 명령 실행
+              const file = new File([blob], 'pasted.png', { type: blob.type });
+              editor.commands.uploadImages({ files: [file], pos });
+            }, 'image/png'); 
+          } catch (e) {
+            onError(e)
+          }
+        };
+        img.onerror = (e) => {
+          onError(e)
+        };
+        return true;
+      },
+      uploadImageByBase64: ({ base64, pos }) => ({ editor, state, dispatch }) => {
+        if (!base64 || base64.length === 0) return false;
+
+        const dataUriRegex = /^data:([a-z]+\/[a-z0-9.+-]+)(?:;[a-z0-9-]+=.*?)*;base64,([A-Za-z0-9+/]+=*)$/i;
+        const base64Match = base64.match(dataUriRegex);
+
+        if (base64Match) {
+          const [, type, b64] = base64Match;
+          const byteString = atob(b64);
+          const array = new Uint8Array(byteString.length);
+          for (let i = 0; i < byteString.length; i++) {
+            array[i] = byteString.charCodeAt(i);
+          }
+          const blob = new Blob([array], { type: `image/${type}` });
+          const file = new File([blob], `pasted.${type}`, { type: blob.type });
+          editor.commands.uploadImages({ files: [file], pos });
+          return true;
+        }
+
+        return false;
+      },
+      uploadImageByHtml: ({ html, pos }) => ({ editor, state, dispatch }) => {
+        if (!html || html.length === 0) return false;
+
+        const img = html.match(/<img[^>]+src="([^"]+)"/);
+        if (img) {
+          const src = img[1];
+          if (editor.commands.uploadImageByBase64({ base64: src, pos })) {
+            return true;
+          }
+
+          if (this.editor.commands.uploadImageByUrl({ url: src, pos })) {
+            return true;
+          }
+        }
+        return false;
+      },
       uploadImages: ({ files, pos }) => ({ editor, state, dispatch }) => {
         if (!this.options.onUpload) {
           return false
@@ -86,26 +177,67 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
         key: new PluginKey('imageUpload'),
         props: {
           handlePaste: (view, event) => {
-            const items = (event as ClipboardEvent).clipboardData?.items
-            if (!items || items.length === 0) return false
-            
-            const files = Array.from(items)
-              .map(item => item.getAsFile())
-              .filter((file): file is File => file !== null)
-            if (files.length === 0) return false
+            const clipboard = (event as ClipboardEvent).clipboardData;
+            if (!clipboard) return false;
 
-            this.editor.commands.uploadImages({ files });
-            return true
+            const items = clipboard.items;
+            const text = clipboard.getData('text');
+            const html = clipboard.getData('text/html');
+
+            if (items?.length > 0) {
+              const files = Array.from(items)
+                .map(item => item.getAsFile())
+                .filter((file): file is File => file !== null)
+
+              if (files.length > 0) {
+                this.editor.commands.uploadImages({ files });
+                return true;
+              }
+            }
+            
+            if (this.editor.commands.uploadImageByBase64({ base64: text })) {
+              return true;
+            }
+
+            if (this.editor.commands.uploadImageByUrl({ url: text })) {
+              return true;
+            }
+
+            if (this.editor.commands.uploadImageByHtml({ html })) {
+              return true;
+            }
+
+            return false;
           },
           handleDrop: (view, event, slice, moved) => {
             if (moved) return false
+            const coords = view.posAtCoords({ left: event.clientX, top: event.clientY }) || { pos: 0 };
 
             const files = Array.from(event.dataTransfer?.files || []);
-            if (!files.length) return false
+            if (files.length > 0) {
+              this.editor.commands.uploadImages({ files, pos: coords.pos });
+              return true;
+            }
 
-            const coords = view.posAtCoords({ left: event.clientX, top: event.clientY }) || { pos: 0 };
-            this.editor.commands.uploadImages({ files, pos: coords.pos });
-            return true
+            // Handle text/URL
+            const text = event.dataTransfer?.getData('text');
+            const html = event.dataTransfer?.getData('text/html');
+
+            if (text) {
+              if (this.editor.commands.uploadImageByBase64({ base64: text, pos: coords.pos })) {
+                return true;
+              }
+
+              if (this.editor.commands.uploadImageByUrl({ url: text, pos: coords.pos })) {
+                return true;
+              }
+            }
+            
+            if (html && this.editor.commands.uploadImageByHtml({ html, pos: coords.pos })) {
+              return true;
+            }
+
+            return false;
           },
         },
       }),

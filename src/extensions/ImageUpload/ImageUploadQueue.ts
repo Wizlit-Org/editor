@@ -219,7 +219,7 @@ export class UploadQueue {
       });
       this.emit();
 
-      if (!url || !(await isValidUrl(url))) {
+      if (!url) { // || !(await isValidUrl(url))) {
         this.statusMap.set(id!, {
           ...origStatus,
           status: 'failed',
@@ -286,19 +286,19 @@ export class UploadQueue {
   }
 }
 
-const isValidUrl = async (urlString: string): Promise<boolean> => {
-  try {
-    new URL(urlString);
+// const isValidUrl = async (urlString: string): Promise<boolean> => {
+//   try {
+//     new URL(urlString);
     
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve(true);
-      img.onerror = () => resolve(false);
-      img.src = urlString;
-      // Set a timeout to prevent hanging
-      setTimeout(() => resolve(false), 5000);
-    });
-  } catch {
-    return false;
-  }
-};
+//     return new Promise((resolve) => {
+//       const img = new Image();
+//       img.onload = () => resolve(true);
+//       img.onerror = () => resolve(false);
+//       img.src = urlString;
+//       // Set a timeout to prevent hanging
+//       setTimeout(() => resolve(false), 5000);
+//     });
+//   } catch {
+//     return false;
+//   }
+// };

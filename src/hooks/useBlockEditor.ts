@@ -10,6 +10,7 @@ import { UploadQueue } from '@/extensions/ImageUpload/ImageUploadQueue'
 import { useEffect, useMemo } from 'react'
 import { useState } from 'react'
 import { UploadListDialogProps, UploadListItem } from '@/extensions/ImageUpload/components/UploadListDialog.tsx'
+import { ConvertSrc, OnImageClick } from '@/extensions/ImageBlock/components/ImageBlockView'
 // import { userColors, userNames } from '../lib/constants'
 // import { randomElement } from '../lib/utils'
 // import type { EditorUser } from '../components/BlockEditor/types'
@@ -28,6 +29,8 @@ export const uploadImageQueue = new UploadQueue()
 export const useBlockEditor = ({
   content,
   onUploadImage,
+  convertSrc,
+  onImageClick,
   maxSize,
   maxEmbeddings,
   maxCharacters,
@@ -39,6 +42,8 @@ export const useBlockEditor = ({
   // ydoc: YDoc | null
   // provider?: TiptapCollabProvider | null | undefined
   onUploadImage?: (file: File) => Promise<string>
+  convertSrc?: ConvertSrc
+  onImageClick?: OnImageClick
   maxSize?: number
   maxEmbeddings?: number
   maxCharacters?: number
@@ -66,9 +71,10 @@ export const useBlockEditor = ({
       //   }
       // },
       extensions: ExtensionKit({ 
-        editable: editorOptions.editable, 
         limit: maxCharacters,
         onUploadImage,
+        convertSrc,
+        onImageClick,
         maxSize,
         maxEmbeddings,
       }),
@@ -82,15 +88,13 @@ export const useBlockEditor = ({
         handlePaste: (view, event) => {
           const clipboard = (event as ClipboardEvent).clipboardData;
           if (!clipboard) return false;
+          
           const text = clipboard.getData('text');
           
           // 1) Handle YouTube URLs
           const url = (() => {
-            try {
-              return new URL(text);
-            } catch {
-              return null;
-            }
+            try { return new URL(text); }
+            catch { return null; }
           })();
           if (url) {
             event.preventDefault();
@@ -103,38 +107,6 @@ export const useBlockEditor = ({
               editor.commands.setYoutubeVideo({
                 src: `https://www.youtube.com/embed/${videoId}`,
               });
-              return true;
-
-            } else {
-              // 2) Handle Base64 data URIs
-              const dataUriRegex = /^data:([a-z]+\/[a-z0-9.+-]+)(?:;[a-z0-9-]+=.*?)*;base64,([A-Za-z0-9+/]+=*)$/i;
-              const base64Match = text.match(dataUriRegex);
-              if (base64Match) {
-                console.log('base64Match', base64Match)
-                event.preventDefault();
-                const [, type, b64] = base64Match;
-                const byteString = atob(b64);
-                const array = new Uint8Array(byteString.length);
-                for (let i = 0; i < byteString.length; i++) {
-                  array[i] = byteString.charCodeAt(i);
-                }
-                const blob = new Blob([array], { type: `image/${type}` });
-                const file = new File([blob], `pasted.${type}`, { type: blob.type });
-                editor.commands.uploadImages({ files: [file] });
-                return true;
-              }
-              
-              // Handle valid image URLs
-              const img = new Image();
-              img.onload = () => {
-                const pos = editor.state.selection.from;
-                editor.commands.setImageBlockAt({ src: text, pos });
-              };
-              img.onerror = () => {
-                // If image fails to load, let Tiptap handle the paste
-                editor.commands.insertContent(text);
-              };
-              img.src = text;
               return true;
             }
           }

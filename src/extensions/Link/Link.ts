@@ -23,11 +23,17 @@ export const Link = TiptapLink.extend({
   },
 
   renderHTML({ HTMLAttributes }) {
+    const { editor, options } = this
+    const isEditable = editor?.isEditable
+    const openOnClick = options.openOnClick
+
+    const finalCursorStyle = (!isEditable && !openOnClick) ? "cursor: pointer" : ""
+
     if (HTMLAttributes.href?.toLowerCase().startsWith('javascript:')) {
-      return ['a', mergeAttributes(this.options.HTMLAttributes, { ...HTMLAttributes, href: '' }, { class: 'link' }), 0]
+      return ['a', mergeAttributes({ ...HTMLAttributes, href: '' }, this.options.HTMLAttributes, { class: 'link', style: finalCursorStyle }), 0]
     }
 
-    return ['a', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, { class: 'link' }), 0]
+    return ['a', mergeAttributes(HTMLAttributes, this.options.HTMLAttributes, { class: 'link', style: finalCursorStyle }), 0]
   },
 
   addProseMirrorPlugins() {

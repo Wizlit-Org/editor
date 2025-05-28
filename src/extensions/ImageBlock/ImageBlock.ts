@@ -1,8 +1,14 @@
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import { mergeAttributes, Range } from '@tiptap/core'
 
-import { ImageBlockView } from './components/ImageBlockView'
+import { ConvertSrc, ImageBlockView, OnImageClick } from './components/ImageBlockView'
 import { Image } from '../Image'
+
+export interface ImageBlockOptions {
+  convertSrc?: ConvertSrc
+  onImageClick?: OnImageClick
+  HTMLAttributes?: Record<string, any>
+}
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -15,7 +21,7 @@ declare module '@tiptap/core' {
   }
 }
 
-export const ImageBlock = Image.extend({
+export const ImageBlock = Image.extend<ImageBlockOptions>({
   name: 'imageBlock',
 
   group: 'block',
@@ -25,6 +31,14 @@ export const ImageBlock = Image.extend({
   isolating: true,
 
   draggable: true,
+
+  addOptions() {
+    return {
+      ...this.parent?.(),
+      convertSrc: undefined,
+      onImageClick: undefined,
+    }
+  },
 
   addAttributes() {
     return {
@@ -68,7 +82,7 @@ export const ImageBlock = Image.extend({
   // },
 
   renderHTML({ HTMLAttributes }) {
-    return ['img', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)]
+    return ['img', mergeAttributes(this.options.HTMLAttributes || {}, HTMLAttributes)]
   },
 
   addCommands() {
@@ -98,7 +112,7 @@ export const ImageBlock = Image.extend({
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(ImageBlockView)
+    return ReactNodeViewRenderer(ImageBlockView as any)
   },
 })
 
