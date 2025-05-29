@@ -20,6 +20,7 @@ export interface UploadListDialogProps {
   className?: string;
   pillClassName?: string;
   dialogClassName?: string;
+  onLoadingChange?: (hasUploading: boolean) => void;
 }
 
 const statusLabels: Record<UploadStatus, string> = {
@@ -38,6 +39,7 @@ export const UploadListDialog: React.FC<UploadListDialogProps> = (
     className = '',
     pillClassName = '',
     dialogClassName = '',
+    onLoadingChange = () => {},
   }: UploadListDialogProps
 ) => {
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -51,7 +53,12 @@ export const UploadListDialog: React.FC<UploadListDialogProps> = (
     intervalMs: [200, 1000] as const,
   }), []);
 
-  const { progressMap, avgPercent, failedCount, hasFailed } = useUploadProgress(items, ranges);
+  const { progressMap, avgPercent, failedCount, hasFailed, hasUploading } = useUploadProgress(items, ranges);
+
+  // if hasUploading, alert when user goes to another page
+  useEffect(() => {
+    onLoadingChange?.(hasUploading);
+  }, [hasUploading]);
   
   const hide = items.length === 0;
 

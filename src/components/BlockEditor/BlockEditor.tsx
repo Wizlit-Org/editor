@@ -13,7 +13,7 @@ import { TextMenu } from '@/components/menus/TextMenu'
 // import { ContentItemMenu } from '@/components/menus/ContentItemMenu'
 import { LinkMenu } from '@/components/menus/LinkMenu'
 import { EditorState } from '@tiptap/pm/state'
-import { UploadListDialog, UploadListDialogProps } from '../../extensions/ImageUpload/components/UploadListDialog.tsx'
+import { UploadListDialog, UploadListDialogProps, UploadListItem } from '../../extensions/ImageUpload/components/UploadListDialog.tsx'
 import { compareDocs, getStats } from '@/lib/utils/getStats'
 import { ConvertSrc, OnImageClick } from '@/extensions/ImageBlock/components/ImageBlockView'
 
@@ -45,6 +45,7 @@ export interface BlockEditorProps {
     onUploadImage?: (file: File) => Promise<string>
     getUploadDialogProps?: (props: UploadListDialogProps) => void
     onClick?: OnImageClick
+    onLoadingChange?: (hasUploading: boolean) => void
   },
 
   link?: {
@@ -174,11 +175,30 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     }
   }, [content, editor]);
 
+  
+  const prevUploadDialogRef = useRef<{
+    items: UploadListItem[];
+    onRetry: (id: string) => void;
+    onRemove: (id: string) => void;
+    onLoadingChange?: (hasUploading: boolean) => void;
+  } | null>(null)
+  
   useEffect(() => {
-    if (editor) {
-      image?.getUploadDialogProps?.(uploadDialog)
+    if (editor && image?.getUploadDialogProps) {
+      const currentProps = {
+        items: uploadDialog.items,
+        onRetry: uploadDialog.onRetry,
+        onRemove: uploadDialog.onRemove,
+        onLoadingChange: image.onLoadingChange
+      };
+
+      // Only call if values actually changed
+      if (JSON.stringify(prevUploadDialogRef.current) !== JSON.stringify(currentProps)) {
+        image.getUploadDialogProps(currentProps);
+        prevUploadDialogRef.current = currentProps;
+      }
     }
-  }, [image?.getUploadDialogProps, uploadDialog])
+  }, [editor, image?.getUploadDialogProps, image?.onLoadingChange, uploadDialog.items]);
 
   if (!editor) {
     return null

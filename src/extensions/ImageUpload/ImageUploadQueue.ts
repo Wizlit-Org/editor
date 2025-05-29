@@ -279,6 +279,10 @@ export class UploadQueue {
    * Clear queue, original items, and statuses.
    */
   clear() {
+    // Abort all active uploads
+    this.originalItems.forEach(item => {
+      item.controller.abort();
+    });
     this.queue = [];
     this.originalItems.clear();
     this.statusMap.clear();

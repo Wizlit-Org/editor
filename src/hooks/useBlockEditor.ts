@@ -27,6 +27,8 @@ declare global {
 export const uploadImageQueue = new UploadQueue()
 
 export const useBlockEditor = ({
+  key,
+  editable,
   content,
   onUploadImage,
   convertSrc,
@@ -53,6 +55,7 @@ export const useBlockEditor = ({
   const editor = useEditor(
     {
       ...editorOptions,
+      editable,
       immediatelyRender: true,
       // shouldRerenderOnTransaction: false,
       autofocus: true,
@@ -88,6 +91,7 @@ export const useBlockEditor = ({
         handlePaste: (view, event) => {
           const clipboard = (event as ClipboardEvent).clipboardData;
           if (!clipboard) return false;
+          console.log('handlePaste', clipboard);
           
           const text = clipboard.getData('text');
           
@@ -137,6 +141,10 @@ export const useBlockEditor = ({
       setUploadItems(items);
     });
   }, []);
+
+  useEffect(() => {
+    uploadImageQueue.clear();
+  }, [key, editable]);
 
   // Only set window.editor if editor is initialized
   if (editor) {
