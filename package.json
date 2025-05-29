@@ -18,6 +18,10 @@
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Wizlit-Org/editor"
+  },
   "scripts": {
     "build:css": "tailwindcss -i src/styles/globals.css -o dist/styles/globals.css --minify",
     "build": "npm run build:css && tsup src/index.ts --dts --format esm,cjs --clean",
