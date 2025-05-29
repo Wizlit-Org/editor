@@ -77,7 +77,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({ editor, getPos, 
             finalLoaded ? 'opacity-100' : 'opacity-0',
             !editorEditable ? 'cursor-pointer' : '',
             isExternalImage ? 'opacity-20' : '',
-            (!loaded || !originalSrc) ? 'min-h-60' : ''
+            (!loaded || !(originalSrc || src)) ? 'min-h-60' : ''
           )}
           draggable={editorEditable}
         />
