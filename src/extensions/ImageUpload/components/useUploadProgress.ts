@@ -21,6 +21,7 @@ export function useUploadProgress(
   avgPercent: number;
   failedCount: number;
   hasFailed: boolean;
+  hasUploading: boolean;
 } {
   const [progressMap, setProgressMap] = useState<Record<string, number>>({});
   const intervals = useRef<Record<string, NodeJS.Timeout>>({});
@@ -101,6 +102,7 @@ export function useUploadProgress(
   const avgPercent = total > 0 ? Math.round(sum / total) : 0;
   const failedCount = items.filter((i) => i.status === 'failed').length;
   const hasFailed = failedCount > 0;
+  const hasUploading = items.some((i) => i.status !== 'success' && i.status !== 'failed');
 
-  return { progressMap, avgPercent, failedCount, hasFailed };
+  return { progressMap, avgPercent, failedCount, hasFailed, hasUploading };
 }
