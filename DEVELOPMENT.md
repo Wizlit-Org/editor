@@ -61,20 +61,6 @@ When you make changes to the Wizlit Editor:
 npm run dev
 ```
 
-### Publishing to npm
-
-1. Update the version number in `package.json`
-
-2. Publish the package:
-   - For production: `npm run publish` (publish with latest tag)
-   - For removing: `npm run publish:remove`
-
-### Version Management
-
-- Use semantic versioning (MAJOR.MINOR.PATCH)
-- Update version in `package.json` before publishing
-- Tag releases in git after successful publish
-
 ## Testing
 
 1. Run unit tests:
