@@ -107,7 +107,7 @@ export const ExtensionKit = ({
     autolink: true,
     defaultProtocol: 'https',
     HTMLAttributes: {
-      href: null,
+      rel: null,
       target: null,
     },
   }),

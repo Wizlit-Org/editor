@@ -27,10 +27,7 @@
     "format": "prettier --write \"{src,apps,libs}/**/*.ts\"",
     "test": "jest",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
-    "publish": "npm run build && npm publish",
-    "publish:latest": "npm dist-tag add $(node -p \"require('./package.json').name\")@$(node -p \"require('./package.json').version\") latest",
-    "publish:remove": "npm unpublish $(node -p \"require('./package.json').name\")@$(node -p \"require('./package.json').version\")"
+    "build-storybook": "storybook build"
   },
   "peerDependencies": {
     "next": "^15.3.0",

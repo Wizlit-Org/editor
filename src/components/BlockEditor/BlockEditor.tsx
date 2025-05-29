@@ -110,6 +110,8 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     editable: !readOnly,
     content,
     onUpdate: ({ editor }) => {
+      if (readOnly) return;
+      
       const { isChanged, isStrictChanged, compareHTML } = compareDocs(content, editor.getHTML())
       const stats = getStats(editor, maxCharacters, altCharacterCounter)
 

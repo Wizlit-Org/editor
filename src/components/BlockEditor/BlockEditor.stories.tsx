@@ -128,11 +128,13 @@ export const WithCustomClass: Story = {
 
 export const ChangeContent: Story = {
   render: () => {
-    const [content, setContent] = useState('<p>Initial content</p>');
+    const [content, setContent] = useState('<p>https://example.com</p>');
+    const [currentContent, setCurrentContent] = useState('<p>New content after button click! 🎉</p><a rel="noopener noreferrer nofollow" class="link" href="https://www.google.com/search?sca_esv=bae98e363cc9bd77&amp;rlz=1C1GCEU_koKR…amp;biw=742&amp;bih=608&amp;dpr=1#vhid=-mNI5DBCB_iEPM&amp;vssid=mosaic" style="">https://www.google.com/search?sca_esv=bae98e363cc9bd77&amp;rlz=1C1GCEU_koKR…amp;biw=742&amp;bih=608&amp;dpr=1#vhid=-mNI5DBCB_iEPM&amp;vssid=mosaic</a></p><table style="min-width: 75px"><colgroup><col style="min-width: 25px"><col style="min-width: 25px"><col style="min-width: 25px"></colgroup><tbody><tr><td colspan="1" rowspan="1"><p></p></td><td colspan="1" rowspan="1"><p>m</p></td><td colspan="1" rowspan="1"><p>fgsdf</p></td></tr><tr><td colspan="1" rowspan="1"><p></p></td><td colspan="1" rowspan="1"><p>fgfh</p></td><td colspan="1" rowspan="1"><p></p></td></tr><tr><td colspan="1" rowspan="1"><p>sfnf</p></td><td colspan="1" rowspan="1"><p></p></td><td colspan="1" rowspan="1"><p>nsdfgdfg</p></td></tr></tbody></table><div data-youtube-video=""><iframe width="640" height="480" allowfullscreen="true" autoplay="false" disablekbcontrols="false" enableiframeapi="false" endtime="0" ivloadpolicy="0" loop="false" modestbranding="false" origin="" playlist="" rel="1" src="https://www.youtube-nocookie.com/embed/HuaGOfzVBiU?rel=1" start="0"></iframe></div><p>Test youtube</p><img src="https://picsum.photos/366/217" data-width="100%" data-align="center"><p>Test Image</p>');
     const [uploadDialogProps, setUploadDialogProps] = useState<UploadListDialogProps>({} as UploadListDialogProps);
-    
+    const [readOnly, setReadOnly] = useState(false);
+
     const handleButtonClick = () => {
-      setContent('<p>New content after button click! 🎉</p><table style="min-width: 75px"><colgroup><col style="min-width: 25px"><col style="min-width: 25px"><col style="min-width: 25px"></colgroup><tbody><tr><td colspan="1" rowspan="1"><p></p></td><td colspan="1" rowspan="1"><p>m</p></td><td colspan="1" rowspan="1"><p>fgsdf</p></td></tr><tr><td colspan="1" rowspan="1"><p></p></td><td colspan="1" rowspan="1"><p>fgfh</p></td><td colspan="1" rowspan="1"><p></p></td></tr><tr><td colspan="1" rowspan="1"><p>sfnf</p></td><td colspan="1" rowspan="1"><p></p></td><td colspan="1" rowspan="1"><p>nsdfgdfg</p></td></tr></tbody></table><div data-youtube-video=""><iframe width="640" height="480" allowfullscreen="true" autoplay="false" disablekbcontrols="false" enableiframeapi="false" endtime="0" ivloadpolicy="0" loop="false" modestbranding="false" origin="" playlist="" rel="1" src="https://www.youtube-nocookie.com/embed/HuaGOfzVBiU?rel=1" start="0"></iframe></div><p>Test youtube</p><img src="https://picsum.photos/366/217" data-width="100%" data-align="center"><p>Test Image</p>');
+      setContent(currentContent);
     };
 
     return (
@@ -144,11 +146,18 @@ export const ChangeContent: Story = {
           >
             Change Content
           </button>
+          <button 
+            onClick={() => setReadOnly(!readOnly)}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+          >
+            Toggle Read Only
+          </button>
         </div>
         
         <BlockEditor
           content={content}
           onChange={(newContent, isChanged, stats) => {
+            setCurrentContent(newContent);
             console.log('Content changed:', newContent, isChanged, stats);
           }}
           className="pr-8 pl-20 py-16 lg:pl-8 lg:pr-8"
@@ -162,6 +171,7 @@ export const ChangeContent: Story = {
               setUploadDialogProps(props)
             }
           }}
+          readOnly={readOnly}
         />
 
         <UploadListDialog
