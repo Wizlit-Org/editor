@@ -1,29 +1,6 @@
 import { Editor } from "@tiptap/core";
 import imageCompression from 'browser-image-compression';
 
-interface Dimensions {
-  width: number;
-  height: number;
-  scale: number;
-}
-
-const fitUnderMaxSize = (
-  width: number,
-  height: number,
-  maxPixels: number
-): Dimensions => {
-  const total = width * height;
-  if (total <= maxPixels) {
-    return { width, height, scale: 1 };
-  }
-  const scale = Math.sqrt(maxPixels / total);
-  return {
-    width: Math.floor(width * scale),
-    height: Math.floor(height * scale),
-    scale,
-  };
-};
-
 const resizeFile = async (
   file: File,
   maxSize?: number,
@@ -40,22 +17,15 @@ const resizeFile = async (
   }
   if (!maxSize || file.size <= maxSize) return file;
 
-  const img = new Image();
-  img.src = URL.createObjectURL(file);
-  await new Promise<HTMLImageElement>((resolve, reject) => {
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Image load failed'));
-  });
-  URL.revokeObjectURL(img.src);
-
-  const { width, height, scale } = fitUnderMaxSize(img.width, img.height, maxSize);
-  if (scale && scale >= 1) return file;
+  // 300KB 상한선 직전(250~290KB)에서 최상의 화질(FHD 해상도 보존)을 유지하도록 설정
+  const maxSizeMB = maxSize ? Math.min(0.285, maxSize / (1024 * 1024)) : 0.285;
 
   const options = {
-    maxSizeMB: maxSize! / (1024 * 1024),
-    maxWidthOrHeight: Math.max(width, height),
+    maxSizeMB,
+    maxWidthOrHeight: 1920,
+    initialQuality: 0.85,
     useWebWorker: false,
-    fileType: file.type,
+    fileType: file.type || 'image/jpeg',
     signal,
   };
 

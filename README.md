@@ -1,226 +1,80 @@
-# Wizlit Editor
+# 📝 Wizlit Editor (`@wizlit/editor`)
 
-[![GitHub](https://img.shields.io/badge/GitHub-Wizlit%20Editor-blue)](https://github.com/Wizlit-Org/editor) [![npm](https://img.shields.io/npm/dm/@wizlit/editor)](https://www.npmjs.com/package/@wizlit/editor) [![latest](https://img.shields.io/npm/v/@wizlit/editor)](https://www.npmjs.com/package/@wizlit/editor)
+> **역할**: Wizlit Path 및 위즐릿 플랫폼 전역에서 사용되는 Tiptap 기반 리치 텍스트/블록 에디터 공용 컴포넌트 라이브러리  
+> **기술 스택**: React 19, Next.js 15.3, TypeScript, Tiptap v2, Tailwind CSS, Storybook 8  
+> **루트 설계도 SSOT**: [`references/runbooks/ARCHITECTURE.md`](../../references/runbooks/ARCHITECTURE.md) | 로컬 세팅: [`SETUP.md`](../../SETUP.md)
 
-Based on Tiptap editor, a modern editor component library for Next.js and React for Wizlit
+---
 
-## Features
-
-- Built with Next.js 15.3 and React 19
-- TypeScript support
-- Storybook documentation
-- Fully customizable
-- Modern and clean design
-
-## Installation
-
-### 1. Install Dependencies
-
-First, install the required dependencies:
+## 🚀 빠른 시작 (Quick Start)
 
 ```bash
-npm install -D tailwindcss @tailwindcss/postcss postcss @tailwindcss/typography tailwindcss-animate
-npm install @fontsource/inter cal-sans
-npm install @wizlit/editor
+# 의존성 설치
+npm install
+
+# 스토리북 UI 문서 및 테스트 실행 (:6006)
+npm run storybook
+
+# 프로덕션 번들 빌드
+npm run build
 ```
 
-### 2. Configure Tailwind CSS
+---
 
-Create a `tailwind.config.js` file in your project root:
+## 🔗 프론트엔드 연동 및 로컬 개발 워크플로우
 
-```javascript
-const defaultTheme = require('tailwindcss/defaultTheme')
+본 패키지는 독립된 컴포넌트 패키지(`@wizlit/editor`)이며, [`repos/path-next-react-frontend`](../path-next-react-frontend)에서 의존성으로 참조됩니다.
 
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  darkMode: ['class'],
-  content: [
-    './src/**/*.{ts,tsx}',
-  ],
-  safelist: ['ProseMirror'],
-  theme: {
-    extend: {
-      fontFamily: {
-        sans: ['Inter', ...defaultTheme.fontFamily.sans],
-      },
-    },
-  },
-  plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],
-}
-```
+### 로컬 패키지 연동 개발 (yalc 사용)
+로컬에서 에디터 코드를 수정한 후 프론트엔드 서비스에 실시간 반영할 때 사용합니다:
 
-### 3. Configure PostCSS
+1. **에디터 빌드 및 로컬 발행**:
+   ```bash
+   npm run build
+   # yalc 사용 시
+   yalc publish
+   ```
+2. **프론트엔드 프로젝트에 반영**:
+   ```bash
+   cd ../path-next-react-frontend
+   yalc add @wizlit/editor
+   npm run dev
+   ```
 
-Create a `postcss.config.mjs` file in your project root:
+자세한 기여 및 디버깅 가이드는 [`DEVELOPMENT.md`](./DEVELOPMENT.md)를 참조하십시오.
 
-```javascript
-const config = {
-    plugins: {
-        "@tailwindcss/postcss": {},
-    },
-};
-export default config;
-```
+---
 
-### 4. Set Up Fonts
+## 🧩 주요 기능 및 컴포넌트 (`BlockEditor`)
 
-In your `src/app/layout.tsx` file, import the required fonts:
-
-```tsx
-import 'cal-sans'
-import '@fontsource/inter/100.css'
-import '@fontsource/inter/200.css'
-import '@fontsource/inter/300.css'
-import '@fontsource/inter/400.css'
-import '@fontsource/inter/500.css'
-import '@fontsource/inter/600.css'
-import '@fontsource/inter/700.css'
-```
-
-### 5. Configure Global Styles
-
-Add the following to your `globals.css` file:
-
-```css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-```
-
-### 6. Using the Editor
-
-Here's an example of how to use the editor in your component:
+위즐릿 맞춤형 블록 기반 에디터 인터페이스를 제공합니다:
 
 ```tsx
 import { BlockEditor } from "@wizlit/editor";
-import '@wizlit/editor/dist/styles/index.css'
-import { useState } from 'react';
-import { UploadListDialog, UploadListDialogProps } from '@wizlit/editor';
+import "@wizlit/editor/dist/styles/index.css";
 
-function MyComponent() {
-  const [content, setContent] = useState('<p>Initial content</p>');
-  const [uploadDialogProps, setUploadDialogProps] = useState<UploadListDialogProps>({} as UploadListDialogProps);
-
-  const handleContentChange = (newContent: string, isChanged: { isChanged: boolean, isStrictChanged: boolean }, stats: EditorStats) => {
-    console.log('Content changed:', newContent);
-    console.log('Change status:', isChanged);
-    console.log('Stats:', stats);
-    setContent(newContent);
-  };
-
-  return (
-    <div className="flex flex-col gap-4 p-4 h-screen relative">
-      <div className="flex justify-end">
-        <button 
-          onClick={() => setContent('<p>New content after button click! 🎉</p>')}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
-        >
-          Change Content
-        </button>
-      </div>
-      
-      <BlockEditor
-        content={content}
-        onChange={handleContentChange}
-        className="pr-8 pl-20 py-16 lg:pl-8 lg:pr-8"
-        readOnly={false}
-        showDebug={true}
-        maxCharacters={1000}
-        altCharacterCounter={true}
-        maxEmbeddings={8}
-        image={{
-          maxSize: 10 * 1024 * 1024, // 10MB
-          disableBuiltInUploadDialog: true,
-          getUploadDialogProps: props => {
-            setUploadDialogProps(props)
-          },
-          onUploadImage: async (file: File) => {
-            console.log('Image upload is disabled in the demo... Please implement the API.uploadImage method in your project.')
-            return `https://example.image`
-          },
-          convertSrc: (src: string) => {
-            if (src.startsWith('https://picsum.photos/')) {
-              return 'https://encrypted-tbn0.gstatic.com'
-            }
-            return "EXTERNAL_IMAGE"
-          },
-          onClick: (url: string, event: MouseEvent) => {
-            console.log(url)
-          },
-        }}
-        link={{
-          disableDefaultAction: true,
-          onClick: (url: string) => {
-            if (url.startsWith('http')) {
-              console.log(url)
-            }
-          },
-        }}
-      />
-
-      <UploadListDialog
-        {...uploadDialogProps}
-        className="fixed bottom-4 left-4"
-      />
-    </div>
-  );
-}
+<BlockEditor
+  content={content}
+  onChange={(newContent, status, stats) => setContent(newContent)}
+  maxCharacters={1000}
+  readOnly={false}
+/>
 ```
 
-## BlockEditor Props
+### 핵심 컴포넌트 속성 (Props)
+- `content`: HTML 형식의 에디터 초기 콘텐츠
+- `onChange`: 내용 변경 시 콜백 (`content`, `isChanged`, `stats`)
+- `readOnly`: 읽기 전용 여부
+- `maxCharacters`: 최대 글자 수 제한
+- `image`: 이미지 업로드 및 핸들러 커스터마이징 객체 (`maxSize`, `onUploadImage` 등)
+- `link`: 링크 삽입 및 커스텀 클릭 핸들러
 
-The `BlockEditor` component accepts the following props:
+---
 
-| Prop | Type | Required | Default | Description |
-|------|------|----------|---------|-------------|
-| `content` | `string` | No | `''` | Initial HTML content for the editor |
-| `onChange` | `(content: string, isChanged: { isChanged: boolean, isStrictChanged: boolean }, stats: EditorStats) => void` | No | - | Callback function called when editor content changes, includes change status and statistics |
-| `className` | `string` | No | `''` | Additional CSS classes to apply to the editor |
-| `readOnly` | `boolean` | No | `false` | Whether the editor is in read-only mode |
-| `showDebug` | `boolean \| { altCharacterCounter?: boolean }` | No | `false` | Whether to show debug information including character count, word count, and editor state |
-| `maxCharacters` | `number` | No | - | Maximum number of characters allowed in the editor |
-| `altCharacterCounter` | `boolean` | No | `false` | Use alternative character counting method |
-| `maxEmbeddings` | `number` | No | `3` | Maximum number of images allowed in the editor |
-| `image` | `object` | No | - | Image-related configuration |
-| `image.maxSize` | `number` | No | `5 * 1024 * 1024` (5MB) | Maximum file size in bytes for image uploads |
-| `image.disableBuiltInUploadDialog` | `boolean` | No | `false` | Whether to disable the built-in upload dialog |
-| `image.convertSrc` | `(src: string) => string` | No | - | Function to convert image source URLs |
-| `image.onUploadImage` | `(file: File) => Promise<string>` | No | - | Function to handle image uploads. Must return a Promise that resolves to the image URL |
-| `image.getUploadDialogProps` | `(props: UploadListDialogProps) => void` | No | - | Callback to get upload dialog props for custom implementation |
-| `image.onClick` | `(url: string, event: MouseEvent) => void` | No | - | Function called when an image is clicked |
-| `link` | `object` | No | - | Link-related configuration |
-| `link.disableDefaultAction` | `boolean \| ((url: string) => boolean)` | No | `false` | When set to true or returns true from function, prevents default link behavior (opening in new tab). Use with `onClick` to handle link clicks |
-| `link.onClick` | `(url: string) => void` | No | - | Function called when a link is clicked |
-| `key` | `string` | No | - | Unique key for multiple editor instances |
+## 📂 소스 디렉토리 구조
 
-### EditorStats Interface
-
-The `EditorStats` interface returned in the `onChange` callback includes:
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `characters` | `number` | Number of characters in the editor |
-| `words` | `number` | Number of words in the editor |
-| `percentage` | `number` | Completion percentage if maxCharacters is set |
-| `embedCount` | `number` | Number of embedded elements |
-| `embedList` | `string[]` | List of embedded element URLs |
-| `plainText` | `string` | Plain text content of the editor |
-
-### UploadListDialogProps Interface
-
-The `UploadListDialogProps` interface includes:
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `items` | `UploadListItem[]` | List of upload items |
-| `onRetry` | `(id: string) => void` | Function to retry failed uploads |
-| `className` | `string` | Additional CSS classes for the dialog |
-| `pillClassName` | `string` | Additional CSS classes for the pill component |
-| `dialogClassName` | `string` | Additional CSS classes for the dialog container |
-
-## Development
-For detailed development instructions, please refer to [DEVELOPMENT.md](DEVELOPMENT.md).
-
-## License
-
-MIT
+- `src/components/`: 리치 에디터 및 툴바, 팝오버 UI 컴포넌트
+- `src/extensions/`: Tiptap 커스텀 확장 기능 (코드 블록, 이미지 업로드, 수식 등)
+- `src/hooks/`: 에디터 인스턴스 및 상태 관리 커스텀 훅
+- `src/styles/`: 에디터 전용 테마 및 Tailwind 스타일
+- `src/utils/`: 텍스트 파싱 및 헬퍼 유틸리티

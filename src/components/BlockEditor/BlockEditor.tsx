@@ -12,7 +12,6 @@ import { TableColumnMenu, TableRowMenu } from '@/extensions/Table/menus'
 import { TextMenu } from '@/components/menus/TextMenu'
 // import { ContentItemMenu } from '@/components/menus/ContentItemMenu'
 import { LinkMenu } from '@/components/menus/LinkMenu'
-import { EditorState } from '@tiptap/pm/state'
 import { UploadListDialog, UploadListDialogProps, UploadListItem } from '../../extensions/ImageUpload/components/UploadListDialog.tsx'
 import { compareDocs, getStats } from '@/lib/utils/getStats'
 import { ConvertSrc, OnImageClick } from '@/extensions/ImageBlock/components/ImageBlockView'
@@ -145,21 +144,6 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     
     try {
       editor.setEditable(_editable);
-      
-      // Only update state if the editor is properly initialized
-      if (editor.isDestroyed) return;
-      
-      const { state, view } = editor;
-      if (!state || !view) return;
-      
-      const freshState = EditorState.create({
-        schema: state.schema,
-        plugins: state.plugins,
-        doc: state.doc,
-      });
-      
-      if (view.isDestroyed) return;
-      view.updateState(freshState);
     } catch (error) {
       console.error('Error updating editor state:', error);
     }
@@ -173,6 +157,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
   useEffect(() => {
     if (editor && !editor.isDestroyed) {
+      if (editor.isEditable) return;
       editor.commands.setContent(content, true);
     }
   }, [content, editor]);
