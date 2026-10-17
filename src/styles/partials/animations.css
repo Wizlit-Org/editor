@@ -37,3 +37,18 @@
     y: 1px;
   }
 }
+
+@keyframes pulseNavySkeleton {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.image-skeleton-navy {
+  background: linear-gradient(90deg, #080F3B 0%, rgba(20, 35, 110, 0.9) 50%, #080F3B 100%);
+  background-size: 200% 100%;
+  animation: pulseNavySkeleton 1.8s ease-in-out infinite;
+}
