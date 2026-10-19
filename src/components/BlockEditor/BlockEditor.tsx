@@ -226,7 +226,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
             // collabState={collabState}
             // users={users}
           /> */}
-          {/* Sticky Table of Contents (Client-only, never persisted to database) */}
+          {/* Sticky Table of Contents (Client-only, works in both Edit and Read-only modes) */}
           <TableOfContents editor={editor} />
           <EditorContent editor={editor} className="flex-1 focus:outline-none" />
           <ContentItemMenu editor={editor} isEditable={!readOnly} />
@@ -236,11 +236,15 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
             disableDefaultAction={link?.disableDefaultAction}
             onLinkClick={link?.onClick}
           />
-          <TextMenu editor={editor} />
-          <ColumnsMenu editor={editor} appendTo={menuContainerRef} />
-          <TableRowMenu editor={editor} appendTo={menuContainerRef} />
-          <TableColumnMenu editor={editor} appendTo={menuContainerRef} />
-          <ImageBlockMenu editor={editor} appendTo={menuContainerRef} />
+          {!readOnly && (
+            <>
+              <TextMenu editor={editor} />
+              <ColumnsMenu editor={editor} appendTo={menuContainerRef} />
+              <TableRowMenu editor={editor} appendTo={menuContainerRef} />
+              <TableColumnMenu editor={editor} appendTo={menuContainerRef} />
+              <ImageBlockMenu editor={editor} appendTo={menuContainerRef} />
+            </>
+          )}
         </div>
       </div>
 

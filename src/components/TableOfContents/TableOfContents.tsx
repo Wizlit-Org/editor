@@ -86,17 +86,21 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
   const handleScrollToHeading = useCallback(
     (pos: number) => {
       setIsStickyDropdownOpen(false)
-      editor.chain().focus(undefined, { scrollIntoView: false }).setTextSelection(pos + 1).run()
+      if (editor.isEditable) {
+        editor.chain().focus(undefined, { scrollIntoView: false }).setTextSelection(pos + 1).run()
+      }
       try {
-        const dom = editor.view.nodeDOM(pos) as HTMLElement || (editor.view.domAtPos(pos).node as HTMLElement)
+        const dom = (editor.view.nodeDOM(pos) as HTMLElement) || (editor.view.domAtPos(pos).node as HTMLElement)
         const element = dom && dom.nodeType === 1 ? dom : dom?.parentElement
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        } else {
+        } else if (editor.isEditable) {
           editor.chain().focus(pos + 1, { scrollIntoView: true }).run()
         }
       } catch {
-        editor.chain().focus(pos + 1, { scrollIntoView: true }).run()
+        if (editor.isEditable) {
+          editor.chain().focus(pos + 1, { scrollIntoView: true }).run()
+        }
       }
     },
     [editor],
