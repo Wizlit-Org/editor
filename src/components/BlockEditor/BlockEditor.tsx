@@ -200,7 +200,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   return (
     <>
       <div className={`flex min-h-full ${themeClass} ${className}`.trim()} ref={menuContainerRef}>
-        <div className="relative flex flex-col flex-1 overflow-hidden">
+        <div className="relative flex flex-col flex-1">
           {/* <EditorHeader
             editor={editor}
             // collabState={collabState}
