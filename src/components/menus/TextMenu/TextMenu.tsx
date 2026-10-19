@@ -57,7 +57,7 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
   }, [editor])
 
   const BTN_CLASS =
-    'text-zinc-500 hover:text-zinc-800 dark:text-[#9b9b9b] dark:hover:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] border border-transparent transition-colors'
+    'h-6 w-6 p-0 flex items-center justify-center text-zinc-500 hover:text-zinc-800 dark:text-[#9b9b9b] dark:hover:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] rounded border border-transparent transition-colors'
   const ACTIVE_CLASS = 'bg-black/10 dark:bg-white/[0.1] text-zinc-900 dark:text-white'
 
   return (
@@ -69,7 +69,7 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
       shouldShow={states.shouldShow}
       updateDelay={0}
     >
-      <div className="glass-toolbar inline-flex h-full leading-none gap-0.5 p-1 items-center shadow-xl z-50">
+      <div className="glass-toolbar inline-flex h-full leading-none gap-0.5 p-0.5 rounded-lg items-center shadow-xl z-50">
         <MemoContentTypePicker options={blockOptions} />
         <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />
         <MemoButton

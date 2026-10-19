@@ -43,7 +43,7 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
     setMenuOpen(false)
   }, [data.currentNodePos])
 
-  // Detect whether current node is a list item to offset drag handle and prevent overlap with list markers
+  // Detect whether current node is a list item or inside a list (bulletList / orderedList / taskList)
   const isListItem = useMemo(() => {
     if (!data.currentNode || data.currentNodePos === -1) return false
     const nodeType = data.currentNode.type.name
@@ -51,8 +51,19 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
 
     try {
       const resolved = editor.state.doc.resolve(data.currentNodePos)
-      const parentName = resolved.parent.type.name
-      return parentName === 'bulletList' || parentName === 'orderedList' || parentName === 'taskList' || parentName === 'listItem'
+      for (let d = resolved.depth; d > 0; d--) {
+        const name = resolved.node(d).type.name
+        if (
+          name === 'listItem' ||
+          name === 'taskItem' ||
+          name === 'bulletList' ||
+          name === 'orderedList' ||
+          name === 'taskList'
+        ) {
+          return true
+        }
+      }
+      return false
     } catch {
       return false
     }
@@ -74,8 +85,8 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
       nested
     >
       <div
-        className={`flex items-center gap-0.5 transition-transform duration-150 ease-out ${
-          isListItem ? '-translate-x-7' : ''
+        className={`flex items-center gap-0.5 transition-transform duration-150 ease-out pr-3 -mr-3 ${
+          isListItem ? '-translate-x-6' : ''
         }`}
       >
         <button
