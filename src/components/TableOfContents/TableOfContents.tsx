@@ -98,7 +98,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
         ref={inlineContainerRef}
         className={`w-full select-none transition-all duration-200 mb-6 ${className}`.trim()}
       >
-        <div className="mx-auto max-w-4xl px-4 pt-2">
+        <div className="mx-auto max-w-3xl px-4 pt-2">
           <div className="glass-panel rounded-xl shadow-sm border border-black/5 dark:border-white/10 overflow-hidden backdrop-blur-md">
             {/* Header */}
             <div
@@ -186,9 +186,9 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
             />
           </button>
 
-          {/* Sticky Dropdown Popover (Matching 300px width) */}
+          {/* Sticky Dropdown Popover (Matching 300px width 1:1 aligned) */}
           {isStickyDropdownOpen && (
-            <div className="glass-menu absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[300px] min-w-[300px] max-h-72 overflow-y-auto p-1.5 shadow-2xl rounded-xl z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div className="glass-menu absolute top-full left-0 right-0 mt-2 w-[300px] min-w-[300px] max-h-72 overflow-y-auto p-1.5 shadow-2xl rounded-xl z-50 animate-in fade-in zoom-in-95 duration-150">
               <div className="px-2 py-1 text-[10px] font-semibold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase select-none">
                 Table of Contents
               </div>

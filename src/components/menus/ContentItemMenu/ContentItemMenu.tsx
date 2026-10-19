@@ -82,13 +82,8 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
       editor={editor}
       onNodeChange={data.handleNodeChange}
       computePositionConfig={DRAG_HANDLE_POSITION_CONFIG}
-      nested
     >
-      <div
-        className={`flex items-center gap-0.5 transition-transform duration-150 ease-out pr-3 -mr-3 ${
-          isListItem ? '-translate-x-6' : ''
-        }`}
-      >
+      <div className="flex items-center gap-0.5 transition-opacity duration-150 ease-out pr-4 -mr-4 py-1 -my-1">
         <button
           type="button"
           onClick={actions.handleAdd}
