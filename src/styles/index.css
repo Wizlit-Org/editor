@@ -9,7 +9,7 @@
 
 .ProseMirror {
   /* @apply caret-black dark:caret-white outline-0 pr-8 pl-20 py-16 z-0 lg:pl-8 lg:pr-8 mx-auto max-w-2xl; */
-  @apply caret-black dark:caret-white outline-0 z-0 mx-auto max-w-2xl;
+  @apply caret-[#e3e3e3] dark:caret-[#e3e3e3] text-[#e3e3e3] outline-0 z-0 mx-auto max-w-2xl;
 
   .selection {
     @apply inline;
@@ -17,7 +17,7 @@
 
   .selection,
   *::selection {
-    @apply bg-black/10 dark:bg-white/20 inline;
+    @apply bg-white/20 inline;
   }
 
   & > .react-renderer {
@@ -32,11 +32,58 @@
     @apply relative w-full max-w-2xl mx-auto;
 
     &:after {
-      @apply border-t-black/40 dark:border-t-white/40 w-full -top-[1.5em] max-w-2xl mx-auto left-0 right-0;
+      @apply border-t-white/40 w-full -top-[1.5em] max-w-2xl mx-auto left-0 right-0;
     }
   }
+}
+
+/* ==========================================================================
+   Notion Dark & Glassmorphism System
+   ========================================================================== */
+
+:root {
+  --notion-dark-bg: #191919;
+  --notion-dark-panel: #202020;
+  --notion-dark-popup: rgba(37, 37, 37, 0.85);
+  --notion-dark-text: #e3e3e3;
+  --notion-dark-subtext: #9b9b9b;
+  --notion-dark-hover: rgba(255, 255, 255, 0.06);
+  --notion-dark-accent: rgba(255, 255, 255, 0.1);
+  --notion-dark-border: rgba(255, 255, 255, 0.1);
+}
+
+/* Glassmorphism Surface Classes */
+.glass-panel {
+  @apply bg-[#202020]/75 backdrop-blur-md border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] rounded-lg;
+}
+
+.glass-menu {
+  @apply bg-[#252525]/85 backdrop-blur-md border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] rounded-lg;
+}
+
+.glass-toolbar {
+  @apply bg-[#202020]/80 backdrop-blur-md border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] rounded-lg;
+}
+
+.glass-item {
+  @apply text-[#e3e3e3] border border-transparent transition-colors duration-150 rounded;
+}
+
+.glass-item:hover {
+  @apply bg-white/[0.06];
+}
+
+.glass-item:active,
+.glass-item.active {
+  @apply bg-white/[0.1];
+}
+
+/* Notion Dark Canvas Utility */
+.notion-dark-canvas {
+  @apply bg-[#191919] text-[#e3e3e3];
 }
 
 [data-theme='slash-command'] {
   width: 1000vw;
 }
+

@@ -193,14 +193,14 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
   return (
     <>
-      <div className="flex" ref={menuContainerRef}>
+      <div className={`flex bg-[#191919] text-[#e3e3e3] min-h-full notion-dark-canvas ${className}`.trim()} ref={menuContainerRef}>
         <div className="relative flex flex-col flex-1 overflow-hidden">
           {/* <EditorHeader
             editor={editor}
             // collabState={collabState}
             // users={users}
           /> */}
-          <EditorContent editor={editor} className="flex-1" />
+          <EditorContent editor={editor} className="flex-1 text-[#e3e3e3]" />
           <ContentItemMenu editor={editor} isEditable={!readOnly} />
           <LinkMenu
             editor={editor}
@@ -217,16 +217,16 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       </div>
 
       {showDebug && (
-        <div className="absolute top-0 left-0 p-4 bg-white/80 rounded-lg shadow-lg">
-          <button onClick={() => handleEditable()} className="bg-blue-500 text-white px-3 py-2 rounded-md mb-2 text-sm">
+        <div className="absolute top-0 left-0 p-4 glass-panel text-[#e3e3e3] z-50">
+          <button onClick={() => handleEditable()} className="bg-white/10 hover:bg-white/20 text-[#e3e3e3] px-3 py-2 rounded-md mb-2 text-sm border border-white/10 transition-colors">
             {editor.isEditable ? 'Editable' : 'Read Only'}
           </button>
           <div className="space-y-1">
-            <p className="text-xs">Characters: {altCharacterCounter ? characters : stats.characters}</p>
-            <p className="text-xs">Words: {altCharacterCounter ? words : stats.words}</p>
+            <p className="text-xs text-[#9b9b9b]">Characters: <span className="text-[#e3e3e3]">{altCharacterCounter ? characters : stats.characters}</span></p>
+            <p className="text-xs text-[#9b9b9b]">Words: <span className="text-[#e3e3e3]">{altCharacterCounter ? words : stats.words}</span></p>
             {maxCharacters && (
-              <p className="text-xs">
-                Progress: {altCharacterCounter ? percentage : Math.round((100 / maxCharacters) * (stats.characters || 0))}% 
+              <p className="text-xs text-[#9b9b9b]">
+                Progress: <span className="text-[#e3e3e3]">{altCharacterCounter ? percentage : Math.round((100 / maxCharacters) * (stats.characters || 0))}%</span> 
                 ({altCharacterCounter ? characters : stats.characters}/{maxCharacters})
               </p>
             )}
