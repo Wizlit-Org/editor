@@ -1,4 +1,4 @@
-import { useCallback, useState, JSX } from 'react'
+import { useCallback, useState, JSX, useMemo } from 'react'
 import { BubbleMenu as BaseBubbleMenu } from '@tiptap/react/menus'
 import { useEditorState } from '@tiptap/react'
 
@@ -46,20 +46,27 @@ export const LinkMenu = ({ editor, appendTo, onLinkClick = () => false, disableD
     return null
   }, [editor])
 
+  const onHide = useCallback(() => {
+    setShowEdit(false)
+  }, [])
+
+  const menuOptions = useMemo(
+    () => ({
+      placement: 'top-start' as const,
+      flip: false,
+      onHide,
+    }),
+    [onHide],
+  )
+
   return (
     <BaseBubbleMenu
       editor={editor}
-      pluginKey="textMenu"
+      pluginKey="linkMenu"
       shouldShow={shouldShow}
       updateDelay={0}
       appendTo={appendTo?.current || undefined}
-      options={{
-        placement: 'top-start',
-        flip: false,
-        onHide: () => {
-          setShowEdit(false)
-        },
-      }}
+      options={menuOptions}
     >
       {showEdit ? (
         <LinkEditorPanel initialUrl={link} initialOpenInNewTab={target === '_blank'} onSetLink={onSetLink} />

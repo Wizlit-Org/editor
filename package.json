@@ -5,7 +5,18 @@
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
-  "browser": "dist/index.js",
+  "browser": "dist/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "default": "./dist/index.mjs"
+    },
+    "./dist/styles/*": "./dist/styles/*",
+    "./styles/*": "./dist/styles/*",
+    "./package.json": "./package.json"
+  },
   "files": [
     "dist"
   ],

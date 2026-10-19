@@ -7,6 +7,12 @@ import { isRowGripSelected } from './utils'
 import { Icon } from '@/components/ui/Icon'
 import { MenuProps, ShouldShowProps } from '@/components/menus/types'
 
+const TABLE_ROW_MENU_OPTIONS = {
+  placement: 'left' as const,
+  offset: 15,
+  flip: false,
+}
+
 export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.Element => {
   const shouldShow = useCallback(
     ({ view, state, from }: ShouldShowProps) => {
@@ -37,11 +43,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       pluginKey="tableRowMenu"
       updateDelay={0}
       appendTo={appendTo?.current || undefined}
-      options={{
-        placement: 'left',
-        offset: 15,
-        flip: false,
-      }}
+      options={TABLE_ROW_MENU_OPTIONS}
       shouldShow={shouldShow}
     >
       <Toolbar.Wrapper isVertical>

@@ -23,6 +23,11 @@ const MemoColorPicker = memo(ColorPicker)
 // const MemoFontSizePicker = memo(FontSizePicker)
 const MemoContentTypePicker = memo(ContentTypePicker)
 
+const MENU_OPTIONS = {
+  placement: 'top-start' as const,
+  offset: 8,
+}
+
 export type TextMenuProps = {
   editor: Editor
 }
@@ -58,28 +63,13 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
   return (
     <BubbleMenu
       className={selecting ? 'hidden' : ''}
-      options={{
-        placement: 'top-start',
-        offset: 8,
-      }}
+      options={MENU_OPTIONS}
       editor={editor}
       pluginKey="textMenu"
       shouldShow={states.shouldShow}
       updateDelay={0}
     >
       <Toolbar.Wrapper>
-        {/* <AIDropdown
-          onCompleteSentence={commands.onCompleteSentence}
-          onEmojify={commands.onEmojify}
-          onFixSpelling={commands.onFixSpelling}
-          onMakeLonger={commands.onMakeLonger}
-          onMakeShorter={commands.onMakeShorter}
-          onSimplify={commands.onSimplify}
-          onTldr={commands.onTldr}
-          onTone={commands.onTone}
-          onTranslate={commands.onTranslate}
-        />*/}
-        {/* <Toolbar.Divider /> */}
         <MemoContentTypePicker options={blockOptions} />
         {/* <MemoFontFamilyPicker onChange={commands.onSetFont} value={states.currentFont || ''} /> */}
         {/* <MemoFontSizePicker onChange={commands.onSetFontSize} value={states.currentSize || ''} /> */}
@@ -138,7 +128,7 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
         <EditLinkPopover onSetLink={commands.onLink} />
         <Popover.Root>
           <Popover.Trigger asChild>
-            <MemoButton active={!!states.currentHighlight} tooltip="Highlight text">
+            <MemoButton active={!!states.currentHighlight}>
               <Icon name="Highlighter" />
             </MemoButton>
           </Popover.Trigger>

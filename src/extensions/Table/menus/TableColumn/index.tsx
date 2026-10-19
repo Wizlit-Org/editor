@@ -7,6 +7,11 @@ import { isColumnGripSelected } from './utils'
 import { Icon } from '@/components/ui/Icon'
 import { MenuProps, ShouldShowProps } from '@/components/menus/types'
 
+const TABLE_COLUMN_MENU_OPTIONS = {
+  offset: 15,
+  flip: false,
+}
+
 export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.Element => {
   const shouldShow = useCallback(
     ({ view, state, from }: ShouldShowProps) => {
@@ -37,10 +42,7 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
       pluginKey="tableColumnMenu"
       updateDelay={0}
       appendTo={appendTo?.current || undefined}
-      options={{
-        offset: 15,
-        flip: false,
-      }}
+      options={TABLE_COLUMN_MENU_OPTIONS}
       shouldShow={shouldShow}
     >
       <Toolbar.Wrapper isVertical>

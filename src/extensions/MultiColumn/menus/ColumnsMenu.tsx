@@ -8,6 +8,11 @@ import { Toolbar } from '@/components/ui/Toolbar'
 import { ColumnLayout } from '../Columns'
 import { Icon } from '@/components/ui/Icon'
 
+const COLUMNS_MENU_OPTIONS = {
+  offset: 8,
+  flip: false,
+}
+
 export const ColumnsMenu = ({ editor, appendTo }: MenuProps) => {
   const getReferenceClientRect = useCallback(() => {
     const renderContainer = getRenderContainer(editor, 'columns')
@@ -15,6 +20,11 @@ export const ColumnsMenu = ({ editor, appendTo }: MenuProps) => {
 
     return rect
   }, [editor])
+
+  const getReferencedVirtualElement = useCallback(
+    () => ({ getBoundingClientRect: getReferenceClientRect }),
+    [getReferenceClientRect],
+  )
 
   const shouldShow = useCallback(() => {
     const isColumns = editor.isActive('columns')
@@ -50,11 +60,8 @@ export const ColumnsMenu = ({ editor, appendTo }: MenuProps) => {
       shouldShow={shouldShow}
       updateDelay={0}
       appendTo={appendTo?.current || undefined}
-      options={{
-        offset: 8,
-        flip: false,
-      }}
-      getReferencedVirtualElement={() => ({ getBoundingClientRect: getReferenceClientRect })}
+      options={COLUMNS_MENU_OPTIONS}
+      getReferencedVirtualElement={getReferencedVirtualElement}
     >
       <Toolbar.Wrapper>
         <Toolbar.Button tooltip="Sidebar left" active={isColumnLeft} onClick={onColumnLeft}>

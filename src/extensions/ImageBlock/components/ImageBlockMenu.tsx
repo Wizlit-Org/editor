@@ -7,6 +7,11 @@ import { ImageBlockWidth } from './ImageBlockWidth'
 import { MenuProps } from '@/components/menus/types'
 import { getRenderContainer } from '@/lib/utils'
 
+const IMAGE_BLOCK_MENU_OPTIONS = {
+  offset: 8,
+  flip: false,
+}
+
 export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => {
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -16,6 +21,11 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
 
     return rect
   }, [editor])
+
+  const getReferencedVirtualElement = useCallback(
+    () => ({ getBoundingClientRect: getReferenceClientRect }),
+    [getReferenceClientRect],
+  )
 
   const shouldShow = useCallback(() => {
     const isActive = editor.isActive('imageBlock')
@@ -60,11 +70,8 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
       shouldShow={shouldShow}
       updateDelay={0}
       appendTo={appendTo?.current || undefined}
-      options={{
-        offset: 8,
-        flip: false,
-      }}
-      getReferencedVirtualElement={() => ({ getBoundingClientRect: getReferenceClientRect })}
+      options={IMAGE_BLOCK_MENU_OPTIONS}
+      getReferencedVirtualElement={getReferencedVirtualElement}
     >
       <Toolbar.Wrapper shouldShowContent={shouldShow()} ref={menuRef}>
         <Toolbar.Button tooltip="Align image left" active={isImageLeft} onClick={onAlignImageLeft}>

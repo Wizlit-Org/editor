@@ -12,6 +12,9 @@ export default defineConfig({
   treeshake: true,
   minify: true,
   external: ['react', 'react-dom', 'next'],
+  banner: {
+    js: '"use client";',
+  },
   esbuildOptions(options) {
     options.loader = {
       ...options.loader,
