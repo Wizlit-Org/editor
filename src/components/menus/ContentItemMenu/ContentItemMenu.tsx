@@ -8,8 +8,44 @@ import { useData } from './hooks/useData'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import TurnIntoSubmenu from './components/TurnIntoSubmenu'
 
+const gutterAlignMiddleware = {
+  name: 'gutterAlign',
+  fn({ x, y, elements }: any) {
+    if (!elements.reference || !(elements.reference instanceof HTMLElement)) {
+      return { x, y }
+    }
+    const refEl = elements.reference as HTMLElement
+    // 리스트 아이템이거나 중첩 리스트일 때 최외곽 리스트 컨테이너(ul/ol) 탐색
+    let topList: HTMLElement | null = refEl.closest('ul, ol')
+    let current = topList
+    while (current && current.parentElement) {
+      const higherList = current.parentElement.closest('ul, ol')
+      if (higherList) {
+        topList = higherList as HTMLElement
+        current = higherList as HTMLElement
+      } else {
+        break
+      }
+    }
+
+    if (topList) {
+      const refRect = refEl.getBoundingClientRect()
+      const listRect = topList.getBoundingClientRect()
+      const deltaX = refRect.left - listRect.left
+      if (deltaX > 0) {
+        return {
+          x: x - deltaX,
+          y,
+        }
+      }
+    }
+    return { x, y }
+  },
+}
+
 const DRAG_HANDLE_POSITION_CONFIG = {
   placement: 'left-start' as const,
+  middleware: [gutterAlignMiddleware],
 }
 
 export type ContentItemMenuProps = {
@@ -80,6 +116,7 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
     <DragHandle
       pluginKey="ContentItemMenu"
       editor={editor}
+      nested={true}
       onNodeChange={data.handleNodeChange}
       computePositionConfig={DRAG_HANDLE_POSITION_CONFIG}
     >

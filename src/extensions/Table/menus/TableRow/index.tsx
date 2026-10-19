@@ -12,12 +12,40 @@ import {
 } from './rowActions'
 
 const TABLE_ROW_MENU_OPTIONS = {
-  placement: 'left' as const,
-  offset: 15,
-  flip: false,
+  placement: 'left-start' as const,
+  offset: 8,
+  flip: true,
 }
 
 export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.Element => {
+  const getReferencedVirtualElement = useCallback(() => {
+    if (!editor.view?.dom) return null
+
+    // 1. 선택된 grip-row 엘리먼트를 우선 앵커로 바인딩
+    const selectedGrip = editor.view.dom.querySelector('a.grip-row.selected') as HTMLElement | null
+    if (selectedGrip) {
+      return {
+        getBoundingClientRect: () => selectedGrip.getBoundingClientRect(),
+      }
+    }
+
+    // 2. 폴백: 선택된 셀(selectedCell)의 상위 tr 엘리먼트 기준
+    const selectedCell = editor.view.dom.querySelector('.selectedCell') as HTMLElement | null
+    if (selectedCell) {
+      const row = selectedCell.closest('tr')
+      if (row) {
+        return {
+          getBoundingClientRect: () => row.getBoundingClientRect(),
+        }
+      }
+      return {
+        getBoundingClientRect: () => selectedCell.getBoundingClientRect(),
+      }
+    }
+
+    return null
+  }, [editor])
+
   const shouldShow = useCallback(
     ({ view, state, from }: ShouldShowProps) => {
       if (!state || !from) {
@@ -88,6 +116,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       pluginKey="tableRowMenu"
       updateDelay={0}
       appendTo={appendTo?.current || undefined}
+      getReferencedVirtualElement={getReferencedVirtualElement}
       options={TABLE_ROW_MENU_OPTIONS}
       shouldShow={shouldShow}
     >

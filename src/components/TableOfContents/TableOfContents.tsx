@@ -43,29 +43,44 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
     },
   })
 
-  // Detect when the inline TOC is scrolled out of view
+  // Detect when the inline TOC is scrolled out of view (Rock-solid scroll tracking)
   useEffect(() => {
     const el = inlineContainerRef.current
     if (!el) return
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        // When inline TOC top is above the viewport (scrolled out of view above)
-        if (!entry.isIntersecting && entry.boundingClientRect.top < 60) {
-          setIsScrolledOut(true)
-        } else if (entry.isIntersecting) {
-          setIsScrolledOut(false)
-          setIsStickyDropdownOpen(false)
-        }
-      },
-      {
-        threshold: 0,
-        rootMargin: '-60px 0px 0px 0px',
-      },
-    )
+    // 스크롤 가능한 상위 컨테이너 탐색 (모달의 overflow-auto 또는 window)
+    let scrollParent: HTMLElement | Window = window
+    let parent = el.parentElement
+    while (parent) {
+      const overflowY = window.getComputedStyle(parent).overflowY
+      if (overflowY === 'auto' || overflowY === 'scroll') {
+        scrollParent = parent
+        break
+      }
+      parent = parent.parentElement
+    }
 
-    observer.observe(el)
-    return () => observer.disconnect()
+    const checkScrolledOut = () => {
+      if (!inlineContainerRef.current) return
+      const rect = inlineContainerRef.current.getBoundingClientRect()
+      const parentTop = scrollParent instanceof HTMLElement ? scrollParent.getBoundingClientRect().top : 0
+      // 인라인 TOC의 하단이 스크롤 컨테이너 상단 위로 지나갔는지 정확히 판별 (끝까지 풀리지 않음)
+      const isPast = rect.bottom < parentTop + 50
+      setIsScrolledOut(isPast)
+      if (!isPast) {
+        setIsStickyDropdownOpen(false)
+      }
+    }
+
+    checkScrolledOut()
+
+    scrollParent.addEventListener('scroll', checkScrolledOut, { passive: true })
+    window.addEventListener('scroll', checkScrolledOut, { passive: true })
+
+    return () => {
+      scrollParent.removeEventListener('scroll', checkScrolledOut)
+      window.removeEventListener('scroll', checkScrolledOut)
+    }
   }, [headings?.length])
 
   const handleScrollToHeading = useCallback(
@@ -98,7 +113,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
         ref={inlineContainerRef}
         className={`w-full select-none transition-all duration-200 mb-6 ${className}`.trim()}
       >
-        <div className="mx-auto max-w-3xl px-4 pt-2">
+        <div className="mx-auto max-w-2xl px-4 pt-2">
           <div className="glass-panel rounded-xl shadow-sm border border-black/5 dark:border-white/10 overflow-hidden backdrop-blur-md">
             {/* Header */}
             <div

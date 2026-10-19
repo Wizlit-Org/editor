@@ -83,7 +83,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
       <div
         className={wrapperClassName}
         style={{
-          width: width && width !== 'auto' ? width : '100%',
+          width: width && width !== 'auto' ? width : 'fit-content',
           maxWidth: '100%',
         }}
         data-drag-handle
@@ -95,7 +95,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
           </div>
         )}
 
-        {/* 원본 사이즈 및 100% 가로폭 지원 이미지 렌더링 */}
+        {/* 원본 사이즈 자연스러운 이미지 렌더링 (로드 완료 시 박스 없이 깔끔하게 표시) */}
         {src && !isExternalImage && (
           <img
             ref={imgRef}
@@ -109,7 +109,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
               setLoaded(true);
             }}
             className={cn(
-              'w-full h-auto rounded-lg transition-opacity duration-300',
+              'max-w-full h-auto rounded-lg transition-opacity duration-300',
               finalLoaded && !hasError ? 'opacity-100 block' : 'opacity-0 hidden',
               !editorEditable ? 'cursor-pointer' : ''
             )}

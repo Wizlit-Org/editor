@@ -156,3 +156,15 @@
     @apply dark:text-neutral-400;
   }
 }
+
+.ProseMirror-dropcursor,
+.ProseMirror-dropmarker {
+  height: 2px !important;
+  background-color: #6366f1 !important;
+  border: none !important;
+  border-radius: 2px !important;
+  z-index: 50 !important;
+  pointer-events: none !important;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.8) !important;
+  transition: all 0.1s ease-out !important;
+}

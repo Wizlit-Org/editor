@@ -6,15 +6,17 @@ export type ImageBlockWidthProps = {
 }
 
 export const ImageBlockWidth = memo(({ onChange, value }: ImageBlockWidthProps) => {
-  const [currentValue, setCurrentValue] = useState(value)
+  const safeValue = Number.isFinite(value) && value > 0 ? value : 100
+  const [currentValue, setCurrentValue] = useState(safeValue)
 
   useEffect(() => {
-    setCurrentValue(value)
-  }, [value])
+    setCurrentValue(safeValue)
+  }, [safeValue])
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const nextValue = parseInt(e.target.value)
+      const parsed = parseInt(e.target.value, 10)
+      const nextValue = Number.isFinite(parsed) ? Math.min(100, Math.max(25, parsed)) : 100
       onChange(nextValue)
       setCurrentValue(nextValue)
     },
@@ -32,7 +34,9 @@ export const ImageBlockWidth = memo(({ onChange, value }: ImageBlockWidthProps) 
         onChange={handleChange}
         value={currentValue}
       />
-      <span className="text-xs font-semibold text-zinc-500 dark:text-[#9b9b9b] select-none min-w-[2.2rem] text-right">{value}%</span>
+      <span className="text-xs font-semibold text-zinc-500 dark:text-[#9b9b9b] select-none min-w-[2.2rem] text-right">
+        {safeValue}%
+      </span>
     </div>
   )
 })

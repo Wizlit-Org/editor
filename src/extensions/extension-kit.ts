@@ -172,7 +172,8 @@ export const ExtensionKit = ({
   BlockquoteFigure,
   Dropcursor.configure({
     width: 2,
-    class: 'ProseMirror-dropcursor border-black',
+    color: '#6366f1',
+    class: 'ProseMirror-dropcursor',
   }),
   History,
   Youtube.configure({
