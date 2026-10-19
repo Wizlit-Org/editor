@@ -5,8 +5,6 @@ import { useTextmenuStates } from './hooks/useTextmenuStates'
 import { BubbleMenu } from '@tiptap/react/menus'
 import { Editor } from '@tiptap/react'
 import { memo, useEffect, useState } from 'react'
-import * as Popover from '@radix-ui/react-popover'
-import { ColorPicker } from '@/components/panels'
 // import { FontFamilyPicker } from './components/FontFamilyPicker'
 // import { FontSizePicker } from './components/FontSizePicker'
 import { useTextmenuContentTypes } from './hooks/useTextmenuContentTypes'
@@ -17,7 +15,6 @@ import { EditLinkPopover } from './components/EditLinkPopover'
 // We memorize the button so each button is not rerendered
 // on every editor state change
 const MemoButton = memo(Toolbar.Button)
-const MemoColorPicker = memo(ColorPicker)
 // const MemoFontFamilyPicker = memo(FontFamilyPicker)
 // const MemoFontSizePicker = memo(FontSizePicker)
 const MemoContentTypePicker = memo(ContentTypePicker)
@@ -60,8 +57,8 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
   }, [editor])
 
   const BTN_CLASS =
-    'text-[#9b9b9b] hover:text-[#e3e3e3] hover:bg-white/[0.06] active:bg-white/[0.1] border border-transparent transition-colors'
-  const ACTIVE_CLASS = 'bg-white/[0.1] text-white'
+    'text-zinc-500 hover:text-zinc-800 dark:text-[#9b9b9b] dark:hover:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] border border-transparent transition-colors'
+  const ACTIVE_CLASS = 'bg-black/10 dark:bg-white/[0.1] text-zinc-900 dark:text-white'
 
   return (
     <BubbleMenu
@@ -72,9 +69,9 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
       shouldShow={states.shouldShow}
       updateDelay={0}
     >
-      <div className="glass-toolbar inline-flex h-full leading-none gap-0.5 p-1 items-center text-[#e3e3e3] shadow-xl z-50">
+      <div className="glass-toolbar inline-flex h-full leading-none gap-0.5 p-1 items-center shadow-xl z-50">
         <MemoContentTypePicker options={blockOptions} />
-        <div className="h-4 w-[1px] bg-white/10 mx-1 shrink-0" />
+        <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />
         <MemoButton
           tooltip="Bold"
           tooltipShortcut={['Mod', 'B']}
@@ -115,7 +112,7 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
         >
           <Icon name="Strikethrough" />
         </MemoButton>
-        <div className="h-4 w-[1px] bg-white/10 mx-1 shrink-0" />
+        <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />
         <MemoButton
           tooltip="Subscript"
           tooltipShortcut={['Mod', '.']}
@@ -136,7 +133,7 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
         >
           <Icon name="Superscript" />
         </MemoButton>
-        <div className="h-4 w-[1px] bg-white/10 mx-1 shrink-0" />
+        <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />
         <MemoButton
           tooltip="Code"
           tooltipShortcut={['Mod', 'E']}
@@ -156,27 +153,6 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
           <Icon name="FileCode" />
         </MemoButton>
         <EditLinkPopover onSetLink={commands.onLink} />
-        <Popover.Root>
-          <Popover.Trigger asChild>
-            <MemoButton
-              active={!!states.currentHighlight}
-              className={BTN_CLASS}
-              activeClassname={ACTIVE_CLASS}
-              tooltip="Highlight"
-            >
-              <Icon name="Highlighter" />
-            </MemoButton>
-          </Popover.Trigger>
-          <Popover.Content side="top" sideOffset={8} asChild className="z-50 outline-none">
-            <div className="glass-menu p-1.5 shadow-2xl">
-              <MemoColorPicker
-                color={states.currentHighlight}
-                onChange={commands.onChangeHighlight}
-                onClear={commands.onClearHighlight}
-              />
-            </div>
-          </Popover.Content>
-        </Popover.Root>
       </div>
     </BubbleMenu>
   )

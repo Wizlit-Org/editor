@@ -5,9 +5,8 @@ import { Editor } from '@tiptap/react'
 import * as Popover from '@radix-ui/react-popover'
 import useContentItemActions from './hooks/useContentItemActions'
 import { useData } from './hooks/useData'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import TurnIntoSubmenu from './components/TurnIntoSubmenu'
-import ColorPickerSubmenu from './components/ColorPickerSubmenu'
 
 const DRAG_HANDLE_POSITION_CONFIG = {
   placement: 'left-start' as const,
@@ -18,7 +17,7 @@ export type ContentItemMenuProps = {
   isEditable?: boolean
 }
 
-type MenuView = 'main' | 'turnInto' | 'color'
+type MenuView = 'main' | 'turnInto'
 
 export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuProps) => {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -35,12 +34,36 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
     }
   }, [editor, menuOpen])
 
+  const copyAnchorLink = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.hash = `pos-${data.currentNodePos}`
+      navigator.clipboard.writeText(url.toString())
+    }
+    setMenuOpen(false)
+  }, [data.currentNodePos])
+
+  // Detect whether current node is a list item to offset drag handle and prevent overlap with list markers
+  const isListItem = useMemo(() => {
+    if (!data.currentNode || data.currentNodePos === -1) return false
+    const nodeType = data.currentNode.type.name
+    if (nodeType === 'listItem' || nodeType === 'taskItem') return true
+
+    try {
+      const resolved = editor.state.doc.resolve(data.currentNodePos)
+      const parentName = resolved.parent.type.name
+      return parentName === 'bulletList' || parentName === 'orderedList' || parentName === 'taskList' || parentName === 'listItem'
+    } catch {
+      return false
+    }
+  }, [data.currentNode, data.currentNodePos, editor])
+
   if (!isEditable) {
     return null
   }
 
   const DRAG_BTN_CLASS =
-    'w-6 h-6 p-0 flex items-center justify-center text-[#9b9b9b] hover:text-[#e3e3e3] hover:bg-white/[0.06] active:bg-white/[0.1] rounded border border-transparent transition-colors duration-150'
+    'w-6 h-6 p-0 flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:text-[#9b9b9b] dark:hover:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] rounded border border-transparent transition-all duration-150'
 
   return (
     <DragHandle
@@ -50,7 +73,11 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
       computePositionConfig={DRAG_HANDLE_POSITION_CONFIG}
       nested
     >
-      <div className="flex items-center gap-0.5">
+      <div
+        className={`flex items-center gap-0.5 transition-transform duration-150 ease-out ${
+          isListItem ? '-translate-x-7' : ''
+        }`}
+      >
         <button
           type="button"
           onClick={actions.handleAdd}
@@ -72,32 +99,46 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               <Icon name="GripVertical" className="w-3.5 h-3.5" />
             </button>
           </Popover.Trigger>
-          <Popover.Content side="bottom" align="start" sideOffset={6} className="z-50 outline-none">
-            <div className="glass-menu p-1.5 flex flex-col min-w-[15rem] max-h-[24rem] overflow-y-auto text-[#e3e3e3] shadow-2xl">
+          <Popover.Content
+            side="bottom"
+            align="start"
+            sideOffset={6}
+            className="z-50 outline-none animate-in fade-in-0 zoom-in-95 duration-150"
+          >
+            <div className="glass-menu p-1.5 flex flex-col min-w-[15rem] max-h-[24rem] overflow-y-auto text-zinc-800 dark:text-[#e3e3e3] shadow-2xl transition-all duration-150">
               {menuView === 'main' && (
                 <div className="flex flex-col gap-0.5">
                   <button
                     type="button"
                     onClick={() => setMenuView('turnInto')}
-                    className="w-full flex items-center justify-between px-2 py-1.5 text-sm font-medium text-[#e3e3e3] hover:text-white hover:bg-white/[0.06] active:bg-white/[0.1] rounded border border-transparent transition-colors text-left"
+                    className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium text-zinc-700 dark:text-[#e3e3e3] hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] rounded border border-transparent transition-colors text-left"
                   >
                     <div className="flex items-center gap-2">
-                      <Icon name="RefreshCw" className="w-4 h-4 text-[#9b9b9b]" />
+                      <Icon name="RefreshCw" className="w-4 h-4 text-zinc-400 dark:text-[#9b9b9b]" />
                       <span>Turn into</span>
                     </div>
-                    <Icon name="ChevronRight" className="w-3.5 h-3.5 text-[#9b9b9b]" />
+                    <Icon name="ChevronRight" className="w-3.5 h-3.5 text-zinc-400 dark:text-[#9b9b9b]" />
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setMenuView('color')}
-                    className="w-full flex items-center justify-between px-2 py-1.5 text-sm font-medium text-[#e3e3e3] hover:text-white hover:bg-white/[0.06] active:bg-white/[0.1] rounded border border-transparent transition-colors text-left"
+                    onClick={() => {
+                      actions.copyNodeToClipboard()
+                      setMenuOpen(false)
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-zinc-700 dark:text-[#e3e3e3] hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] rounded border border-transparent transition-colors text-left"
                   >
-                    <div className="flex items-center gap-2">
-                      <Icon name="Palette" className="w-4 h-4 text-[#9b9b9b]" />
-                      <span>Color</span>
-                    </div>
-                    <Icon name="ChevronRight" className="w-3.5 h-3.5 text-[#9b9b9b]" />
+                    <Icon name="Clipboard" className="w-4 h-4 text-zinc-400 dark:text-[#9b9b9b]" />
+                    <span>Copy to clipboard</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={copyAnchorLink}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-zinc-700 dark:text-[#e3e3e3] hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] rounded border border-transparent transition-colors text-left"
+                  >
+                    <Icon name="Link" className="w-4 h-4 text-zinc-400 dark:text-[#9b9b9b]" />
+                    <span>Copy anchor link</span>
                   </button>
 
                   <button
@@ -106,13 +147,16 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
                       actions.duplicateNode()
                       setMenuOpen(false)
                     }}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-[#e3e3e3] hover:text-white hover:bg-white/[0.06] active:bg-white/[0.1] rounded border border-transparent transition-colors text-left"
+                    className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium text-zinc-700 dark:text-[#e3e3e3] hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] rounded border border-transparent transition-colors text-left"
                   >
-                    <Icon name="Copy" className="w-4 h-4 text-[#9b9b9b]" />
-                    <span>Duplicate</span>
+                    <div className="flex items-center gap-2">
+                      <Icon name="Copy" className="w-4 h-4 text-zinc-400 dark:text-[#9b9b9b]" />
+                      <span>Duplicate</span>
+                    </div>
+                    <span className="text-[10px] text-zinc-400 dark:text-[#787774]">Ctrl+D</span>
                   </button>
 
-                  <div className="h-[1px] bg-white/10 my-1 w-full" />
+                  <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1 w-full" />
 
                   <button
                     type="button"
@@ -120,25 +164,19 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
                       actions.deleteNode()
                       setMenuOpen(false)
                     }}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 active:bg-red-500/20 rounded border border-transparent transition-colors text-left"
+                    className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-500/10 active:bg-red-500/20 rounded border border-transparent transition-colors text-left"
                   >
-                    <Icon name="Trash2" className="w-4 h-4 text-red-400" />
-                    <span>Delete</span>
+                    <div className="flex items-center gap-2">
+                      <Icon name="Trash2" className="w-4 h-4 text-red-500 dark:text-red-400" />
+                      <span>Delete</span>
+                    </div>
+                    <span className="text-[10px] text-red-400/80">Del</span>
                   </button>
                 </div>
               )}
 
               {menuView === 'turnInto' && (
                 <TurnIntoSubmenu
-                  editor={editor}
-                  currentNodePos={data.currentNodePos}
-                  onBack={() => setMenuView('main')}
-                  onClose={() => setMenuOpen(false)}
-                />
-              )}
-
-              {menuView === 'color' && (
-                <ColorPickerSubmenu
                   editor={editor}
                   currentNodePos={data.currentNodePos}
                   onBack={() => setMenuView('main')}

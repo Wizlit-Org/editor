@@ -32,6 +32,7 @@ export interface BlockEditorProps {
   className?: string
   readOnly?: boolean
   showDebug?: boolean | { altCharacterCounter?: boolean }
+  theme?: 'light' | 'dark'
 
   maxCharacters?: number // Maximum number of characters (default: 5000)
   altCharacterCounter?: boolean
@@ -73,6 +74,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   onChange,
   className = '',
   readOnly,
+  theme = 'light',
   maxEmbeddings = 3, // Default maximum number of images
   maxCharacters, // Default maximum number of characters
   showDebug = false,
@@ -191,16 +193,19 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     return null
   }
 
+  const isDark = theme === 'dark'
+  const themeClass = isDark ? 'dark theme-dark notion-dark-canvas' : 'theme-light notion-light-canvas'
+
   return (
     <>
-      <div className={`flex bg-[#191919] text-[#e3e3e3] min-h-full notion-dark-canvas ${className}`.trim()} ref={menuContainerRef}>
+      <div className={`flex min-h-full ${themeClass} ${className}`.trim()} ref={menuContainerRef}>
         <div className="relative flex flex-col flex-1 overflow-hidden">
           {/* <EditorHeader
             editor={editor}
             // collabState={collabState}
             // users={users}
           /> */}
-          <EditorContent editor={editor} className="flex-1 text-[#e3e3e3]" />
+          <EditorContent editor={editor} className="flex-1 focus:outline-none" />
           <ContentItemMenu editor={editor} isEditable={!readOnly} />
           <LinkMenu
             editor={editor}
@@ -217,16 +222,16 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       </div>
 
       {showDebug && (
-        <div className="absolute top-0 left-0 p-4 glass-panel text-[#e3e3e3] z-50">
-          <button onClick={() => handleEditable()} className="bg-white/10 hover:bg-white/20 text-[#e3e3e3] px-3 py-2 rounded-md mb-2 text-sm border border-white/10 transition-colors">
+        <div className="absolute top-0 left-0 p-4 glass-panel z-50">
+          <button onClick={() => handleEditable()} className="bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 px-3 py-2 rounded-md mb-2 text-sm border border-black/5 dark:border-white/10 transition-colors">
             {editor.isEditable ? 'Editable' : 'Read Only'}
           </button>
           <div className="space-y-1">
-            <p className="text-xs text-[#9b9b9b]">Characters: <span className="text-[#e3e3e3]">{altCharacterCounter ? characters : stats.characters}</span></p>
-            <p className="text-xs text-[#9b9b9b]">Words: <span className="text-[#e3e3e3]">{altCharacterCounter ? words : stats.words}</span></p>
+            <p className="text-xs opacity-60">Characters: <span className="opacity-100 font-medium">{altCharacterCounter ? characters : stats.characters}</span></p>
+            <p className="text-xs opacity-60">Words: <span className="opacity-100 font-medium">{altCharacterCounter ? words : stats.words}</span></p>
             {maxCharacters && (
-              <p className="text-xs text-[#9b9b9b]">
-                Progress: <span className="text-[#e3e3e3]">{altCharacterCounter ? percentage : Math.round((100 / maxCharacters) * (stats.characters || 0))}%</span> 
+              <p className="text-xs opacity-60">
+                Progress: <span className="opacity-100 font-medium">{altCharacterCounter ? percentage : Math.round((100 / maxCharacters) * (stats.characters || 0))}%</span> 
                 ({altCharacterCounter ? characters : stats.characters}/{maxCharacters})
               </p>
             )}

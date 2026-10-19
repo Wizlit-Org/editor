@@ -119,9 +119,9 @@ export const MenuList = React.forwardRef((props: MenuListProps, ref) => {
       <div className="flex flex-col gap-0.5">
         {props.items.map((group, groupIndex: number) => (
           <React.Fragment key={`${group.title}-wrapper`}>
-            {groupIndex > 0 && <div className="h-[1px] bg-white/10 my-1.5 mx-1" />}
+            {groupIndex > 0 && <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1.5 mx-1" />}
             <div
-              className="text-[#9b9b9b] text-[10px] mx-2 mt-2 mb-1 font-semibold tracking-wider select-none uppercase first:mt-1"
+              className="text-zinc-400 dark:text-[#9b9b9b] text-[10px] mx-2 mt-2 mb-1 font-semibold tracking-wider select-none uppercase first:mt-1"
               key={`${group.title}`}
             >
               {group.title}
@@ -136,17 +136,17 @@ export const MenuList = React.forwardRef((props: MenuListProps, ref) => {
                   onClick={createCommandClickHandler(groupIndex, commandIndex)}
                   className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded border border-transparent transition-colors text-left select-none ${
                     isSelected
-                      ? 'bg-white/[0.1] text-white'
-                      : 'text-[#e3e3e3] hover:text-white hover:bg-white/[0.06] active:bg-white/[0.1]'
+                      ? 'bg-black/10 text-zinc-900 dark:bg-white/[0.1] dark:text-white'
+                      : 'text-zinc-700 hover:text-zinc-900 hover:bg-black/5 dark:text-[#e3e3e3] dark:hover:text-white dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1]'
                   }`}
                 >
-                  <div className="w-7 h-7 rounded flex items-center justify-center bg-white/[0.04] border border-white/10 shrink-0">
-                    <Icon name={command.iconName} className="w-4 h-4 text-[#9b9b9b]" />
+                  <div className="w-7 h-7 rounded flex items-center justify-center bg-black/[0.04] dark:bg-white/[0.04] border border-black/5 dark:border-white/10 shrink-0">
+                    <Icon name={command.iconName} className="w-4 h-4 text-zinc-500 dark:text-[#9b9b9b]" />
                   </div>
                   <div className="flex flex-col min-w-0">
                     <span className="font-medium text-xs truncate leading-snug">{command.label}</span>
                     {command.description && (
-                      <span className="text-[11px] text-[#9b9b9b] truncate leading-tight">
+                      <span className="text-[11px] text-zinc-400 dark:text-[#9b9b9b] truncate leading-tight">
                         {command.description}
                       </span>
                     )}

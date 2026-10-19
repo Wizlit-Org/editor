@@ -93,7 +93,7 @@ export const TurnIntoSubmenu: React.FC<TurnIntoSubmenuProps> = ({
       <button
         type="button"
         onClick={onBack}
-        className="w-full flex items-center gap-1.5 px-2 py-1 mb-1 text-xs font-semibold text-[#9b9b9b] hover:text-[#e3e3e3] hover:bg-white/[0.06] rounded border border-transparent transition-colors text-left"
+        className="w-full flex items-center gap-1.5 px-2 py-1 mb-1 text-xs font-semibold text-zinc-500 dark:text-[#9b9b9b] hover:text-zinc-800 dark:hover:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.06] rounded border border-transparent transition-colors text-left"
       >
         <Icon name="ArrowLeft" className="w-3.5 h-3.5" />
         <span>Turn into</span>
@@ -107,9 +107,9 @@ export const TurnIntoSubmenu: React.FC<TurnIntoSubmenuProps> = ({
               option.action(editor, currentNodePos)
               onClose()
             }}
-            className="w-full flex items-center gap-2.5 px-2 py-1.5 text-sm text-[#e3e3e3] hover:text-white hover:bg-white/[0.06] active:bg-white/[0.1] rounded border border-transparent transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-zinc-700 dark:text-[#e3e3e3] hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] rounded border border-transparent transition-colors text-left"
           >
-            <Icon name={option.icon} className="w-4 h-4 text-[#9b9b9b] shrink-0" />
+            <Icon name={option.icon} className="w-4 h-4 text-zinc-400 dark:text-[#9b9b9b] shrink-0" />
             <span>{option.label}</span>
           </button>
         ))}

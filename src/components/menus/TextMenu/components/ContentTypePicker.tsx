@@ -39,8 +39,8 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
       <Dropdown.Trigger asChild>
         <Toolbar.Button
           active={activeItem?.id !== 'paragraph' && !!activeItem?.type}
-          className="text-[#9b9b9b] hover:text-[#e3e3e3] hover:bg-white/[0.06] active:bg-white/[0.1] border border-transparent transition-colors"
-          activeClassname="bg-white/[0.1] text-white"
+          className="text-zinc-500 hover:text-zinc-800 dark:text-[#9b9b9b] dark:hover:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] border border-transparent transition-colors"
+          activeClassname="bg-black/10 dark:bg-white/[0.1] text-zinc-900 dark:text-white"
         >
           <Icon name={(activeItem?.type === 'option' && activeItem.icon) || 'Pilcrow'} className="w-4 h-4" />
           <Icon name="ChevronDown" className="w-2.5 h-2.5 opacity-60" />
@@ -56,20 +56,20 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
                   type="button"
                   key={option.id}
                   onClick={option.onClick}
-                  className={`w-full flex items-center gap-2 px-2 py-1.5 text-xs font-medium rounded border border-transparent transition-colors text-left ${
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium rounded border border-transparent transition-colors text-left ${
                     isActive
-                      ? 'bg-white/[0.1] text-white'
-                      : 'text-[#e3e3e3] hover:text-white hover:bg-white/[0.06] active:bg-white/[0.1]'
+                      ? 'bg-black/10 text-zinc-900 dark:bg-white/[0.1] dark:text-white'
+                      : 'text-zinc-700 hover:text-zinc-900 hover:bg-black/5 dark:text-[#e3e3e3] dark:hover:text-white dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1]'
                   }`}
                 >
-                  <Icon name={option.icon} className="w-3.5 h-3.5 text-[#9b9b9b] shrink-0" />
+                  <Icon name={option.icon} className="w-3.5 h-3.5 text-zinc-400 dark:text-[#9b9b9b] shrink-0" />
                   <span>{option.label}</span>
                 </button>
               )
             } else if (isCategory(option)) {
               return (
                 <div
-                  className="text-[10px] font-semibold text-[#9b9b9b] px-2 py-1 uppercase tracking-wider mt-1.5 first:mt-0"
+                  className="text-[10px] font-semibold text-zinc-400 dark:text-[#9b9b9b] px-2 py-1 uppercase tracking-wider mt-1.5 first:mt-0"
                   key={option.id}
                 >
                   {option.label}
