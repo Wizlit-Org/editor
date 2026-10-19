@@ -49,6 +49,10 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
     editor.chain().focus(undefined, { scrollIntoView: false }).setImageBlockWidth(100).setImageBlockAlign('center').run()
   }, [editor])
 
+  const onResetOriginalWidth = useCallback(() => {
+    editor.chain().focus(undefined, { scrollIntoView: false }).setImageBlockWidth('auto').run()
+  }, [editor])
+
   const onWidthChange = useCallback(
     (value: number) => {
       editor.chain().focus(undefined, { scrollIntoView: false }).setImageBlockWidth(value).run()
@@ -146,6 +150,13 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
           activeClassname="bg-black/10 dark:bg-white/[0.1] text-zinc-900 dark:text-white"
         >
           <Icon name="Maximize2" className="w-4 h-4" />
+        </Toolbar.Button>
+        <Toolbar.Button
+          tooltip="Reset to original size"
+          onClick={onResetOriginalWidth}
+          className="text-zinc-500 hover:text-zinc-800 dark:text-[#9b9b9b] dark:hover:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] border border-transparent transition-colors"
+        >
+          <Icon name="RotateCcw" className="w-4 h-4" />
         </Toolbar.Button>
         <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />
         <ImageBlockWidth onChange={onWidthChange} value={width} />

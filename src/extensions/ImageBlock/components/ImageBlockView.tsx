@@ -3,19 +3,27 @@ import { Editor, NodeViewWrapper } from '@tiptap/react';
 import { Node } from '@tiptap/pm/model';
 import { cn } from '@/lib/utils';
 import type { NodeViewProps } from '@tiptap/react'
+import { Icon } from '@/components/ui/Icon';
 
 interface ImageBlockViewProps extends NodeViewProps {
   editor: Editor;
   getPos: () => number;
-  node: Node & { attrs: { src: string; align?: string; width?: string } };
+  node: Node & { attrs: { src: string; align?: string; width?: string; caption?: string } };
   updateAttributes: (attrs: Record<string, any>) => void;
 }
 
 export type ConvertSrc = (src: string) => (Promise<string> | string) | 'EXTERNAL_IMAGE'
 export type OnImageClick = (url: string, event: React.MouseEvent<HTMLDivElement>) => void
 
-export const ImageBlockView: React.FC<ImageBlockViewProps> = ({ editor, getPos, node, extension, updateAttributes, selected }) => {
-  const { src: rawSrc, align, width } = node.attrs;
+export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
+  editor,
+  getPos,
+  node,
+  extension,
+  updateAttributes,
+  selected,
+}) => {
+  const { src: rawSrc, align, width, caption } = node.attrs;
   const { onImageClick, convertSrc } = extension.options;
   const editorEditable = editor.isEditable;
 
@@ -90,9 +98,9 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({ editor, getPos, 
     align === 'left' ? 'ml-0' : 'ml-auto',
     align === 'right' ? 'mr-0' : 'mr-auto',
     align === 'center' && 'mx-auto',
-    'group relative rounded-lg overflow-hidden wrapper transition-all duration-300',
-    selected && 'ring-2 ring-indigo-500/70 dark:ring-violet-500/70 shadow-lg',
-    !finalLoaded && 'bg-[#080F3B]',
+    'group relative rounded-xl overflow-hidden wrapper transition-all duration-300',
+    selected && 'ring-2 ring-black/15 dark:ring-white/20 shadow-md',
+    !finalLoaded && 'bg-black/5 dark:bg-white/5 backdrop-blur-md',
     !(editorEditable || isExternalImage) ? 'active:scale-95' : ''
   );
 
@@ -111,45 +119,34 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({ editor, getPos, 
   if (!rawSrc) return null;
 
   return (
-    <NodeViewWrapper>
-      <style>{`
-        @keyframes pulseNavySkeleton {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-        .image-skeleton-navy {
-          animation: pulseNavySkeleton 1.8s ease-in-out infinite;
-        }
-      `}</style>
+    <NodeViewWrapper className="my-4">
       <div
         ref={containerRef}
         className={wrapperClassName}
         style={{
-          width: width || '100%',
+          width: width === 'auto' ? 'auto' : (width || '100%'),
+          maxWidth: '100%',
           aspectRatio: finalLoaded ? undefined : '16/9',
           minHeight: finalLoaded ? undefined : '160px',
           position: 'relative',
         }}
         data-drag-handle
       >
-        {/* Dark Navy Shimmer Skeleton UI */}
+        {/* Glassmorphism Pulse Skeleton UI */}
         <div
           className={cn(
-            'image-skeleton-navy absolute inset-0 w-full h-full rounded-lg pointer-events-none transition-opacity duration-300',
-            finalLoaded ? 'opacity-0' : 'opacity-100 z-[1]'
+            'absolute inset-0 w-full h-full rounded-xl pointer-events-none transition-opacity duration-300 flex items-center justify-center',
+            finalLoaded ? 'opacity-0' : 'opacity-100 z-[1] bg-black/5 dark:bg-white/5 backdrop-blur-md animate-pulse border border-black/5 dark:border-white/10'
           )}
-          style={{
-            background: 'linear-gradient(90deg, #080F3B 0%, rgba(20, 35, 110, 0.9) 50%, #080F3B 100%)',
-            backgroundSize: '200% 100%',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-          }}
-        />
+        >
+          <Icon name="Image" className="w-8 h-8 text-zinc-400/40 dark:text-zinc-500/40" />
+        </div>
 
         {src && !isExternalImage && (
           <img
             ref={imgRef}
             src={isExternalImage ? originalSrc : (src as string)}
-            alt=""
+            alt={caption || ''}
             loading="lazy"
             onClick={onClick}
             onLoad={() => setLoaded(true)}
@@ -158,7 +155,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({ editor, getPos, 
               setLoaded(true);
             }}
             className={cn(
-              'block w-full h-auto rounded-lg transition-opacity duration-300',
+              'block w-full h-auto rounded-xl transition-opacity duration-300',
               finalLoaded && !hasError ? 'opacity-100' : 'opacity-0',
               !editorEditable ? 'cursor-pointer' : '',
               !finalLoaded ? 'min-h-[160px]' : ''
@@ -167,24 +164,23 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({ editor, getPos, 
           />
         )}
 
+        {/* '이미지 없음' 글라스 카드 폴백 UI (메인화면 톤앤매너) */}
         {hasError && !isExternalImage && (
-          <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-[#080F3B] text-slate-400 rounded-lg p-6 border border-white/10 z-[2]">
-            <svg
-              className="w-10 h-10 mb-2 opacity-40 text-white"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            >
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <polyline points="21 15 16 10 5 21" />
-            </svg>
-            <span className="text-xs opacity-60 font-medium">이미지를 불러올 수 없습니다</span>
+          <div className="w-full min-h-[160px] flex flex-col items-center justify-center bg-black/[0.03] dark:bg-white/[0.04] backdrop-blur-md text-zinc-500 dark:text-zinc-400 rounded-xl p-8 border border-black/10 dark:border-white/15 z-[2]">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 mb-2.5">
+              <Icon name="Image" className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
+            </div>
+            <span className="text-xs font-semibold tracking-wide text-zinc-700 dark:text-zinc-300 mb-1">
+              이미지 없음
+            </span>
+            <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
+              이미지를 불러올 수 없거나 삭제되었습니다
+            </span>
             {editorEditable && (
               <button
+                type="button"
                 onClick={handleReupload}
-                className="mt-2.5 px-3 py-1 bg-red-500/80 hover:bg-red-600 text-white rounded text-xs transition-colors"
+                className="mt-3 px-3 py-1.5 rounded-lg text-xs font-medium bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20 text-zinc-700 dark:text-[#e3e3e3] border border-black/5 dark:border-white/10 transition-colors"
               >
                 다시 업로드
               </button>
@@ -192,30 +188,22 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({ editor, getPos, 
           </div>
         )}
 
+        {/* '외부 이미지' 소형 글라스 칩 (우측 상단 모서리 재배치) */}
         {isExternalImage && (
-          <div className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center p-4 text-center p-8 bg-[#080F3B]/90 rounded-lg z-[2]">
-            <svg className="w-12 h-12 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <div className="mb-2 text-sm text-gray-400">External image not available</div>
-            {editorEditable && (
-              <button
-                onClick={handleReupload}
-                className="mt-3 px-2 py-1.5 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-xs"
-              >
-                Upload again
-              </button>
-            )}
+          <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-black/60 dark:bg-black/70 backdrop-blur-md text-white border border-white/20 shadow-md z-10 flex items-center gap-1.5 pointer-events-none select-none">
+            <Icon name="Link2" className="w-3 h-3 text-white/80" />
+            <span>외부 이미지</span>
           </div>
         )}
-        {/* Notion-style Left & Right Accent Resize Handles */}
+
+        {/* Glassmorphism Left & Right Resize Handles */}
         {editorEditable && finalLoaded && (
           <>
             <div
               onMouseDown={handleResizeStart('left')}
               className={cn(
-                'absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-12 rounded-full cursor-ew-resize z-20 transition-all duration-150',
-                'bg-indigo-500 hover:bg-indigo-600 dark:bg-violet-500 dark:hover:bg-violet-400 shadow-[0_0_8px_rgba(99,102,241,0.6)]',
+                'absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-12 rounded-full cursor-ew-resize z-20 transition-all duration-150',
+                'bg-white/80 hover:bg-white dark:bg-white/30 dark:hover:bg-white/60 border border-black/15 dark:border-white/30 shadow-[0_2px_8px_rgba(0,0,0,0.15)] backdrop-blur-md',
                 selected || resizing ? 'opacity-100 scale-100' : 'opacity-0 group-hover:opacity-100 scale-90 hover:scale-100'
               )}
               title="Drag to resize image"
@@ -223,8 +211,8 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({ editor, getPos, 
             <div
               onMouseDown={handleResizeStart('right')}
               className={cn(
-                'absolute right-1.5 top-1/2 -translate-y-1/2 w-1.5 h-12 rounded-full cursor-ew-resize z-20 transition-all duration-150',
-                'bg-indigo-500 hover:bg-indigo-600 dark:bg-violet-500 dark:hover:bg-violet-400 shadow-[0_0_8px_rgba(99,102,241,0.6)]',
+                'absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-12 rounded-full cursor-ew-resize z-20 transition-all duration-150',
+                'bg-white/80 hover:bg-white dark:bg-white/30 dark:hover:bg-white/60 border border-black/15 dark:border-white/30 shadow-[0_2px_8px_rgba(0,0,0,0.15)] backdrop-blur-md',
                 selected || resizing ? 'opacity-100 scale-100' : 'opacity-0 group-hover:opacity-100 scale-90 hover:scale-100'
               )}
               title="Drag to resize image"
@@ -232,6 +220,25 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({ editor, getPos, 
           </>
         )}
       </div>
+
+      {/* Notion-style Image Caption Input */}
+      {(editorEditable || caption) && (
+        <div className="mt-2 text-center w-full max-w-full">
+          {editorEditable ? (
+            <input
+              type="text"
+              value={caption || ''}
+              onChange={(e) => updateAttributes({ caption: e.target.value })}
+              placeholder="캡션 추가..."
+              className="w-full text-center text-xs text-zinc-600 dark:text-zinc-400 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 bg-transparent border-none outline-none focus:outline-none transition-colors"
+            />
+          ) : (
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 italic">
+              {caption}
+            </p>
+          )}
+        </div>
+      )}
     </NodeViewWrapper>
   );
 };
