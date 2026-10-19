@@ -91,6 +91,26 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   
   const menuContainerRef = useRef(null)
   const [stats, setStats] = useState<EditorStats>({})
+  const [systemDark, setSystemDark] = useState<boolean>(() => {
+    if (typeof document !== 'undefined') {
+      return document.documentElement.classList.contains('dark') || document.body.classList.contains('dark')
+    }
+    return false
+  })
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+
+    const updateDark = () => {
+      const isDarkClass = document.documentElement.classList.contains('dark') || document.body.classList.contains('dark')
+      setSystemDark(isDarkClass)
+    }
+
+    updateDark()
+    const observer = new MutationObserver(updateDark)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
   
   useEffect(() => {
     const preventDefault = (e: DragEvent) => {
@@ -193,27 +213,6 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   if (!editor) {
     return null
   }
-
-  const [systemDark, setSystemDark] = useState<boolean>(() => {
-    if (typeof document !== 'undefined') {
-      return document.documentElement.classList.contains('dark') || document.body.classList.contains('dark')
-    }
-    return false
-  })
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return
-
-    const updateDark = () => {
-      const isDarkClass = document.documentElement.classList.contains('dark') || document.body.classList.contains('dark')
-      setSystemDark(isDarkClass)
-    }
-
-    updateDark()
-    const observer = new MutationObserver(updateDark)
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-    return () => observer.disconnect()
-  }, [])
 
   const isDark = theme === 'dark' || (theme === undefined && systemDark)
   const themeClass = isDark ? 'dark theme-dark notion-dark-canvas' : 'theme-light notion-light-canvas'
