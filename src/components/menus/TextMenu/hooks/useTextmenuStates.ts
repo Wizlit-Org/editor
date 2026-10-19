@@ -20,7 +20,6 @@ export const useTextmenuStates = (editor: Editor) => {
         // isAlignRight: ctx.editor.isActive({ textAlign: 'right' }),
         // isAlignJustify: ctx.editor.isActive({ textAlign: 'justify' }),
         // currentColor: ctx.editor.getAttributes('textStyle')?.color || undefined,
-        currentHighlight: ctx.editor.getAttributes('highlight')?.color || undefined,
         // currentFont: ctx.editor.getAttributes('textStyle')?.fontFamily || undefined,
         // currentSize: ctx.editor.getAttributes('textStyle')?.fontSize || undefined,
       }

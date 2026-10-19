@@ -12,6 +12,7 @@ import { TableColumnMenu, TableRowMenu } from '@/extensions/Table/menus'
 import { TextMenu } from '@/components/menus/TextMenu'
 import { ContentItemMenu } from '@/components/menus/ContentItemMenu'
 import { LinkMenu } from '@/components/menus/LinkMenu'
+import { TableOfContents } from '../TableOfContents'
 import { UploadListDialog, UploadListDialogProps, UploadListItem } from '../../extensions/ImageUpload/components/UploadListDialog.tsx'
 import { compareDocs, getStats } from '@/lib/utils/getStats'
 import { ConvertSrc, OnImageClick } from '@/extensions/ImageBlock/components/ImageBlockView'
@@ -205,6 +206,8 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
             // collabState={collabState}
             // users={users}
           /> */}
+          {/* Sticky Table of Contents (Client-only, never persisted to database) */}
+          <TableOfContents editor={editor} />
           <EditorContent editor={editor} className="flex-1 focus:outline-none" />
           <ContentItemMenu editor={editor} isEditable={!readOnly} />
           <LinkMenu

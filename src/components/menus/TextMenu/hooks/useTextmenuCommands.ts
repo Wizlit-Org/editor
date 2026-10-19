@@ -20,9 +20,6 @@ export const useTextmenuCommands = (editor: Editor) => {
   // const onChangeColor = useCallback((color: string) => editor.chain().setColor(color).run(), [editor])
   // const onClearColor = useCallback(() => editor.chain().focus().unsetColor().run(), [editor])
 
-  const onChangeHighlight = useCallback((color: string) => editor.chain().setHighlight({ color }).run(), [editor])
-  const onClearHighlight = useCallback(() => editor.chain().focus().unsetHighlight().run(), [editor])
-
   // const onSimplify = useCallback(
   //   () => editor.chain().focus().aiSimplify({ stream: true, format: 'rich-text' }).run(),
   //   [editor],
@@ -101,8 +98,6 @@ export const useTextmenuCommands = (editor: Editor) => {
     // onAlignJustify,
     // onChangeColor,
     // onClearColor,
-    onChangeHighlight,
-    onClearHighlight,
     // onSetFont,
     // onSetFontSize,
     // onSimplify,

@@ -216,6 +216,9 @@ export const SlashCommand = Extension.create({
 
             onKeyDown(props: SuggestionKeyDownProps) {
               if (props.event.key === 'Escape') {
+                props.event.preventDefault()
+                props.event.stopPropagation()
+                props.event.stopImmediatePropagation?.()
                 popup?.[0].hide()
 
                 return true

@@ -16,7 +16,6 @@ import {
   // FontFamily,
   // FontSize,
   Heading,
-  Highlight,
   HorizontalRule,
   ImageBlock,
   Link,
@@ -31,7 +30,7 @@ import {
   TableHeader,
   TableRow,
   // TextAlign,
-  TextStyle,
+  // TextStyle,
   TrailingNode,
   Typography,
   Underline,
@@ -43,7 +42,7 @@ import {
   // UniqueID,
   History,
   Youtube,
-  ColorHighlighter,
+  // ColorHighlighter,
   SmilieReplacer,
   LimitEmbedsPlugin,
 } from '.'
@@ -98,7 +97,6 @@ export const ExtensionKit = ({
     underline: false,
   }),
   CodeBlock,
-  TextStyle,
   // FontSize,
   // FontFamily,
   // Color,
@@ -112,7 +110,6 @@ export const ExtensionKit = ({
       target: null,
     },
   }),
-  Highlight.configure({ multicolor: true }),
   Underline,
   CharacterCount.configure({ limit }),
   ImageBlock.configure({
@@ -184,7 +181,6 @@ export const ExtensionKit = ({
   // drawIoExtension.configure({
   //   openDialog: 'dblclick',
   // }),
-  ColorHighlighter,
   SmilieReplacer,
   LimitEmbedsPlugin(maxEmbeddings),
 ]

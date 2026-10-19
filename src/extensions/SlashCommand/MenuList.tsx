@@ -26,6 +26,13 @@ export const MenuList = React.forwardRef((props: MenuListProps, ref) => {
 
   React.useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }: { event: React.KeyboardEvent }) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        event.nativeEvent?.stopImmediatePropagation?.()
+        return true
+      }
+
       if (event.key === 'ArrowDown') {
         if (!props.items.length) {
           return false

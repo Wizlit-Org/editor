@@ -14,7 +14,7 @@ interface ImageBlockViewProps extends NodeViewProps {
 export type ConvertSrc = (src: string) => (Promise<string> | string) | 'EXTERNAL_IMAGE'
 export type OnImageClick = (url: string, event: React.MouseEvent<HTMLDivElement>) => void
 
-export const ImageBlockView: React.FC<ImageBlockViewProps> = ({ editor, getPos, node, extension }) => {
+export const ImageBlockView: React.FC<ImageBlockViewProps> = ({ editor, getPos, node, extension, updateAttributes, selected }) => {
   const { src: rawSrc, align, width } = node.attrs;
   const { onImageClick, convertSrc } = extension.options;
   const editorEditable = editor.isEditable;
@@ -23,7 +23,43 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({ editor, getPos, 
   const [src, setSrc] = useState<string | 'EXTERNAL_IMAGE' | undefined>(originalSrc);
   const [loaded, setLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [resizing, setResizing] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleResizeStart = useCallback(
+    (direction: 'left' | 'right') => (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!editorEditable) return;
+
+      setResizing(true);
+      const startX = e.clientX;
+      const startRect = containerRef.current?.getBoundingClientRect();
+      const parentWidth = containerRef.current?.parentElement?.clientWidth || 800;
+      const startWidthPx = startRect?.width || parentWidth;
+
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        moveEvent.preventDefault();
+        const deltaX = moveEvent.clientX - startX;
+        const multiplier = align === 'center' ? 2 : 1;
+        const delta = direction === 'right' ? deltaX * multiplier : -deltaX * multiplier;
+        const newWidthPx = Math.max(160, Math.min(parentWidth, startWidthPx + delta));
+        const newWidthPercent = Math.min(100, Math.max(20, Math.round((newWidthPx / parentWidth) * 100)));
+        updateAttributes({ width: `${newWidthPercent}%` });
+      };
+
+      const onMouseUp = () => {
+        setResizing(false);
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+      };
+
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+    },
+    [align, editorEditable, updateAttributes]
+  );
 
   useEffect(() => {
     setLoaded(false);
@@ -54,7 +90,8 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({ editor, getPos, 
     align === 'left' ? 'ml-0' : 'ml-auto',
     align === 'right' ? 'mr-0' : 'mr-auto',
     align === 'center' && 'mx-auto',
-    'relative rounded-lg overflow-hidden wrapper transition-all duration-300',
+    'group relative rounded-lg overflow-hidden wrapper transition-all duration-300',
+    selected && 'ring-2 ring-indigo-500/70 dark:ring-violet-500/70 shadow-lg',
     !finalLoaded && 'bg-[#080F3B]',
     !(editorEditable || isExternalImage) ? 'active:scale-95' : ''
   );
@@ -85,6 +122,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({ editor, getPos, 
         }
       `}</style>
       <div
+        ref={containerRef}
         className={wrapperClassName}
         style={{
           width: width || '100%',
@@ -169,6 +207,29 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({ editor, getPos, 
               </button>
             )}
           </div>
+        )}
+        {/* Notion-style Left & Right Accent Resize Handles */}
+        {editorEditable && finalLoaded && (
+          <>
+            <div
+              onMouseDown={handleResizeStart('left')}
+              className={cn(
+                'absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-12 rounded-full cursor-ew-resize z-20 transition-all duration-150',
+                'bg-indigo-500 hover:bg-indigo-600 dark:bg-violet-500 dark:hover:bg-violet-400 shadow-[0_0_8px_rgba(99,102,241,0.6)]',
+                selected || resizing ? 'opacity-100 scale-100' : 'opacity-0 group-hover:opacity-100 scale-90 hover:scale-100'
+              )}
+              title="Drag to resize image"
+            />
+            <div
+              onMouseDown={handleResizeStart('right')}
+              className={cn(
+                'absolute right-1.5 top-1/2 -translate-y-1/2 w-1.5 h-12 rounded-full cursor-ew-resize z-20 transition-all duration-150',
+                'bg-indigo-500 hover:bg-indigo-600 dark:bg-violet-500 dark:hover:bg-violet-400 shadow-[0_0_8px_rgba(99,102,241,0.6)]',
+                selected || resizing ? 'opacity-100 scale-100' : 'opacity-0 group-hover:opacity-100 scale-90 hover:scale-100'
+              )}
+              title="Drag to resize image"
+            />
+          </>
         )}
       </div>
     </NodeViewWrapper>
