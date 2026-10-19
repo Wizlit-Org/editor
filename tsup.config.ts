@@ -62,13 +62,45 @@ const pureEsmPlugin = {
       loader: 'js',
     }));
 
-    build.onResolve({ filter: /^cordova\/modulemapper$/ }, (args: any) => ({
-      path: args.path,
+    build.onResolve({ filter: /^cordova\/modulemapper$/ }, () => ({
+      path: 'cordova/modulemapper',
       namespace: 'cordova-stub',
     }));
 
     build.onLoad({ filter: /.*/, namespace: 'cordova-stub' }, () => ({
       contents: `export default {};`,
+      loader: 'js',
+    }));
+
+    // Redirect lib0 node exports to browser exports
+    build.onResolve({ filter: /lib0\/webcrypto(?:\.node)?/ }, () => ({
+      path: path.resolve(__dirname, 'node_modules/lib0/webcrypto.js'),
+    }));
+
+    build.onResolve({ filter: /lib0\/hash\/sha256(?:\.node)?/ }, () => ({
+      path: path.resolve(__dirname, 'node_modules/lib0/hash/sha256.js'),
+    }));
+
+    // Shim node:crypto and crypto with globalThis.crypto
+    build.onResolve({ filter: /^(node:)?crypto$/ }, (args: any) => ({
+      path: args.path,
+      namespace: 'crypto-browser-shim',
+    }));
+
+    build.onLoad({ filter: /.*/, namespace: 'crypto-browser-shim' }, () => ({
+      contents: `
+        const cryptoObj = typeof globalThis !== 'undefined' && globalThis.crypto ? globalThis.crypto : {};
+        export const webcrypto = cryptoObj;
+        export const subtle = cryptoObj.subtle;
+        export const getRandomValues = cryptoObj.getRandomValues ? cryptoObj.getRandomValues.bind(cryptoObj) : undefined;
+        export function createHash() {
+          return {
+            update() { return this; },
+            digest() { return new Uint8Array(); }
+          };
+        }
+        export default cryptoObj;
+      `,
       loader: 'js',
     }));
   },
