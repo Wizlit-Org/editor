@@ -1,8 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 import { Command, MenuListProps } from './types'
-import { Surface } from '@/components/ui/Surface'
-import { DropdownButton } from '@/components/ui/Dropdown'
 import { Icon } from '@/components/ui/Icon'
 
 export const MenuList = React.forwardRef((props: MenuListProps, ref) => {
@@ -114,31 +112,52 @@ export const MenuList = React.forwardRef((props: MenuListProps, ref) => {
   }
 
   return (
-    <Surface ref={scrollContainer} className="text-black max-h-[min(80vh,24rem)] overflow-auto flex-wrap mb-8 p-2">
-      <div className="grid grid-cols-1 gap-0.5">
+    <div
+      ref={scrollContainer}
+      className="glass-menu text-[#e3e3e3] max-h-[min(80vh,24rem)] min-w-[19rem] overflow-y-auto mb-8 p-1.5 shadow-2xl z-50 outline-none"
+    >
+      <div className="flex flex-col gap-0.5">
         {props.items.map((group, groupIndex: number) => (
           <React.Fragment key={`${group.title}-wrapper`}>
+            {groupIndex > 0 && <div className="h-[1px] bg-white/10 my-1.5 mx-1" />}
             <div
-              className="text-neutral-500 text-[0.65rem] col-[1/-1] mx-2 mt-4 font-semibold tracking-wider select-none uppercase first:mt-0.5"
+              className="text-[#9b9b9b] text-[10px] mx-2 mt-2 mb-1 font-semibold tracking-wider select-none uppercase first:mt-1"
               key={`${group.title}`}
             >
               {group.title}
             </div>
-            {group.commands.map((command: Command, commandIndex: number) => (
-              <DropdownButton
-                key={`${command.label}`}
-                ref={selectedGroupIndex === groupIndex && selectedCommandIndex === commandIndex ? activeItem : null}
-                isActive={selectedGroupIndex === groupIndex && selectedCommandIndex === commandIndex}
-                onClick={createCommandClickHandler(groupIndex, commandIndex)}
-              >
-                <Icon name={command.iconName} className="mr-1" />
-                {command.label}
-              </DropdownButton>
-            ))}
+            {group.commands.map((command: Command, commandIndex: number) => {
+              const isSelected = selectedGroupIndex === groupIndex && selectedCommandIndex === commandIndex
+              return (
+                <button
+                  type="button"
+                  key={`${command.label}`}
+                  ref={isSelected ? activeItem : null}
+                  onClick={createCommandClickHandler(groupIndex, commandIndex)}
+                  className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded border border-transparent transition-colors text-left select-none ${
+                    isSelected
+                      ? 'bg-white/[0.1] text-white'
+                      : 'text-[#e3e3e3] hover:text-white hover:bg-white/[0.06] active:bg-white/[0.1]'
+                  }`}
+                >
+                  <div className="w-7 h-7 rounded flex items-center justify-center bg-white/[0.04] border border-white/10 shrink-0">
+                    <Icon name={command.iconName} className="w-4 h-4 text-[#9b9b9b]" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-medium text-xs truncate leading-snug">{command.label}</span>
+                    {command.description && (
+                      <span className="text-[11px] text-[#9b9b9b] truncate leading-tight">
+                        {command.description}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              )
+            })}
           </React.Fragment>
         ))}
       </div>
-    </Surface>
+    </div>
   )
 })
 

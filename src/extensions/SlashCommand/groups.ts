@@ -26,9 +26,19 @@ export const GROUPS: Group[] = [
   //   ],
   // },
   {
-    name: 'format',
-    title: 'Format',
+    name: 'style',
+    title: 'Style',
     commands: [
+      {
+        name: 'paragraph',
+        label: 'Text',
+        iconName: 'Type',
+        description: 'Just start writing with plain text',
+        aliases: ['p', 'paragraph', 'text'],
+        action: editor => {
+          editor.chain().focus().setParagraph().run()
+        },
+      },
       {
         name: 'heading1',
         label: 'Heading 1',
