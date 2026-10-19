@@ -65,12 +65,12 @@ export const TableHeader = TiptapTableHeader.extend({
                     const grip = document.createElement('a')
 
                     grip.className = className
-                    grip.addEventListener('mousedown', event => {
+                    grip.onmousedown = event => {
                       event.preventDefault()
                       event.stopImmediatePropagation()
 
                       this.editor.view.dispatch(selectColumn(index)(this.editor.state.tr))
-                    })
+                    }
 
                     return grip
                   }),

@@ -190,7 +190,7 @@ export const SlashCommand = Extension.create({
                 return new DOMRect(rect.x, yPos, rect.width, rect.height)
               }
 
-              let scrollHandler = () => {
+              scrollHandler = () => {
                 popup?.[0].setProps({
                   getReferenceClientRect,
                 })

@@ -1,6 +1,6 @@
 import { Icon } from '@/components/ui/Icon'
 import { Toolbar } from '@/components/ui/Toolbar'
-// import DragHandle from '@tiptap-pro/extension-drag-handle-react'
+import { DragHandle } from '@tiptap/extension-drag-handle-react'
 import { Editor } from '@tiptap/react'
 
 import * as Popover from '@radix-ui/react-popover'
@@ -9,6 +9,10 @@ import { DropdownButton } from '@/components/ui/Dropdown'
 import useContentItemActions from './hooks/useContentItemActions'
 import { useData } from './hooks/useData'
 import { useEffect, useState } from 'react'
+
+const DRAG_HANDLE_POSITION_CONFIG = {
+  placement: 'left-start' as const,
+}
 
 export type ContentItemMenuProps = {
   editor: Editor
@@ -28,19 +32,19 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
     }
   }, [editor, menuOpen])
 
+  if (!isEditable) {
+    return null
+  }
+
   return (
-    // <DragHandle
-    //   pluginKey="ContentItemMenu"
-    //   editor={editor}
-    //   onNodeChange={data.handleNodeChange}
-    //   tippyOptions={{
-    //     offset: [-2, 16],
-    //     zIndex: 99,
-    //   }}
-    // >
-    //   {
-      isEditable ? (
-        <div className="flex items-center gap-0.5">
+    <DragHandle
+      pluginKey="ContentItemMenu"
+      editor={editor}
+      onNodeChange={data.handleNodeChange}
+      computePositionConfig={DRAG_HANDLE_POSITION_CONFIG}
+      nested
+    >
+      <div className="flex items-center gap-0.5">
           <Toolbar.Button onClick={actions.handleAdd}>
             <Icon name="Plus" />
           </Toolbar.Button>
@@ -83,9 +87,7 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               </Surface>
             </Popover.Content>
           </Popover.Root>
-        </div>
-      ) : null
-    // }
-    // </DragHandle>
+      </div>
+    </DragHandle>
   )
 }

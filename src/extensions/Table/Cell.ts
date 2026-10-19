@@ -103,12 +103,12 @@ export const TableCell = Node.create<TableCellOptions>({
                     const grip = document.createElement('a')
 
                     grip.className = className
-                    grip.addEventListener('mousedown', event => {
+                    grip.onmousedown = event => {
                       event.preventDefault()
                       event.stopImmediatePropagation()
 
                       this.editor.view.dispatch(selectRow(index)(this.editor.state.tr))
-                    })
+                    }
 
                     return grip
                   }),

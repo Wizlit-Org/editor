@@ -10,7 +10,7 @@ import ImageBlockMenu from '@/extensions/ImageBlock/components/ImageBlockMenu'
 import { ColumnsMenu } from '@/extensions/MultiColumn/menus'
 import { TableColumnMenu, TableRowMenu } from '@/extensions/Table/menus'
 import { TextMenu } from '@/components/menus/TextMenu'
-// import { ContentItemMenu } from '@/components/menus/ContentItemMenu'
+import { ContentItemMenu } from '@/components/menus/ContentItemMenu'
 import { LinkMenu } from '@/components/menus/LinkMenu'
 import { UploadListDialog, UploadListDialogProps, UploadListItem } from '../../extensions/ImageUpload/components/UploadListDialog.tsx'
 import { compareDocs, getStats } from '@/lib/utils/getStats'
@@ -201,7 +201,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
             // users={users}
           /> */}
           <EditorContent editor={editor} className="flex-1" />
-          {/* <ContentItemMenu editor={editor} isEditable={isEditable} /> */}
+          <ContentItemMenu editor={editor} isEditable={!readOnly} />
           <LinkMenu
             editor={editor}
             appendTo={menuContainerRef}
