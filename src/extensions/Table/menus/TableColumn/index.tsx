@@ -6,6 +6,7 @@ import { MenuProps, ShouldShowProps } from '@/components/menus/types'
 import {
   getSelectedColumnIndex,
   moveColumnLeft,
+  moveColumnRight,
   clearColumnContents,
   sortColumn,
   duplicateColumn,
@@ -31,6 +32,11 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
   const onMoveColumnLeft = useCallback(() => {
     const idx = getSelectedColumnIndex(editor)
     moveColumnLeft(editor, idx)
+  }, [editor])
+
+  const onMoveColumnRight = useCallback(() => {
+    const idx = getSelectedColumnIndex(editor)
+    moveColumnRight(editor, idx)
   }, [editor])
 
   const onAddColumnBefore = useCallback(() => {
@@ -69,6 +75,18 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
     editor.chain().focus().mergeCells().run()
   }, [editor])
 
+  const onSplitCell = useCallback(() => {
+    editor.chain().focus().splitCell().run()
+  }, [editor])
+
+  const onToggleHeaderColumn = useCallback(() => {
+    editor.chain().focus().toggleHeaderColumn().run()
+  }, [editor])
+
+  const onDeleteTable = useCallback(() => {
+    editor.chain().focus().deleteTable().run()
+  }, [editor])
+
   const itemClass =
     'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none'
   const dangerClass =
@@ -83,11 +101,17 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
       options={TABLE_COLUMN_MENU_OPTIONS}
       shouldShow={shouldShow}
     >
-      <div className="glass-menu min-w-[13rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-50">
-        <button type="button" onClick={onMoveColumnLeft} className={itemClass}>
-          <Icon name="ArrowLeft" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-          <span>Move column left</span>
-        </button>
+      <div className="glass-menu min-w-[13.5rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-50">
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={onMoveColumnLeft} className={`${itemClass} flex-1 justify-center`}>
+            <Icon name="ArrowLeft" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+            <span>Move left</span>
+          </button>
+          <button type="button" onClick={onMoveColumnRight} className={`${itemClass} flex-1 justify-center`}>
+            <span>Move right</span>
+            <Icon name="ArrowRight" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+          </button>
+        </div>
 
         <button type="button" onClick={onAddColumnBefore} className={itemClass}>
           <Icon name="ArrowLeftToLine" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
@@ -113,9 +137,19 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
 
         <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
 
+        <button type="button" onClick={onToggleHeaderColumn} className={itemClass}>
+          <Icon name="Table" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+          <span>Toggle header column</span>
+        </button>
+
         <button type="button" onClick={onMergeCells} className={itemClass}>
           <Icon name="Columns2" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
           <span>Merge cells</span>
+        </button>
+
+        <button type="button" onClick={onSplitCell} className={itemClass}>
+          <Icon name="Split" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+          <span>Split cell</span>
         </button>
 
         <button type="button" onClick={onClearColumn} className={itemClass}>
@@ -133,6 +167,11 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
         <button type="button" onClick={onDeleteColumn} className={dangerClass}>
           <Icon name="Trash2" className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
           <span>Delete column</span>
+        </button>
+
+        <button type="button" onClick={onDeleteTable} className={dangerClass}>
+          <Icon name="Trash" className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
+          <span>Delete entire table</span>
         </button>
       </div>
     </BaseBubbleMenu>

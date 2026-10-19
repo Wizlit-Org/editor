@@ -135,3 +135,29 @@ export const moveColumnLeft = (editor: Editor, colIndex: number) => {
   const tr = state.tr.replaceWith(table.pos, table.pos + table.node.nodeSize, newTable)
   view.dispatch(tr)
 }
+
+export const moveColumnRight = (editor: Editor, colIndex: number) => {
+  const { state, view } = editor
+  const table = findTable(state.selection)
+  if (!table) return
+
+  const map = TableMap.get(table.node)
+  if (colIndex < 0 || colIndex >= map.width - 1) return
+
+  const newRows: any[] = []
+  table.node.forEach(rowNode => {
+    const cells: any[] = []
+    rowNode.forEach(cell => cells.push(cell))
+    if (colIndex < cells.length - 1) {
+      const temp = cells[colIndex]
+      cells[colIndex] = cells[colIndex + 1]
+      cells[colIndex + 1] = temp
+    }
+    newRows.push(rowNode.type.create(rowNode.attrs, cells))
+  })
+
+  const newTable = table.node.type.create(table.node.attrs, newRows)
+  const tr = state.tr.replaceWith(table.pos, table.pos + table.node.nodeSize, newTable)
+  view.dispatch(tr)
+}
+

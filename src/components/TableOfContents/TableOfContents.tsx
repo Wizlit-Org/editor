@@ -160,10 +160,10 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
 
       {/* 2. Compact Sticky Header Bar: Slides in at top ONLY when inline TOC is scrolled out */}
       <div
-        className={`fixed top-3 left-1/2 -translate-x-1/2 z-40 transition-all duration-300 select-none ${
+        className={`sticky top-2 z-20 w-fit mx-auto transition-all duration-300 select-none ${
           isScrolledOut
-            ? 'opacity-100 translate-y-0 pointer-events-auto'
-            : 'opacity-0 -translate-y-3 pointer-events-none'
+            ? 'opacity-100 translate-y-0 pointer-events-auto h-auto mb-2'
+            : 'opacity-0 -translate-y-2 pointer-events-none h-0 overflow-hidden'
         }`}
       >
         <div className="relative">

@@ -3,7 +3,13 @@ import React, { useCallback, JSX } from 'react'
 import { isRowGripSelected } from './utils'
 import { Icon } from '@/components/ui/Icon'
 import { MenuProps, ShouldShowProps } from '@/components/menus/types'
-import { getSelectedRowIndex, clearRowContents } from './rowActions'
+import {
+  getSelectedRowIndex,
+  clearRowContents,
+  duplicateRow,
+  moveRowUp,
+  moveRowDown,
+} from './rowActions'
 
 const TABLE_ROW_MENU_OPTIONS = {
   placement: 'left' as const,
@@ -23,6 +29,16 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
     [editor],
   )
 
+  const onMoveRowUp = useCallback(() => {
+    const idx = getSelectedRowIndex(editor)
+    moveRowUp(editor, idx)
+  }, [editor])
+
+  const onMoveRowDown = useCallback(() => {
+    const idx = getSelectedRowIndex(editor)
+    moveRowDown(editor, idx)
+  }, [editor])
+
   const onAddRowBefore = useCallback(() => {
     editor.chain().focus().addRowBefore().run()
   }, [editor])
@@ -31,8 +47,21 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
     editor.chain().focus().addRowAfter().run()
   }, [editor])
 
+  const onDuplicate = useCallback(() => {
+    const idx = getSelectedRowIndex(editor)
+    duplicateRow(editor, idx)
+  }, [editor])
+
   const onMergeCells = useCallback(() => {
     editor.chain().focus().mergeCells().run()
+  }, [editor])
+
+  const onSplitCell = useCallback(() => {
+    editor.chain().focus().splitCell().run()
+  }, [editor])
+
+  const onToggleHeaderRow = useCallback(() => {
+    editor.chain().focus().toggleHeaderRow().run()
   }, [editor])
 
   const onClearRow = useCallback(() => {
@@ -42,6 +71,10 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
 
   const onDeleteRow = useCallback(() => {
     editor.chain().focus().deleteRow().run()
+  }, [editor])
+
+  const onDeleteTable = useCallback(() => {
+    editor.chain().focus().deleteTable().run()
   }, [editor])
 
   const itemClass =
@@ -58,7 +91,18 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       options={TABLE_ROW_MENU_OPTIONS}
       shouldShow={shouldShow}
     >
-      <div className="glass-menu min-w-[12rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-50">
+      <div className="glass-menu min-w-[12.5rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-50">
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={onMoveRowUp} className={`${itemClass} flex-1 justify-center`}>
+            <Icon name="ArrowUp" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+            <span>Move up</span>
+          </button>
+          <button type="button" onClick={onMoveRowDown} className={`${itemClass} flex-1 justify-center`}>
+            <span>Move down</span>
+            <Icon name="ArrowDown" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+          </button>
+        </div>
+
         <button type="button" onClick={onAddRowBefore} className={itemClass}>
           <Icon name="ArrowUpToLine" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
           <span>Insert row above</span>
@@ -71,9 +115,19 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
 
         <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
 
+        <button type="button" onClick={onToggleHeaderRow} className={itemClass}>
+          <Icon name="Table" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+          <span>Toggle header row</span>
+        </button>
+
         <button type="button" onClick={onMergeCells} className={itemClass}>
           <Icon name="Columns2" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
           <span>Merge cells</span>
+        </button>
+
+        <button type="button" onClick={onSplitCell} className={itemClass}>
+          <Icon name="Split" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+          <span>Split cell</span>
         </button>
 
         <button type="button" onClick={onClearRow} className={itemClass}>
@@ -81,11 +135,21 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
           <span>Clear row contents</span>
         </button>
 
+        <button type="button" onClick={onDuplicate} className={itemClass}>
+          <Icon name="Copy" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+          <span>Duplicate row</span>
+        </button>
+
         <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
 
         <button type="button" onClick={onDeleteRow} className={dangerClass}>
           <Icon name="Trash2" className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
           <span>Delete row</span>
+        </button>
+
+        <button type="button" onClick={onDeleteTable} className={dangerClass}>
+          <Icon name="Trash" className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
+          <span>Delete entire table</span>
         </button>
       </div>
     </BaseBubbleMenu>

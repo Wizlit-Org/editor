@@ -55,3 +55,45 @@ export const clearRowContents = (editor: Editor, rowIndex: number) => {
 
   view.dispatch(tr)
 }
+
+export const duplicateRow = (editor: Editor, rowIndex: number) => {
+  editor.chain().focus().addRowAfter().run()
+}
+
+export const moveRowUp = (editor: Editor, rowIndex: number) => {
+  if (rowIndex <= 0) return
+  const { state, view } = editor
+  const table = findTable(state.selection)
+  if (!table) return
+
+  const rows: any[] = []
+  table.node.forEach(row => rows.push(row))
+  if (rowIndex < rows.length) {
+    const temp = rows[rowIndex]
+    rows[rowIndex] = rows[rowIndex - 1]
+    rows[rowIndex - 1] = temp
+  }
+
+  const newTable = table.node.type.create(table.node.attrs, rows)
+  const tr = state.tr.replaceWith(table.pos, table.pos + table.node.nodeSize, newTable)
+  view.dispatch(tr)
+}
+
+export const moveRowDown = (editor: Editor, rowIndex: number) => {
+  const { state, view } = editor
+  const table = findTable(state.selection)
+  if (!table) return
+
+  const rows: any[] = []
+  table.node.forEach(row => rows.push(row))
+  if (rowIndex < rows.length - 1) {
+    const temp = rows[rowIndex]
+    rows[rowIndex] = rows[rowIndex + 1]
+    rows[rowIndex + 1] = temp
+  }
+
+  const newTable = table.node.type.create(table.node.attrs, rows)
+  const tr = state.tr.replaceWith(table.pos, table.pos + table.node.nodeSize, newTable)
+  view.dispatch(tr)
+}
+

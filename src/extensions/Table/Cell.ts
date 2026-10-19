@@ -2,7 +2,7 @@ import { mergeAttributes, Node } from '@tiptap/core'
 import { Plugin } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 
-import { getCellsInColumn, isRowSelected, selectRow } from './utils'
+import { getCellsInColumn, getCellsInRow, isRowSelected, selectRow, isColumnSelected, selectColumn } from './utils'
 
 export interface TableCellOptions {
   HTMLAttributes: Record<string, any>
@@ -113,6 +113,45 @@ export const TableCell = Node.create<TableCellOptions>({
                     return grip
                   }),
                 )
+              })
+            }
+
+            const rowCells = getCellsInRow(0)(selection)
+            if (rowCells) {
+              rowCells.forEach(({ pos }: { pos: number }, index: number) => {
+                const node = doc.nodeAt(pos)
+                if (node && node.type.name === 'tableCell') {
+                  decorations.push(
+                    Decoration.widget(pos + 1, () => {
+                      const colSelected = isColumnSelected(index)(selection)
+                      let className = 'grip-column'
+
+                      if (colSelected) {
+                        className += ' selected'
+                      }
+
+                      if (index === 0) {
+                        className += ' first'
+                      }
+
+                      if (index === rowCells.length - 1) {
+                        className += ' last'
+                      }
+
+                      const grip = document.createElement('a')
+
+                      grip.className = className
+                      grip.onmousedown = event => {
+                        event.preventDefault()
+                        event.stopImmediatePropagation()
+
+                        this.editor.view.dispatch(selectColumn(index)(this.editor.state.tr))
+                      }
+
+                      return grip
+                    }),
+                  )
+                }
               })
             }
 
