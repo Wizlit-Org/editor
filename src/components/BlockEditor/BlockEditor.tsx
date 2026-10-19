@@ -127,13 +127,13 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     key,
   })
 
-  const { characters, words } = useEditorState({
+  const { characters = 0, words = 0 } = useEditorState({
     editor,
     selector: (ctx): { characters: number; words: number } => {
       const { characters, words } = ctx.editor?.storage.characterCount || { characters: () => 0, words: () => 0 }
       return { characters: characters(), words: words() }
     },
-  })
+  }) || {}
 
   const percentage = editor && maxCharacters
     ? Math.round((100 / maxCharacters) * editor.storage.characterCount.characters())
@@ -158,7 +158,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   useEffect(() => {
     if (editor && !editor.isDestroyed) {
       if (editor.isEditable) return;
-      editor.commands.setContent(content, true);
+      editor.commands.setContent(content, { emitUpdate: true });
     }
   }, [content, editor]);
 

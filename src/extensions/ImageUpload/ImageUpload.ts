@@ -37,7 +37,7 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
 
   addCommands() {
     return {
-      uploadImageByUrl: ({ url, pos }) => ({ editor, state, dispatch }) => {
+      uploadImageByUrl: ({ url, pos }) => ({ editor }) => {
         if (!url || url.length === 0) return false;
         
         // URL 형식 검증
@@ -87,7 +87,7 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
         };
         return true;
       },
-      uploadImageByBase64: ({ base64, pos }) => ({ editor, state, dispatch }) => {
+      uploadImageByBase64: ({ base64, pos }) => ({ editor }) => {
         if (!base64 || base64.length === 0) return false;
 
         const dataUriRegex = /^data:([a-z]+\/[a-z0-9.+-]+)(?:;[a-z0-9-]+=.*?)*;base64,([A-Za-z0-9+/]+=*)$/i;
@@ -108,7 +108,7 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
 
         return false;
       },
-      uploadImageByHtml: ({ html, pos }) => ({ editor, state, dispatch }) => {
+      uploadImageByHtml: ({ html, pos }) => ({ editor }) => {
         if (!html || html.length === 0) return false;
 
         const img = html.match(/<img[^>]+src="([^"]+)"/);
@@ -124,7 +124,7 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
         }
         return false;
       },
-      uploadImages: ({ files, pos }) => ({ editor, state, dispatch }) => {
+      uploadImages: ({ files, pos }) => ({ editor }) => {
         if (!this.options.onUpload) {
           return false
         }
@@ -176,7 +176,7 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
       new Plugin({
         key: new PluginKey('imageUpload'),
         props: {
-          handlePaste: (view, event) => {
+          handlePaste: (_view, event) => {
             const clipboard = (event as ClipboardEvent).clipboardData;
             if (!clipboard) return false;
 
@@ -209,7 +209,7 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
 
             return false;
           },
-          handleDrop: (view, event, slice, moved) => {
+          handleDrop: (view, event, _slice, moved) => {
             if (moved) return false
             const coords = view.posAtCoords({ left: event.clientX, top: event.clientY }) || { pos: 0 };
 

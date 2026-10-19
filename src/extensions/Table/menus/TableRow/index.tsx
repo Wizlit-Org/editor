@@ -1,4 +1,4 @@
-import { BubbleMenu as BaseBubbleMenu } from '@tiptap/react'
+import { BubbleMenu as BaseBubbleMenu } from '@tiptap/react/menus'
 import React, { useCallback, JSX } from 'react'
 import * as PopoverMenu from '@/components/ui/PopoverMenu'
 
@@ -36,15 +36,11 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       editor={editor}
       pluginKey="tableRowMenu"
       updateDelay={0}
-      tippyOptions={{
-        appendTo: () => {
-          return appendTo?.current
-        },
+      appendTo={appendTo?.current || undefined}
+      options={{
         placement: 'left',
-        offset: [0, 15],
-        popperOptions: {
-          modifiers: [{ name: 'flip', enabled: false }],
-        },
+        offset: 15,
+        flip: false,
       }}
       shouldShow={shouldShow}
     >

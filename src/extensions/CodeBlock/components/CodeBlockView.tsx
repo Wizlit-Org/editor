@@ -1,7 +1,7 @@
 import { NodeViewWrapper, NodeViewContent } from '@tiptap/react'
 import { Node } from '@tiptap/pm/model'
 import { Editor, Extension } from '@tiptap/core'
-import { useCallback, useState, useRef, useEffect, useMemo } from 'react'
+import { useCallback, useState, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { Icon } from '@/components/ui/Icon'
 
@@ -23,7 +23,6 @@ export const CodeBlockView = ({ editor, node, getPos, updateAttributes, extensio
   const [isFirstLine, setIsFirstLine] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonPositionRef = useRef<HTMLDivElement>(null)
-  const codeRef = useRef<HTMLElement>(null)
 
   const actualOpen = isOpen && editor.isEditable
 
@@ -193,9 +192,8 @@ export const CodeBlockView = ({ editor, node, getPos, updateAttributes, extensio
         )}
       >
         <NodeViewContent 
-          as="code" 
-          className={shouldWrap ? 'wrap' : 'nowrap'}
-          ref={codeRef}
+          as="div" 
+          className={cn('font-mono', shouldWrap ? 'wrap' : 'nowrap')}
         />
       </pre>
 

@@ -48,8 +48,6 @@ import {
   LimitEmbedsPlugin,
 } from '.'
 
-import { isChangeOrigin } from '@tiptap/extension-collaboration'
-import drawIoExtension from '@rcode-link/tiptap-drawio'
 import { ImageUpload } from './ImageUpload'
 import { ConvertSrc, OnImageClick } from './ImageBlock/components/ImageBlockView'
 
@@ -93,7 +91,7 @@ export const ExtensionKit = ({
     heading: false,
     horizontalRule: false,
     blockquote: false,
-    history: false,
+    undoRedo: false,
     codeBlock: false,
   }),
   CodeBlock,

@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { Menu, Item, CategoryTitle, Divider } from './PopoverMenu'
-import { icons } from 'lucide-react'
 
 const meta: Meta<typeof Menu> = {
   title: 'UI/PopoverMenu',

@@ -126,17 +126,15 @@ export const SlashCommand = Extension.create({
 
               const { view } = props.editor
 
-              const editorNode = view.dom as HTMLElement
-
               const getReferenceClientRect = () => {
                 if (!props.clientRect) {
-                  return props.editor.storage[extensionName].rect
+                  return (props.editor.storage as any)[extensionName].rect
                 }
 
                 const rect = props.clientRect()
 
                 if (!rect) {
-                  return props.editor.storage[extensionName].rect
+                  return (props.editor.storage as any)[extensionName].rect
                 }
 
                 let yPos = rect.y
@@ -171,17 +169,15 @@ export const SlashCommand = Extension.create({
 
               const { view } = props.editor
 
-              const editorNode = view.dom as HTMLElement
-
               const getReferenceClientRect = () => {
                 if (!props.clientRect) {
-                  return props.editor.storage[extensionName].rect
+                  return (props.editor.storage as any)[extensionName].rect
                 }
 
                 const rect = props.clientRect()
 
                 if (!rect) {
-                  return props.editor.storage[extensionName].rect
+                  return (props.editor.storage as any)[extensionName].rect
                 }
 
                 let yPos = rect.y
@@ -200,10 +196,10 @@ export const SlashCommand = Extension.create({
                 })
               }
 
-              view.dom.parentElement?.addEventListener('scroll', scrollHandler)
+              view.dom.parentElement?.addEventListener('scroll', scrollHandler);
 
               // eslint-disable-next-line no-param-reassign
-              props.editor.storage[extensionName].rect = props.clientRect
+              (props.editor.storage as any)[extensionName].rect = props.clientRect
                 ? getReferenceClientRect()
                 : {
                     width: 0,

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, JSX } from 'react'
+import { useState, useCallback, JSX } from 'react'
 import {
   useFloating,
   offset,
@@ -13,7 +13,7 @@ import {
   FloatingPortal,
 } from '@floating-ui/react'
 
-import { TooltipProps, TippyProps } from './types'
+import { TooltipProps } from './types'
 
 const isMac = typeof window !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0
 

@@ -1,7 +1,6 @@
 import { Editor } from '@tiptap/react'
 
 import { Figcaption, HorizontalRule, ImageBlock, Link, CodeBlock, Youtube } from '@/extensions'
-import drawIoExtension from '@rcode-link/tiptap-drawio'
 import { Node as PoseMirrorNode } from 'prosemirror-model'
 
 export const isTableGripSelected = (node: HTMLElement) => {
@@ -31,7 +30,7 @@ export const isCustomNodeSelected = (editor: Editor, node: HTMLElement) => {
     // AiImage.name,
     Figcaption.name,
     Youtube.name,
-    drawIoExtension.name,
+    'drawio',
   ]
 
   return customNodes.some(type => editor.isActive(type)) || isTableGripSelected(node)
@@ -41,7 +40,7 @@ export const getEmbedNodeProps = (node: PoseMirrorNode) => {
   const embedNodes = [
     { name: ImageBlock.name, key: 'src' },
     { name: Youtube.name, key: 'src' },
-    { name: drawIoExtension.name, key: 'link' },
+    { name: 'drawio', key: 'link' },
   ]
   
   return {

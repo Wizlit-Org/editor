@@ -1,4 +1,4 @@
-import { History as TiptapHistory } from '@tiptap/extension-history'
+import { UndoRedo as TiptapHistory } from '@tiptap/extensions'
 
 export const History = TiptapHistory.configure({
   depth: 20,

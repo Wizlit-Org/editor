@@ -1,5 +1,6 @@
-import React, { useCallback, useState, JSX } from 'react'
-import { BubbleMenu as BaseBubbleMenu, useEditorState } from '@tiptap/react'
+import { useCallback, useState, JSX } from 'react'
+import { BubbleMenu as BaseBubbleMenu } from '@tiptap/react/menus'
+import { useEditorState } from '@tiptap/react'
 
 import { MenuProps } from '../types'
 import { LinkPreviewPanel } from '@/components/panels/LinkPreviewPanel'
@@ -51,14 +52,11 @@ export const LinkMenu = ({ editor, appendTo, onLinkClick = () => false, disableD
       pluginKey="textMenu"
       shouldShow={shouldShow}
       updateDelay={0}
-      tippyOptions={{
-        popperOptions: {
-          modifiers: [{ name: 'flip', enabled: false }],
-        },
-        appendTo: () => {
-          return appendTo?.current
-        },
-        onHidden: () => {
+      appendTo={appendTo?.current || undefined}
+      options={{
+        placement: 'top-start',
+        flip: false,
+        onHide: () => {
           setShowEdit(false)
         },
       }}

@@ -2,7 +2,8 @@ import { Icon } from '@/components/ui/Icon'
 import { Toolbar } from '@/components/ui/Toolbar'
 import { useTextmenuCommands } from './hooks/useTextmenuCommands'
 import { useTextmenuStates } from './hooks/useTextmenuStates'
-import { BubbleMenu, Editor } from '@tiptap/react'
+import { BubbleMenu } from '@tiptap/react/menus'
+import { Editor } from '@tiptap/react'
 import { memo, useEffect, useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { Surface } from '@/components/ui/Surface'
@@ -33,7 +34,6 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
   const blockOptions = useTextmenuContentTypes(editor)
 
   useEffect(() => {
-    const controller = new AbortController()
     let selectionTimeout: number
 
     const onSelectionChange = () => {
@@ -58,27 +58,9 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
   return (
     <BubbleMenu
       className={selecting ? 'hidden' : ''}
-      tippyOptions={{
-        popperOptions: {
-          placement: 'top-start',
-          modifiers: [
-            {
-              name: 'preventOverflow',
-              options: {
-                boundary: 'viewport',
-                padding: 8,
-              },
-            },
-            {
-              name: 'flip',
-              options: {
-                fallbackPlacements: ['bottom-start', 'top-end', 'bottom-end'],
-              },
-            },
-          ],
-        },
-        offset: [0, 8],
-        maxWidth: 'calc(100vw - 16px)',
+      options={{
+        placement: 'top-start',
+        offset: 8,
       }}
       editor={editor}
       pluginKey="textMenu"

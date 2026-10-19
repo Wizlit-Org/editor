@@ -1,5 +1,5 @@
-import { useEditor, useEditorState } from '@tiptap/react'
-import type { AnyExtension, Editor, EditorOptions } from '@tiptap/core'
+import { useEditor } from '@tiptap/react'
+import type { Editor, EditorOptions } from '@tiptap/core'
 // import Collaboration from '@tiptap/extension-collaboration'
 // import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
 // import { TiptapCollabProvider, WebSocketStatus } from '@hocuspocus/provider'
@@ -56,8 +56,8 @@ export const useBlockEditor = ({
     {
       ...editorOptions,
       editable,
-      immediatelyRender: true,
-      // shouldRerenderOnTransaction: false,
+      immediatelyRender: false,
+      shouldRerenderOnTransaction: false,
       autofocus: true,
       // onCreate: ctx => {
       //   if (provider && !provider.isSynced) {
@@ -88,7 +88,7 @@ export const useBlockEditor = ({
           autocapitalize: 'off',
           class: `min-h-full ${className}`,
         },
-        handlePaste: (view, event) => {
+        handlePaste: (_view, event) => {
           const clipboard = (event as ClipboardEvent).clipboardData;
           if (!clipboard) return false;
           console.log('handlePaste', clipboard);
@@ -108,7 +108,7 @@ export const useBlockEditor = ({
 
             if (isYoutube) {
               const videoId = isYoutube[1];
-              editor.commands.setYoutubeVideo({
+              editor?.commands.setYoutubeVideo({
                 src: `https://www.youtube.com/embed/${videoId}`,
               });
               return true;
