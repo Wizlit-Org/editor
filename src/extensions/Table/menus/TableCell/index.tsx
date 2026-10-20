@@ -91,17 +91,16 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         if (r.right > maxRight) maxRight = r.right
       })
 
-      const centerY = (minTop + maxBottom) / 2
       return {
         getBoundingClientRect: () => ({
-          top: centerY,
-          bottom: centerY,
+          top: minTop,
+          bottom: minTop,
           left: maxRight,
           right: maxRight,
           width: 0,
           height: 0,
           x: maxRight,
-          y: centerY,
+          y: minTop,
           toJSON: () => {},
         }),
       }
@@ -140,6 +139,9 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
     setMenuOpen(false)
   }, [editor])
 
+  const canMerge = editor.can().mergeCells()
+  const canSplit = editor.can().splitCell()
+
   const itemClass =
     'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none'
   const dangerClass =
@@ -147,7 +149,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
 
   return (
     <>
-      {/* 1. Selection Perimeter Continuous 2px Purple Outline (Notion Style) */}
+      {/* 1. Selection Perimeter Continuous 2px Outline (Notion Style) */}
       {isCellSelected && !editor.view?.dragging && selectionRect && (
         <div
           className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-20"
@@ -156,13 +158,13 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
             left: selectionRect.left,
             width: selectionRect.width,
             height: selectionRect.height,
-            border: '2px solid #7a52ff',
-            boxShadow: '0 0 0 1px rgba(122, 82, 255, 0.25)',
+            border: '2px solid #3b82f6',
+            boxShadow: '0 0 0 1px rgba(59, 130, 246, 0.25)',
           }}
         />
       )}
 
-      {/* 2. BubbleMenu with Right-Edge Purple Dot Trigger and TableCell Popover */}
+      {/* 2. BubbleMenu with Top-Right Edge 4-dot Trigger and TableCell Popover */}
       <BaseBubbleMenu
         editor={editor}
         pluginKey="tableCellMenu"
@@ -177,31 +179,42 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
             <Popover.Trigger asChild>
               <button
                 type="button"
-                className="w-3.5 h-3.5 -ml-1.5 rounded-full bg-[#7a52ff] dark:bg-[#8b5cf6] border-2 border-white dark:border-[#191919] shadow-md hover:scale-125 cursor-pointer transition-transform flex items-center justify-center outline-none z-30"
-                title="Table cell options"
-                aria-label="Table cell options"
+                className="w-4 h-4 -ml-2 -mt-2 rounded bg-white dark:bg-[#1e1e1e] border border-blue-500 shadow-md hover:scale-125 cursor-pointer transition-transform flex items-center justify-center p-0.5 outline-none z-30"
+                title="Table cells option"
+                aria-label="Table cells option"
               >
-                <span className="w-1 h-1 rounded-full bg-white opacity-90" />
+                <div className="grid grid-cols-2 gap-0.5 pointer-events-none">
+                  <span className="w-1 h-1 rounded-full bg-blue-500" />
+                  <span className="w-1 h-1 rounded-full bg-blue-500" />
+                  <span className="w-1 h-1 rounded-full bg-blue-500" />
+                  <span className="w-1 h-1 rounded-full bg-blue-500" />
+                </div>
               </button>
             </Popover.Trigger>
             <Popover.Content
               side="right"
-              align="center"
+              align="start"
               sideOffset={8}
               className="z-50 outline-none animate-in fade-in-0 zoom-in-95 duration-150"
             >
               <div className="glass-menu min-w-[12rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5">
-                <button type="button" onClick={onMergeCells} className={itemClass}>
-                  <Icon name="Columns2" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-                  <span>Merge cells</span>
-                </button>
+                {canMerge && (
+                  <button type="button" onClick={onMergeCells} className={itemClass}>
+                    <Icon name="Columns2" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+                    <span>Merge cells</span>
+                  </button>
+                )}
 
-                <button type="button" onClick={onSplitCell} className={itemClass}>
-                  <Icon name="Split" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-                  <span>Split cell</span>
-                </button>
+                {canSplit && (
+                  <button type="button" onClick={onSplitCell} className={itemClass}>
+                    <Icon name="Split" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+                    <span>Split cell</span>
+                  </button>
+                )}
 
-                <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
+                {(canMerge || canSplit) && (
+                  <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
+                )}
 
                 <button type="button" onClick={onClearContents} className={itemClass}>
                   <Icon name="Eraser" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />

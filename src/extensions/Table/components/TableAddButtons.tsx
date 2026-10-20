@@ -174,48 +174,42 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
 
   return createPortal(
     <div id="table-add-buttons-portal" className="pointer-events-auto">
-      {/* 1. Right Column Add (+) Button: Vertical bar at the right edge of the table */}
+      {/* 1. Right Column Add Bar: Vertical 12px bar along table right edge with col-resize cursor */}
       <div
-        className="fixed z-20 flex items-center justify-center transition-opacity duration-150"
+        className="fixed z-20 flex items-center justify-center transition-all duration-150 rounded-r cursor-col-resize group hover:bg-blue-500/10 dark:hover:bg-blue-400/10"
         style={{
           top: tableRect.top,
           left: tableRect.right + 2,
           height: tableRect.height,
-          width: 22,
+          width: 12,
         }}
+        onClick={onAddColumnAtEnd}
         onMouseEnter={() => setIsHovered(true)}
+        title="Add column at end"
+        aria-label="Add column at end"
       >
-        <button
-          type="button"
-          onClick={onAddColumnAtEnd}
-          className="w-4 h-9 rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 border border-black/10 dark:border-white/15 text-zinc-400 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 flex items-center justify-center transition-all shadow-sm hover:scale-110 active:scale-95 cursor-pointer outline-none"
-          title="Add column at end"
-          aria-label="Add column at end"
-        >
-          <Icon name="Plus" className="w-3 h-3 stroke-[2.5]" />
-        </button>
+        <div className="w-3 h-6 rounded-full bg-black/5 group-hover:bg-blue-500 group-hover:text-white dark:bg-white/10 dark:group-hover:bg-blue-500 dark:group-hover:text-white border border-black/10 dark:border-white/15 text-zinc-400 flex items-center justify-center transition-all shadow-sm">
+          <Icon name="Plus" className="w-2.5 h-2.5 stroke-[2.5]" />
+        </div>
       </div>
 
-      {/* 2. Bottom Row Add (+) Button: Horizontal bar at the bottom edge of the table */}
+      {/* 2. Bottom Row Add Bar: Horizontal 12px bar along table bottom edge with row-resize cursor */}
       <div
-        className="fixed z-20 flex items-center justify-center transition-opacity duration-150"
+        className="fixed z-20 flex items-center justify-center transition-all duration-150 rounded-b cursor-row-resize group hover:bg-blue-500/10 dark:hover:bg-blue-400/10"
         style={{
           top: tableRect.bottom + 2,
           left: tableRect.left,
           width: tableRect.width,
-          height: 22,
+          height: 12,
         }}
+        onClick={onAddRowAtEnd}
         onMouseEnter={() => setIsHovered(true)}
+        title="Add row at end"
+        aria-label="Add row at end"
       >
-        <button
-          type="button"
-          onClick={onAddRowAtEnd}
-          className="h-4 w-9 rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 border border-black/10 dark:border-white/15 text-zinc-400 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 flex items-center justify-center transition-all shadow-sm hover:scale-110 active:scale-95 cursor-pointer outline-none"
-          title="Add row at end"
-          aria-label="Add row at end"
-        >
-          <Icon name="Plus" className="w-3 h-3 stroke-[2.5]" />
-        </button>
+        <div className="h-3 w-6 rounded-full bg-black/5 group-hover:bg-blue-500 group-hover:text-white dark:bg-white/10 dark:group-hover:bg-blue-500 dark:group-hover:text-white border border-black/10 dark:border-white/15 text-zinc-400 flex items-center justify-center transition-all shadow-sm">
+          <Icon name="Plus" className="w-2.5 h-2.5 stroke-[2.5]" />
+        </div>
       </div>
     </div>,
     document.body,

@@ -42,7 +42,7 @@
     td.selectedCell,
     th.selectedCell,
     .selectedCell {
-      background-color: rgba(122, 82, 255, 0.12) !important;
+      background-color: rgba(200, 200, 255, 0.4) !important;
     }
 
     .dark td.selectedCell,
@@ -51,16 +51,21 @@
     .theme-dark th.selectedCell,
     .dark .selectedCell,
     .theme-dark .selectedCell {
-      background-color: rgba(122, 82, 255, 0.18) !important;
+      background-color: rgba(100, 120, 255, 0.3) !important;
     }
 
     .grip-column,
     .grip-row {
-      @apply items-center cursor-pointer flex justify-center absolute z-10 select-none;
+      @apply items-center flex justify-center absolute z-10 select-none;
+      cursor: grab;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
-      background-color: rgba(0, 0, 0, 0.05);
+      background-color: rgba(0, 0, 0, 0.06);
+    }
+    .grip-column:active,
+    .grip-row:active {
+      cursor: grabbing;
     }
     .dark .grip-column,
     .dark .grip-row,
@@ -109,22 +114,22 @@
     }
 
     .grip-column {
-      @apply w-[calc(100%+1px)] h-4 left-0 -ml-[1px] -top-[20px] rounded-full;
+      @apply w-[calc(100%+1px)] h-3 left-0 -ml-[1px] -top-[16px] rounded-full;
       border: 1px solid rgba(0, 0, 0, 0.12);
       background-color: rgba(0, 0, 0, 0.06);
 
       &::before {
         content: '';
         position: absolute;
-        bottom: -7px;
+        bottom: -5px;
         left: 0;
         right: 0;
-        height: 7px;
+        height: 5px;
       }
 
       &::after {
-        content: '···';
-        font-size: 11px;
+        content: '•••';
+        font-size: 8px;
         line-height: 1;
         letter-spacing: 1px;
         color: rgba(0, 0, 0, 0.5);
@@ -142,10 +147,10 @@
       &.selected,
       &.active,
       &:active {
-        background-color: rgba(0, 0, 0, 0.18) !important;
-        border-color: rgba(0, 0, 0, 0.25) !important;
+        background-color: rgba(59, 130, 246, 0.9) !important;
+        border-color: rgba(37, 99, 235, 1) !important;
         &::after {
-          color: rgba(0, 0, 0, 0.95);
+          color: #ffffff !important;
         }
       }
     }
@@ -170,26 +175,26 @@
       &.selected,
       &.active,
       &:active {
-        background-color: rgba(255, 255, 255, 0.24) !important;
-        border-color: rgba(255, 255, 255, 0.32) !important;
+        background-color: rgba(59, 130, 246, 0.9) !important;
+        border-color: rgba(37, 99, 235, 1) !important;
         &::after {
-          color: #ffffff;
+          color: #ffffff !important;
         }
       }
     }
 
     .grip-row {
-      @apply h-[calc(100%+1px)] w-4 -left-[20px] top-0 -mt-[1px] rounded-full;
+      @apply h-[calc(100%+1px)] w-3 -left-[16px] top-0 -mt-[1px] rounded-full;
       border: 1px solid rgba(0, 0, 0, 0.12);
       background-color: rgba(0, 0, 0, 0.06);
 
       &::before {
         content: '';
         position: absolute;
-        right: -7px;
+        right: -5px;
         top: 0;
         bottom: 0;
-        width: 7px;
+        width: 5px;
       }
 
       &::after {
@@ -211,8 +216,8 @@
       &.selected,
       &.active,
       &:active {
-        background-color: rgba(0, 0, 0, 0.18) !important;
-        border-color: rgba(0, 0, 0, 0.25) !important;
+        background-color: rgba(59, 130, 246, 0.9) !important;
+        border-color: rgba(37, 99, 235, 1) !important;
         &::after {
           color: rgba(0, 0, 0, 0.95);
         }
@@ -239,10 +244,10 @@
       &.selected,
       &.active,
       &:active {
-        background-color: rgba(255, 255, 255, 0.24) !important;
-        border-color: rgba(255, 255, 255, 0.32) !important;
+        background-color: rgba(59, 130, 246, 0.9) !important;
+        border-color: rgba(37, 99, 235, 1) !important;
         &::after {
-          color: #ffffff;
+          color: #ffffff !important;
         }
       }
     }

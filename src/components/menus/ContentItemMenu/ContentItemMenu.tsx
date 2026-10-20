@@ -169,22 +169,22 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
             const nodeType = data.currentNode?.type?.name
 
             // Case A: Table block (single drag handle for the entire table)
-            // Stays stationary at the top-left outer gutter of the table (tableRect.left - 32px, tableRect.top)
+            // Stays stationary at the top-left outer gutter of the table (tableRect.left - 64px, tableRect.top - 16px)
             if (nodeType === 'table' || dom?.closest('table')) {
               const tableEl = dom?.closest('table') || dom
               const tableRect = tableEl?.getBoundingClientRect?.()
               if (tableRect && rects?.reference) {
                 const deltaX = rects.reference.left - tableRect.left
                 return {
-                  x: x - deltaX - 32,
-                  y: tableRect.top,
+                  x: x - deltaX - 64,
+                  y: tableRect.top - 16,
                 }
               }
-              return { x: x - 32, y }
+              return { x: x - 64, y: y - 16 }
             }
 
             // Case B: List container (bulletList, orderedList, taskList)
-            // Stays stationary at the top-left outer gutter of the entire list container
+            // Stays stationary at the top-left outer gutter of the entire list container (listRect.left - 64px, listRect.top)
             if (
               nodeType === 'bulletList' ||
               nodeType === 'orderedList' ||
@@ -196,11 +196,11 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               if (listRect && rects?.reference) {
                 const deltaX = rects.reference.left - listRect.left
                 return {
-                  x: x - deltaX - 24,
+                  x: x - deltaX - 64,
                   y: listRect.top,
                 }
               }
-              return { x: x - 24, y }
+              return { x: x - 64, y }
             }
 
             // Case C: Standard block - 16px gutter offset
@@ -227,7 +227,7 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
       computePositionConfig={positionConfig}
     >
       <div
-        className={`flex items-center gap-0.5 transition-opacity duration-150 ease-out pr-4 -mr-4 py-1 -my-1 ${
+        className={`w-12 h-8 flex items-center justify-center gap-0.5 transition-opacity duration-150 ease-out ${
           isInsideTableCell ? 'hidden pointer-events-none opacity-0 !w-0 !h-0 overflow-hidden' : ''
         }`}
         style={isInsideTableCell ? { display: 'none', pointerEvents: 'none', visibility: 'hidden' } : undefined}
