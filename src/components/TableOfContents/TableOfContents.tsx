@@ -47,12 +47,8 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
   useEffect(() => {
     const checkScrolledOut = () => {
       if (!inlineContainerRef.current) return
-      const rect = inlineContainerRef.current.getBoundingClientRect()
-      const editorDom = editor.view?.dom
-      const editorRect = editorDom?.getBoundingClientRect()
-
-      // 인라인 TOC가 화면 상단 위로 지나갔고, 에디터 본문이 화면에 머무는 동안 상시 스티키 지속 유지
-      const isPast = rect.bottom < 60 && (editorRect ? editorRect.bottom > 100 : true)
+      // 인라인 TOC가 화면 상단 위로 지나가면 문서 최하단까지 스티키 상태 상시 지속 유지 (조기 소멸 차단)
+      const isPast = rect.bottom < 60
       setIsScrolledOut(isPast)
       if (!isPast) {
         setIsStickyDropdownOpen(false)

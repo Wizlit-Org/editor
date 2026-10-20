@@ -177,6 +177,13 @@
 }
 
 /* Theme Canvas Utilities */
+.notion-light-canvas,
+.notion-dark-canvas {
+  height: auto !important;
+  min-height: 100% !important;
+  flex: 1 0 auto !important;
+}
+
 .notion-light-canvas {
   background-color: #ffffff;
   color: #18181b;
