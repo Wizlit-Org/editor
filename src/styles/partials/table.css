@@ -43,8 +43,6 @@
     th.selectedCell,
     .selectedCell {
       background-color: rgba(122, 82, 255, 0.12) !important;
-      border-color: #7a52ff !important;
-      box-shadow: inset 0 0 0 1px #7a52ff !important;
     }
 
     .dark td.selectedCell,
@@ -54,8 +52,6 @@
     .dark .selectedCell,
     .theme-dark .selectedCell {
       background-color: rgba(122, 82, 255, 0.18) !important;
-      border-color: #8b5cf6 !important;
-      box-shadow: inset 0 0 0 1px #8b5cf6 !important;
     }
 
     .grip-column,
@@ -64,13 +60,13 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
-      background-color: rgba(0, 0, 0, 0.04);
+      background-color: rgba(0, 0, 0, 0.05);
     }
     .dark .grip-column,
     .dark .grip-row,
     .theme-dark .grip-column,
     .theme-dark .grip-row {
-      background-color: rgba(255, 255, 255, 0.06);
+      background-color: rgba(255, 255, 255, 0.08);
     }
 
     /* 마우스 호버된 행(tr) 및 해당 셀의 열(column) 핸들만 단독 플로팅 노출 */
@@ -109,8 +105,8 @@
     }
 
     .grip-column {
-      @apply w-[calc(100%+1px)] h-4 left-0 -ml-[1px] -top-[22px] rounded;
-      border: 1px solid rgba(0, 0, 0, 0.12);
+      @apply w-[calc(100%+1px)] h-4 left-0 -ml-[1px] -top-[20px] rounded-full;
+      border: 1px solid rgba(0, 0, 0, 0.1);
 
       &::before {
         content: '';
@@ -126,44 +122,44 @@
         font-size: 11px;
         line-height: 1;
         letter-spacing: 1px;
-        color: rgba(0, 0, 0, 0.4);
+        color: rgba(0, 0, 0, 0.45);
         font-weight: bold;
       }
 
       &:hover {
-        background-color: rgba(122, 82, 255, 0.12);
+        background-color: rgba(0, 0, 0, 0.1);
         &::after {
-          color: #7a52ff;
+          color: rgba(0, 0, 0, 0.75);
         }
       }
 
       &.selected {
-        background-color: rgba(122, 82, 255, 0.22) !important;
-        border-color: #7a52ff !important;
+        background-color: rgba(0, 0, 0, 0.15) !important;
+        border-color: rgba(0, 0, 0, 0.22) !important;
         &::after {
-          color: #7a52ff;
+          color: rgba(0, 0, 0, 0.9);
         }
       }
     }
 
     .dark .grip-column,
     .theme-dark .grip-column {
-      border: 1px solid rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.12);
 
       &::after {
         color: rgba(255, 255, 255, 0.45);
       }
 
       &:hover {
-        background-color: rgba(122, 82, 255, 0.18);
+        background-color: rgba(255, 255, 255, 0.15);
         &::after {
-          color: #a78bfa;
+          color: rgba(255, 255, 255, 0.85);
         }
       }
 
       &.selected {
-        background-color: rgba(122, 82, 255, 0.3) !important;
-        border-color: #8b5cf6 !important;
+        background-color: rgba(255, 255, 255, 0.22) !important;
+        border-color: rgba(255, 255, 255, 0.28) !important;
         &::after {
           color: #ffffff;
         }
@@ -171,8 +167,8 @@
     }
 
     .grip-row {
-      @apply h-[calc(100%+1px)] w-4 -left-[22px] top-0 -mt-[1px] rounded;
-      border: 1px solid rgba(0, 0, 0, 0.12);
+      @apply h-[calc(100%+1px)] w-4 -left-[20px] top-0 -mt-[1px] rounded-full;
+      border: 1px solid rgba(0, 0, 0, 0.1);
 
       &::before {
         content: '';
@@ -187,44 +183,44 @@
         content: '⋮';
         font-size: 11px;
         line-height: 1;
-        color: rgba(0, 0, 0, 0.4);
+        color: rgba(0, 0, 0, 0.45);
         font-weight: bold;
       }
 
       &:hover {
-        background-color: rgba(122, 82, 255, 0.12);
+        background-color: rgba(0, 0, 0, 0.1);
         &::after {
-          color: #7a52ff;
+          color: rgba(0, 0, 0, 0.75);
         }
       }
 
       &.selected {
-        background-color: rgba(122, 82, 255, 0.22) !important;
-        border-color: #7a52ff !important;
+        background-color: rgba(0, 0, 0, 0.15) !important;
+        border-color: rgba(0, 0, 0, 0.22) !important;
         &::after {
-          color: #7a52ff;
+          color: rgba(0, 0, 0, 0.9);
         }
       }
     }
 
     .dark .grip-row,
     .theme-dark .grip-row {
-      border: 1px solid rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.12);
 
       &::after {
         color: rgba(255, 255, 255, 0.45);
       }
 
       &:hover {
-        background-color: rgba(122, 82, 255, 0.18);
+        background-color: rgba(255, 255, 255, 0.15);
         &::after {
-          color: #a78bfa;
+          color: rgba(255, 255, 255, 0.85);
         }
       }
 
       &.selected {
-        background-color: rgba(122, 82, 255, 0.3) !important;
-        border-color: #8b5cf6 !important;
+        background-color: rgba(255, 255, 255, 0.22) !important;
+        border-color: rgba(255, 255, 255, 0.28) !important;
         &::after {
           color: #ffffff;
         }

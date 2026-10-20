@@ -19,6 +19,10 @@ const gutterAlignMiddleware = {
     if (refEl.closest('td, th, tr')) {
       return { x: -9999, y: -9999 }
     }
+
+    // 기본적으로 콘텐츠에서 좌측으로 16px 추가 이격하여 테이블 행 핸들 및 본문과의 겹침 원천 차단
+    const targetX = x - 16
+
     // 리스트 아이템이거나 중첩 리스트일 때 최외곽 리스트 컨테이너(ul/ol) 탐색
     let topList: HTMLElement | null = refEl.closest('ul, ol')
     let current = topList
@@ -38,12 +42,12 @@ const gutterAlignMiddleware = {
       const deltaX = refRect.left - listRect.left
       if (deltaX > 0) {
         return {
-          x: x - deltaX,
+          x: targetX - deltaX,
           y,
         }
       }
     }
-    return { x, y }
+    return { x: targetX, y }
   },
 }
 
@@ -161,7 +165,7 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
       computePositionConfig={DRAG_HANDLE_POSITION_CONFIG}
     >
       <div
-        className={`flex items-center gap-0.5 transition-opacity duration-150 ease-out pr-4 -mr-4 py-1 -my-1 ${
+        className={`flex items-center gap-0.5 transition-opacity duration-150 ease-out pr-6 -mr-6 py-1 -my-1 ${
           isInsideTableCell ? 'hidden pointer-events-none opacity-0 !w-0 !h-0 overflow-hidden' : ''
         }`}
         style={isInsideTableCell ? { display: 'none', pointerEvents: 'none', visibility: 'hidden' } : undefined}

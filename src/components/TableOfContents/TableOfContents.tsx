@@ -45,27 +45,14 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
 
   // Detect when the inline TOC is scrolled out of view (Rock-solid scroll tracking)
   useEffect(() => {
-    const el = inlineContainerRef.current
-    if (!el) return
-
-    // 스크롤 가능한 상위 컨테이너 탐색 (모달의 overflow-auto 또는 window)
-    let scrollParent: HTMLElement | Window = window
-    let parent = el.parentElement
-    while (parent) {
-      const overflowY = window.getComputedStyle(parent).overflowY
-      if (overflowY === 'auto' || overflowY === 'scroll') {
-        scrollParent = parent
-        break
-      }
-      parent = parent.parentElement
-    }
-
     const checkScrolledOut = () => {
       if (!inlineContainerRef.current) return
       const rect = inlineContainerRef.current.getBoundingClientRect()
-      const parentTop = scrollParent instanceof HTMLElement ? scrollParent.getBoundingClientRect().top : 0
-      // 인라인 TOC의 하단이 스크롤 컨테이너 상단 위로 지나갔는지 정확히 판별 (끝까지 풀리지 않음)
-      const isPast = rect.bottom < parentTop + 50
+      const editorDom = editor.view?.dom
+      const editorRect = editorDom?.getBoundingClientRect()
+
+      // 인라인 TOC가 화면 상단 위로 지나갔고, 에디터 본문이 화면에 머무는 동안 상시 스티키 지속 유지
+      const isPast = rect.bottom < 60 && (editorRect ? editorRect.bottom > 100 : true)
       setIsScrolledOut(isPast)
       if (!isPast) {
         setIsStickyDropdownOpen(false)
@@ -74,14 +61,15 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
 
     checkScrolledOut()
 
-    scrollParent.addEventListener('scroll', checkScrolledOut, { passive: true })
-    window.addEventListener('scroll', checkScrolledOut, { passive: true })
+    // capture: true로 모달/다이얼로그/윈도우 등 하위 컨테이너의 모든 비버블링 scroll 이벤트를 100% 포착
+    window.addEventListener('scroll', checkScrolledOut, { passive: true, capture: true })
+    window.addEventListener('resize', checkScrolledOut, { passive: true })
 
     return () => {
-      scrollParent.removeEventListener('scroll', checkScrolledOut)
-      window.removeEventListener('scroll', checkScrolledOut)
+      window.removeEventListener('scroll', checkScrolledOut, { capture: true })
+      window.removeEventListener('resize', checkScrolledOut)
     }
-  }, [headings?.length])
+  }, [editor, headings?.length])
 
   const handleScrollToHeading = useCallback(
     (pos: number) => {
