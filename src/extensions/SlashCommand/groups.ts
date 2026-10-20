@@ -171,39 +171,6 @@ export const GROUPS: Group[] = [
       },
     ],
   },
-  {
-    name: 'external',
-    title: 'External',
-    commands: [
-      {
-        name: 'youtube',
-        label: 'Youtube',
-        iconName: 'Youtube',
-        description: 'Insert a youtube video',
-        aliases: ['iframe'],
-        action: editor => {
-          const url = prompt('Enter YouTube URL')
-      
-          if (url) {
-            editor.commands.setYoutubeVideo({
-              src: url,
-              // width: 640,
-              // height: 360,
-            })
-          }
-        },
-      },
-      // {
-      //   name: 'drawio',
-      //   label: 'Drawio',
-      //   iconName: 'Blocks',
-      //   description: 'Insert a drawio diagram',
-      //   action: editor => {
-      //     editor.chain().focus().insertDrawIo().run()
-      //   },
-      // },
-    ],
-  },
 ]
 
 export default GROUPS
