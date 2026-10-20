@@ -8,54 +8,6 @@ import { useData } from './hooks/useData'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import TurnIntoSubmenu from './components/TurnIntoSubmenu'
 
-const gutterAlignMiddleware = {
-  name: 'gutterAlign',
-  fn({ x, y, elements }: any) {
-    if (!elements.reference || !(elements.reference instanceof HTMLElement)) {
-      return { x, y }
-    }
-    const refEl = elements.reference as HTMLElement
-    // 테이블 셀 내부 노드일 경우 화면 밖으로 퇴출하여 셀별 드래그핸들 차단 (테이블 블록 자체는 허용)
-    if (refEl.closest('td, th, tr')) {
-      return { x: -9999, y: -9999 }
-    }
-
-    // 기본적으로 콘텐츠에서 좌측으로 16px 추가 이격하여 테이블 행 핸들 및 본문과의 겹침 원천 차단
-    const targetX = x - 16
-
-    // 리스트 아이템이거나 중첩 리스트일 때 최외곽 리스트 컨테이너(ul/ol) 탐색
-    let topList: HTMLElement | null = refEl.closest('ul, ol')
-    let current = topList
-    while (current && current.parentElement) {
-      const higherList = current.parentElement.closest('ul, ol')
-      if (higherList) {
-        topList = higherList as HTMLElement
-        current = higherList as HTMLElement
-      } else {
-        break
-      }
-    }
-
-    if (topList) {
-      const refRect = refEl.getBoundingClientRect()
-      const listRect = topList.getBoundingClientRect()
-      const deltaX = refRect.left - listRect.left
-      if (deltaX > 0) {
-        return {
-          x: targetX - deltaX,
-          y,
-        }
-      }
-    }
-    return { x: targetX, y }
-  },
-}
-
-const DRAG_HANDLE_POSITION_CONFIG = {
-  placement: 'left-start' as const,
-  middleware: [gutterAlignMiddleware],
-}
-
 export type ContentItemMenuProps = {
   editor: Editor
   isEditable?: boolean
@@ -149,6 +101,126 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
     }
   }, [isInsideTableCell, menuOpen])
 
+  // Mousemove guard: whenever cursor enters a table cell/header/row, hide DragHandle immediately
+  useEffect(() => {
+    if (!editor?.view?.dom) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null
+      if (target?.closest('td, th, tr')) {
+        editor.view.dispatch(editor.state.tr.setMeta('hideDragHandle', true))
+      }
+    }
+
+    const editorDom = editor.view.dom
+    editorDom.addEventListener('mousemove', handleMouseMove, { passive: true })
+    return () => {
+      editorDom.removeEventListener('mousemove', handleMouseMove)
+    }
+  }, [editor])
+
+  // Nested configuration with tableStructureGuard to exclude DragHandle inside table cells/rows
+  const nestedConfig = useMemo(
+    () => ({
+      enabled: true,
+      rules: [
+        {
+          id: 'tableStructureGuard',
+          evaluate: ({ node, parent, depth, $pos }: any) => {
+            if (['tableCell', 'tableHeader', 'tableRow'].includes(node?.type?.name)) {
+              return 1000
+            }
+            if (parent && ['tableCell', 'tableHeader', 'tableRow'].includes(parent.type.name)) {
+              return 1000
+            }
+            if ($pos?.node) {
+              for (let d = depth; d > 0; d--) {
+                const typeName = $pos.node(d)?.type?.name
+                if (['tableCell', 'tableHeader', 'tableRow'].includes(typeName)) {
+                  return 1000
+                }
+              }
+            }
+            return 0
+          },
+        },
+      ],
+    }),
+    [],
+  )
+
+  // Floating UI position configuration with gutterAlignMiddleware
+  const positionConfig = useMemo(() => {
+    return {
+      placement: 'left-start' as const,
+      middleware: [
+        {
+          name: 'gutterAlign',
+          fn({ x, y, rects }: any) {
+            // 1. If currently inside a table cell/row, banish off-screen
+            if (isInsideTableCell) {
+              return { x: -9999, y: -9999 }
+            }
+
+            let dom: HTMLElement | null = null
+            if (data.currentNodePos >= 0 && editor?.view) {
+              try {
+                const nodeDom = editor.view.nodeDOM(data.currentNodePos)
+                if (nodeDom instanceof HTMLElement) {
+                  dom = nodeDom
+                } else {
+                  const domAt = editor.view.domAtPos(data.currentNodePos)
+                  dom = (domAt?.node instanceof HTMLElement ? domAt.node : domAt?.node?.parentElement) || null
+                }
+              } catch {
+                dom = null
+              }
+            }
+
+            // Additional DOM guard: if dom is inside a table cell/row, hide off-screen
+            if (dom?.closest('td, th, tr')) {
+              return { x: -9999, y: -9999 }
+            }
+
+            const nodeType = data.currentNode?.type?.name
+
+            // Case A: Table block (single drag handle for the table block itself)
+            // Table row handle (.grip-row) sits at tableRect.left - 20px.
+            // Shift x by 32px so the drag handle (+ ⠿) sits safely in the outer gutter with no overlap.
+            if (nodeType === 'table' || dom?.closest('table')) {
+              const tableEl = dom?.closest('table') || dom
+              const tableRect = tableEl?.getBoundingClientRect?.()
+              if (tableRect && rects?.reference) {
+                const deltaX = rects.reference.left - tableRect.left
+                return { x: x - deltaX - 32, y }
+              }
+              return { x: x - 32, y }
+            }
+
+            // Case B: List item (bulletList, orderedList, taskList)
+            // Bullet marker sits at [liRect.left - 24px, liRect.left].
+            // Align handle 28px to the left of the li element so it never overlaps bullet or text.
+            const liEl = dom?.closest('li, [data-type="taskItem"]') as HTMLElement | null
+            if (liEl || isListItem || nodeType === 'listItem' || nodeType === 'taskItem') {
+              if (liEl && rects?.reference) {
+                const liRect = liEl.getBoundingClientRect()
+                const deltaX = rects.reference.left - liRect.left
+                return {
+                  x: x - deltaX - 28,
+                  y,
+                }
+              }
+              return { x: x - 28, y }
+            }
+
+            // Case C: Standard block - 16px gutter offset
+            return { x: x - 16, y }
+          },
+        },
+      ],
+    }
+  }, [editor, data.currentNode, data.currentNodePos, isInsideTableCell, isListItem])
+
   if (!isEditable) {
     return null
   }
@@ -160,12 +232,12 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
     <DragHandle
       pluginKey="ContentItemMenu"
       editor={editor}
-      nested={true}
+      nested={nestedConfig}
       onNodeChange={data.handleNodeChange}
-      computePositionConfig={DRAG_HANDLE_POSITION_CONFIG}
+      computePositionConfig={positionConfig}
     >
       <div
-        className={`flex items-center gap-0.5 transition-opacity duration-150 ease-out pr-6 -mr-6 py-1 -my-1 ${
+        className={`flex items-center gap-0.5 transition-opacity duration-150 ease-out pr-4 -mr-4 py-1 -my-1 ${
           isInsideTableCell ? 'hidden pointer-events-none opacity-0 !w-0 !h-0 overflow-hidden' : ''
         }`}
         style={isInsideTableCell ? { display: 'none', pointerEvents: 'none', visibility: 'hidden' } : undefined}
