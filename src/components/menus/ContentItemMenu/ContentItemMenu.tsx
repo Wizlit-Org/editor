@@ -15,6 +15,10 @@ const gutterAlignMiddleware = {
       return { x, y }
     }
     const refEl = elements.reference as HTMLElement
+    // 테이블 내부 노드일 경우 화면 밖으로 퇴출하여 드래그핸들 발현 원천 차단
+    if (refEl.closest('table')) {
+      return { x: -9999, y: -9999 }
+    }
     // 리스트 아이템이거나 중첩 리스트일 때 최외곽 리스트 컨테이너(ul/ol) 탐색
     let topList: HTMLElement | null = refEl.closest('ul, ol')
     let current = topList
@@ -105,6 +109,44 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
     }
   }, [data.currentNode, data.currentNodePos, editor])
 
+  // Detect whether current node is inside a table (table / tableRow / tableCell / tableHeader)
+  const isInsideTable = useMemo(() => {
+    if (!data.currentNode || data.currentNodePos === -1) return false
+    const nodeType = data.currentNode.type.name
+    if (
+      nodeType === 'table' ||
+      nodeType === 'tableRow' ||
+      nodeType === 'tableCell' ||
+      nodeType === 'tableHeader'
+    ) {
+      return true
+    }
+
+    try {
+      const resolved = editor.state.doc.resolve(data.currentNodePos)
+      for (let d = resolved.depth; d > 0; d--) {
+        const name = resolved.node(d).type.name
+        if (
+          name === 'table' ||
+          name === 'tableRow' ||
+          name === 'tableCell' ||
+          name === 'tableHeader'
+        ) {
+          return true
+        }
+      }
+      return false
+    } catch {
+      return false
+    }
+  }, [data.currentNode, data.currentNodePos, editor])
+
+  useEffect(() => {
+    if (isInsideTable && menuOpen) {
+      setMenuOpen(false)
+    }
+  }, [isInsideTable, menuOpen])
+
   if (!isEditable) {
     return null
   }
@@ -120,7 +162,12 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
       onNodeChange={data.handleNodeChange}
       computePositionConfig={DRAG_HANDLE_POSITION_CONFIG}
     >
-      <div className="flex items-center gap-0.5 transition-opacity duration-150 ease-out pr-4 -mr-4 py-1 -my-1">
+      <div
+        className={`flex items-center gap-0.5 transition-opacity duration-150 ease-out pr-4 -mr-4 py-1 -my-1 ${
+          isInsideTable ? 'hidden pointer-events-none opacity-0 !w-0 !h-0 overflow-hidden' : ''
+        }`}
+        style={isInsideTable ? { display: 'none', pointerEvents: 'none', visibility: 'hidden' } : undefined}
+      >
         <button
           type="button"
           onClick={actions.handleAdd}

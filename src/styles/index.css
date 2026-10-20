@@ -37,6 +37,12 @@
     display: inline;
   }
 
+  /* 읽기 모드(contenteditable="false")에서는 ProseMirror의 가짜 selection span을 투명화하여 네이티브 ::selection과의 이중 블록 겹침 원천 차단 */
+  &:not([contenteditable="true"]) .selection,
+  &[contenteditable="false"] .selection {
+    background-color: transparent !important;
+  }
+
   & > .react-renderer {
     margin-top: 3rem;
     margin-bottom: 3rem;
