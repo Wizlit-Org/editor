@@ -50,8 +50,8 @@ export const ImageBlock = Image.extend<ImageBlockOptions>({
         }),
       },
       width: {
-        default: '100%',
-        parseHTML: element => element.getAttribute('data-width'),
+        default: 'auto',
+        parseHTML: element => element.getAttribute('data-width') || 'auto',
         renderHTML: attributes => ({
           'data-width': attributes.width,
         }),

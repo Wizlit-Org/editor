@@ -80,14 +80,6 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
     duplicateRow(editor, idx)
   }, [editor])
 
-  const onMergeCells = useCallback(() => {
-    editor.chain().focus().mergeCells().run()
-  }, [editor])
-
-  const onSplitCell = useCallback(() => {
-    editor.chain().focus().splitCell().run()
-  }, [editor])
-
   const onToggleHeaderRow = useCallback(() => {
     editor.chain().focus().toggleHeaderRow().run()
   }, [editor])
@@ -147,16 +139,6 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
         <button type="button" onClick={onToggleHeaderRow} className={itemClass}>
           <Icon name="Table" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
           <span>Toggle header row</span>
-        </button>
-
-        <button type="button" onClick={onMergeCells} className={itemClass}>
-          <Icon name="Columns2" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-          <span>Merge cells</span>
-        </button>
-
-        <button type="button" onClick={onSplitCell} className={itemClass}>
-          <Icon name="Split" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-          <span>Split cell</span>
         </button>
 
         <button type="button" onClick={onClearRow} className={itemClass}>

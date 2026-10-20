@@ -71,14 +71,6 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
     editor.chain().focus().deleteColumn().run()
   }, [editor])
 
-  const onMergeCells = useCallback(() => {
-    editor.chain().focus().mergeCells().run()
-  }, [editor])
-
-  const onSplitCell = useCallback(() => {
-    editor.chain().focus().splitCell().run()
-  }, [editor])
-
   const onToggleHeaderColumn = useCallback(() => {
     editor.chain().focus().toggleHeaderColumn().run()
   }, [editor])
@@ -140,16 +132,6 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
         <button type="button" onClick={onToggleHeaderColumn} className={itemClass}>
           <Icon name="Table" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
           <span>Toggle header column</span>
-        </button>
-
-        <button type="button" onClick={onMergeCells} className={itemClass}>
-          <Icon name="Columns2" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-          <span>Merge cells</span>
-        </button>
-
-        <button type="button" onClick={onSplitCell} className={itemClass}>
-          <Icon name="Split" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-          <span>Split cell</span>
         </button>
 
         <button type="button" onClick={onClearColumn} className={itemClass}>
