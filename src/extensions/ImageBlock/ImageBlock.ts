@@ -16,7 +16,7 @@ declare module '@tiptap/core' {
       setImageBlock: (attributes: { src: string }) => ReturnType
       setImageBlockAt: (attributes: { src: string; pos: number | Range }) => ReturnType
       setImageBlockAlign: (align: 'left' | 'center' | 'right') => ReturnType
-      setImageBlockWidth: (width: number | string) => ReturnType
+      setImageBlockWidth: (width: number) => ReturnType
     }
   }
 }
@@ -70,13 +70,6 @@ export const ImageBlock = Image.extend<ImageBlockOptions>({
           alt: attributes.alt,
         }),
       },
-      caption: {
-        default: '',
-        parseHTML: element => element.getAttribute('data-caption') || '',
-        renderHTML: attributes => ({
-          'data-caption': attributes.caption,
-        }),
-      },
     }
   },
 
@@ -113,10 +106,8 @@ export const ImageBlock = Image.extend<ImageBlockOptions>({
 
       setImageBlockWidth:
         width =>
-        ({ commands }) => {
-          const val = typeof width === 'number' ? (width <= 0 ? 'auto' : `${Math.max(0, Math.min(100, width))}%`) : width
-          return commands.updateAttributes('imageBlock', { width: val })
-        },
+        ({ commands }) =>
+          commands.updateAttributes('imageBlock', { width: `${Math.max(0, Math.min(100, width))}%` }),
     }
   },
 
