@@ -102,41 +102,35 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
   }, [isInsideTableCell, menuOpen])
 
   // Mousemove guard: whenever cursor enters a table cell/header/row, hide DragHandle immediately
-  useEffect(() => {
-    if (!editor?.view?.dom) return
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const target = e.target as HTMLElement | null
-      if (target?.closest('td, th, tr')) {
-        editor.view.dispatch(editor.state.tr.setMeta('hideDragHandle', true))
-      }
-    }
-
-    const editorDom = editor.view.dom
-    editorDom.addEventListener('mousemove', handleMouseMove, { passive: true })
-    return () => {
-      editorDom.removeEventListener('mousemove', handleMouseMove)
-    }
-  }, [editor])
-
-  // Nested configuration with tableStructureGuard to exclude DragHandle inside table cells/rows
+  // Nested configuration with blockStructureGuard:
+  // Excludes table cells/rows and individual list items so the entire table and entire bulletList
+  // each get a single stationary drag handle at the top-left.
   const nestedConfig = useMemo(
     () => ({
       enabled: true,
       rules: [
         {
-          id: 'tableStructureGuard',
+          id: 'blockStructureGuard',
           evaluate: ({ node, parent, depth, $pos }: any) => {
-            if (['tableCell', 'tableHeader', 'tableRow'].includes(node?.type?.name)) {
+            const name = node?.type?.name
+            // 1. Exclude any table internal nodes (cell, header, row)
+            if (['tableCell', 'tableHeader', 'tableRow'].includes(name)) {
               return 1000
             }
             if (parent && ['tableCell', 'tableHeader', 'tableRow'].includes(parent.type.name)) {
               return 1000
             }
+            // 2. Exclude individual list items so the entire list gets a single top-level handle
+            if (['listItem', 'taskItem'].includes(name)) {
+              return 1000
+            }
+            if (parent && ['listItem', 'taskItem'].includes(parent.type.name)) {
+              return 1000
+            }
             if ($pos?.node) {
               for (let d = depth; d > 0; d--) {
                 const typeName = $pos.node(d)?.type?.name
-                if (['tableCell', 'tableHeader', 'tableRow'].includes(typeName)) {
+                if (['tableCell', 'tableHeader', 'tableRow', 'listItem', 'taskItem'].includes(typeName)) {
                   return 1000
                 }
               }
@@ -157,11 +151,6 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
         {
           name: 'gutterAlign',
           fn({ x, y, rects }: any) {
-            // 1. If currently inside a table cell/row, banish off-screen
-            if (isInsideTableCell) {
-              return { x: -9999, y: -9999 }
-            }
-
             let dom: HTMLElement | null = null
             if (data.currentNodePos >= 0 && editor?.view) {
               try {
@@ -177,40 +166,41 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               }
             }
 
-            // Additional DOM guard: if dom is inside a table cell/row, hide off-screen
-            if (dom?.closest('td, th, tr')) {
-              return { x: -9999, y: -9999 }
-            }
-
             const nodeType = data.currentNode?.type?.name
 
-            // Case A: Table block (single drag handle for the table block itself)
-            // Table row handle (.grip-row) sits at tableRect.left - 20px.
-            // Shift x by 32px so the drag handle (+ ⠿) sits safely in the outer gutter with no overlap.
+            // Case A: Table block (single drag handle for the entire table)
+            // Stays stationary at the top-left outer gutter of the table (tableRect.left - 32px, tableRect.top)
             if (nodeType === 'table' || dom?.closest('table')) {
               const tableEl = dom?.closest('table') || dom
               const tableRect = tableEl?.getBoundingClientRect?.()
               if (tableRect && rects?.reference) {
                 const deltaX = rects.reference.left - tableRect.left
-                return { x: x - deltaX - 32, y }
+                return {
+                  x: x - deltaX - 32,
+                  y: tableRect.top,
+                }
               }
               return { x: x - 32, y }
             }
 
-            // Case B: List item (bulletList, orderedList, taskList)
-            // Bullet marker sits at [liRect.left - 24px, liRect.left].
-            // Align handle 28px to the left of the li element so it never overlaps bullet or text.
-            const liEl = dom?.closest('li, [data-type="taskItem"]') as HTMLElement | null
-            if (liEl || isListItem || nodeType === 'listItem' || nodeType === 'taskItem') {
-              if (liEl && rects?.reference) {
-                const liRect = liEl.getBoundingClientRect()
-                const deltaX = rects.reference.left - liRect.left
+            // Case B: List container (bulletList, orderedList, taskList)
+            // Stays stationary at the top-left outer gutter of the entire list container
+            if (
+              nodeType === 'bulletList' ||
+              nodeType === 'orderedList' ||
+              nodeType === 'taskList' ||
+              dom?.closest('ul, ol')
+            ) {
+              const listEl = dom?.closest('ul, ol') || dom
+              const listRect = listEl?.getBoundingClientRect?.()
+              if (listRect && rects?.reference) {
+                const deltaX = rects.reference.left - listRect.left
                 return {
-                  x: x - deltaX - 28,
-                  y,
+                  x: x - deltaX - 24,
+                  y: listRect.top,
                 }
               }
-              return { x: x - 28, y }
+              return { x: x - 24, y }
             }
 
             // Case C: Standard block - 16px gutter offset
@@ -219,7 +209,7 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
         },
       ],
     }
-  }, [editor, data.currentNode, data.currentNodePos, isInsideTableCell, isListItem])
+  }, [editor, data.currentNode, data.currentNodePos])
 
   if (!isEditable) {
     return null

@@ -21,44 +21,40 @@ export const isRowGripSelected = ({
     return false
   }
 
+  // 1. If currently dragging anything (block or handle), suppress all menus
+  if (view.dragging || (typeof document !== 'undefined' && document.querySelector('[data-dragging="true"]'))) {
+    return false
+  }
+
   const { selection } = state
 
-  // 1. High-precision ProseMirror CellSelection check
+  // 2. Suppress if full table is selected
+  if (isTableSelected(selection)) {
+    return false
+  }
+
+  // 3. Must have an active grip-row with .selected class in the DOM
+  // (Meaning the user explicitly clicked the ⋮ row grip pill)
+  const editorDom = view.dom
+  const gripRow = editorDom?.querySelector('a.grip-row.selected')
+  if (!gripRow) {
+    return false
+  }
+
+  // 4. Ensure it's purely a single row selection
   if (isCellSelection(selection)) {
     try {
       const map = TableMap.get(selection.$anchorCell.node(-1))
       const start = selection.$anchorCell.start(-1)
       const rect = map.findCell(selection.$anchorCell.pos - start)
-      if (isRowSelected(rect.top)(selection)) {
-        return true
-      }
+      const isSingleRow = rect.bottom - rect.top === 1 && rect.right - rect.left === map.width
+      return isSingleRow
     } catch {
-      // Fall through to DOM fallback
+      return false
     }
   }
 
-  // 2. Fallback via DOM grip widget
-  if (isTableSelected(selection)) {
-    return false
-  }
-
-  const domAtPos = view.domAtPos(from)?.node as HTMLElement | undefined
-  const nodeDOM = view.nodeDOM(from) as HTMLElement | undefined
-  const node = nodeDOM || domAtPos
-
-  if (!node) {
-    return false
-  }
-
-  let container: HTMLElement | null = node
-
-  while (container && !['TD', 'TH'].includes(container.tagName)) {
-    container = container.parentElement
-  }
-
-  const gripRow = container?.querySelector?.('a.grip-row.selected')
-
-  return !!gripRow
+  return false
 }
 
 export default isRowGripSelected

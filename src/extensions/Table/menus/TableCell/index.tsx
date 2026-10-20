@@ -64,9 +64,15 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {
       if (!state) return false
+      if (editor.view?.dragging || (typeof document !== 'undefined' && document.querySelector('[data-dragging="true"]'))) {
+        return false
+      }
+      if (typeof document !== 'undefined' && document.querySelector('a.grip-column.selected, a.grip-row.selected')) {
+        return false
+      }
       return isCellSelection(state.selection)
     },
-    [],
+    [editor],
   )
 
   const getReferencedVirtualElement = useCallback(() => {
@@ -142,7 +148,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   return (
     <>
       {/* 1. Selection Perimeter Continuous 2px Purple Outline (Notion Style) */}
-      {isCellSelected && selectionRect && (
+      {isCellSelected && !editor.view?.dragging && selectionRect && (
         <div
           className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-20"
           style={{

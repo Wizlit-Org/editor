@@ -35,8 +35,6 @@ import {
   Typography,
   Underline,
   // emojiSuggestion,
-  Columns,
-  Column,
   TaskItem,
   TaskList,
   // UniqueID,
@@ -69,12 +67,10 @@ export const ExtensionKit = ({
   onImageClick,
 }: ExtensionKitProps) => [
   Document,
-  Columns,
   TaskList,
   TaskItem.configure({
     nested: true,
   }),
-  Column,
   Selection,
   Heading.configure({
     levels: [1, 2],
