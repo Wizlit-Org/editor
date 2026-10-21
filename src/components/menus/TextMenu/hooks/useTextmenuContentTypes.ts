@@ -95,18 +95,50 @@ export const useTextmenuContentTypes = (editor: Editor) => {
       },
       {
         icon: 'Quote',
-        onClick: () => ctx.editor.chain().focus().toggleBlockquote().run(),
+        onClick: () => {
+          const chain = ctx.editor.chain().focus() as any
+          if (typeof chain.toggleBlockquote === 'function') {
+            chain.toggleBlockquote().run()
+          } else if (typeof chain.setBlockquote === 'function') {
+            chain.setBlockquote().run()
+          }
+        },
         id: 'blockquote',
-        disabled: () => !ctx.editor.can().toggleBlockquote(),
+        disabled: () => {
+          const can = ctx.editor.can() as any
+          if (typeof can.toggleBlockquote === 'function') {
+            return !can.toggleBlockquote()
+          }
+          if (typeof can.setBlockquote === 'function') {
+            return !can.setBlockquote()
+          }
+          return false
+        },
         isActive: () => ctx.editor.isActive('blockquote'),
         label: 'Quote',
         type: 'option',
       },
       {
         icon: 'SquareCode',
-        onClick: () => ctx.editor.chain().focus().toggleCodeBlock().run(),
+        onClick: () => {
+          const chain = ctx.editor.chain().focus() as any
+          if (typeof chain.toggleCodeBlock === 'function') {
+            chain.toggleCodeBlock().run()
+          } else if (typeof chain.setCodeBlock === 'function') {
+            chain.setCodeBlock().run()
+          }
+        },
         id: 'codeBlock',
-        disabled: () => !ctx.editor.can().toggleCodeBlock(),
+        disabled: () => {
+          const can = ctx.editor.can() as any
+          if (typeof can.toggleCodeBlock === 'function') {
+            return !can.toggleCodeBlock()
+          }
+          if (typeof can.setCodeBlock === 'function') {
+            return !can.setCodeBlock()
+          }
+          return false
+        },
         isActive: () => ctx.editor.isActive('codeBlock'),
         label: 'Code block',
         type: 'option',
