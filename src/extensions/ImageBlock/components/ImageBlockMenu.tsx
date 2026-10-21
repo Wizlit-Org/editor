@@ -82,7 +82,7 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
   })
 
   const BTN_CLASS =
-    'h-7 w-7 p-0 flex items-center justify-center text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/5 dark:active:bg-white/10 rounded border border-transparent transition-colors'
+    'h-7 w-7 p-0 flex items-center justify-center text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/5 dark:active:bg-white/10 rounded-md border border-transparent transition-colors duration-150'
   const ACTIVE_CLASS = 'bg-black/10 text-zinc-900 dark:bg-white/15 dark:text-white'
 
   return (
@@ -97,7 +97,7 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
     >
       <div
         ref={menuRef}
-        className="inline-flex h-full leading-none gap-0.5 p-1 rounded-lg items-center z-50 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-lg text-zinc-800 dark:text-zinc-200"
+        className="inline-flex h-full leading-none gap-0.5 p-1 rounded-xl items-center z-50 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-xl border border-black/[0.08] dark:border-white/[0.1] shadow-xl ring-1 ring-white/40 dark:ring-white/5 text-zinc-800 dark:text-zinc-200"
       >
         <Toolbar.Button
           tooltip="Align left"
@@ -151,7 +151,7 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
         <Toolbar.Button
           tooltip="Delete image"
           onClick={onDelete}
-          className="h-7 w-7 p-0 flex items-center justify-center text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-500/10 active:bg-red-500/20 rounded border border-transparent transition-colors"
+          className="h-7 w-7 p-0 flex items-center justify-center text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-500/10 active:bg-red-500/20 rounded-md border border-transparent transition-colors"
         >
           <Icon name="Trash2" className="w-4 h-4" />
         </Toolbar.Button>

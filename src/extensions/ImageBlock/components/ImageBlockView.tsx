@@ -145,13 +145,15 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
             <div
               onMouseDown={handleResizeStart('left')}
               className={cn(
-                'absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-12 rounded-full cursor-ew-resize z-20 transition-all duration-150',
+                'tiptap-image-handle left absolute left-2 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-20 transition-all duration-150',
                 'bg-black/30 hover:bg-black/60 dark:bg-white/30 dark:hover:bg-white/60 shadow-md backdrop-blur-sm',
                 isResizing
                   ? 'opacity-100 scale-110 bg-black/70 dark:bg-white/70'
                   : 'opacity-0 group-hover:opacity-100',
               )}
               title="Resize width"
+              role="slider"
+              aria-label="Resize image width left"
             />
           )}
 
@@ -160,13 +162,15 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
             <div
               onMouseDown={handleResizeStart('right')}
               className={cn(
-                'absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-12 rounded-full cursor-ew-resize z-20 transition-all duration-150',
+                'tiptap-image-handle right absolute right-2 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-20 transition-all duration-150',
                 'bg-black/30 hover:bg-black/60 dark:bg-white/30 dark:hover:bg-white/60 shadow-md backdrop-blur-sm',
                 isResizing
                   ? 'opacity-100 scale-110 bg-black/70 dark:bg-white/70'
                   : 'opacity-0 group-hover:opacity-100',
               )}
               title="Resize width"
+              role="slider"
+              aria-label="Resize image width right"
             />
           )}
 
@@ -210,10 +214,10 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
                 value={caption}
                 onChange={e => updateAttributes({ caption: e.target.value })}
                 placeholder="캡션 입력..."
-                className="w-full text-center text-xs text-zinc-500 dark:text-zinc-400 placeholder:text-zinc-400/60 dark:placeholder:text-zinc-500/60 bg-transparent outline-none border-b border-transparent hover:border-black/10 dark:hover:border-white/10 focus:border-black/20 dark:focus:border-white/20 transition-colors py-0.5"
+                className="w-full text-center text-sm text-zinc-500 dark:text-zinc-400 placeholder:text-zinc-400/60 dark:placeholder:text-zinc-500/60 bg-transparent outline-none border-b border-transparent hover:border-black/10 dark:hover:border-white/10 focus:border-black/20 dark:focus:border-white/20 transition-colors py-0.5"
               />
             ) : (
-              <div className="text-xs text-zinc-500 dark:text-zinc-400 italic py-0.5">{caption}</div>
+              <div className="text-sm text-center text-zinc-500 dark:text-zinc-400 italic py-0.5">{caption}</div>
             )}
           </div>
         )}
