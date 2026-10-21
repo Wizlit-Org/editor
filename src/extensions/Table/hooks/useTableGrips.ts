@@ -178,16 +178,19 @@ export function useTableGrips(editor: Editor) {
             }
           }
 
+          const totalRows = currentTableEl.querySelectorAll('tr').length
+          const totalCols = currentTableEl.querySelector('tr')?.children.length ?? 0
+
           // Right column add bar visibility:
           // Visible only when hovering the last column, or mouse near right edge (within 24px), or hovering the bar itself
-          const isLastCol = activeCol !== null && columnGrips.length > 0 && activeCol === columnGrips.length - 1
+          const isLastCol = activeCol !== null && totalCols > 0 && activeCol === totalCols - 1
           const isNearRightEdge = e.clientX >= r.right - 24 && e.clientX <= r.right + 24
           const inRightBar = Boolean(target.closest('[aria-label="Add column at end"]'))
           setShowRightAddBar(Boolean(isLastCol || isNearRightEdge || inRightBar))
 
           // Bottom row add bar visibility:
           // Visible only when hovering the last row, or mouse near bottom edge (within 24px), or hovering the bar itself
-          const isLastRow = activeRow !== null && rowGrips.length > 0 && activeRow === rowGrips.length - 1
+          const isLastRow = activeRow !== null && totalRows > 0 && activeRow === totalRows - 1
           const isNearBottomEdge = e.clientY >= r.bottom - 24 && e.clientY <= r.bottom + 24
           const inBottomBar = Boolean(target.closest('[aria-label="Add row at end"]'))
           setShowBottomAddBar(Boolean(isLastRow || isNearBottomEdge || inBottomBar))

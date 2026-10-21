@@ -197,6 +197,10 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
   const activeColGrip = hoveredColIndex !== null ? columnGrips[hoveredColIndex] : null
   const activeRowGrip = hoveredRowIndex !== null ? rowGrips[hoveredRowIndex] : null
 
+  // Additional safety: evaluate last column/row directly during render with latest state
+  const isLastColHovered = hoveredColIndex !== null && columnGrips.length > 0 && hoveredColIndex === columnGrips.length - 1
+  const isLastRowHovered = hoveredRowIndex !== null && rowGrips.length > 0 && hoveredRowIndex === rowGrips.length - 1
+
   return createPortal(
     <div id="table-add-buttons-portal" className="pointer-events-auto" style={{ zIndex: 1400, position: 'relative' }}>
       {/* 1. Single Top Column Grip Bar: Full column width 12px glass pill */}
@@ -248,8 +252,8 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
       {/* 3. Full-length Right Column & Bottom Row Add Bars */}
       <TableAddBar
         tableRect={tableRect}
-        showRightBar={showRightAddBar}
-        showBottomBar={showBottomAddBar}
+        showRightBar={showRightAddBar || isLastColHovered}
+        showBottomBar={showBottomAddBar || isLastRowHovered}
         onAddColumn={onAddColumnAtEnd}
         onAddRow={onAddRowAtEnd}
         onHoverKeepAlive={() => {
