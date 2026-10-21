@@ -31,7 +31,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
           const text = node.textContent.trim()
           if (text) {
             list.push({
-              id: `heading-${pos}`,
+              id: node.attrs.id || `heading-${pos}`,
               level,
               text,
               pos,
@@ -69,14 +69,27 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
   }, [editor, headings?.length])
 
   const handleScrollToHeading = useCallback(
-    (pos: number) => {
+    (pos: number, id?: string) => {
       setIsStickyDropdownOpen(false)
+      if (id && typeof window !== 'undefined') {
+        const url = new URL(window.location.href)
+        url.hash = id
+        window.history.pushState(null, '', url.toString())
+      }
       if (editor.isEditable) {
         editor.chain().focus(undefined, { scrollIntoView: false }).setTextSelection(pos + 1).run()
       }
       try {
-        const dom = (editor.view.nodeDOM(pos) as HTMLElement) || (editor.view.domAtPos(pos).node as HTMLElement)
-        const element = dom && dom.nodeType === 1 ? dom : dom?.parentElement
+        let element: HTMLElement | null = null
+        if (id) {
+          element =
+            document.getElementById(id) ||
+            document.querySelector(`[data-id="${id}"], [data-toc-id="${id}"]`)
+        }
+        if (!element) {
+          const dom = (editor.view.nodeDOM(pos) as HTMLElement) || (editor.view.domAtPos(pos).node as HTMLElement)
+          element = dom && dom.nodeType === 1 ? dom : dom?.parentElement
+        }
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'start' })
         } else if (editor.isEditable) {
@@ -146,7 +159,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => handleScrollToHeading(item.pos)}
+                      onClick={() => handleScrollToHeading(item.pos, item.id)}
                       className={`w-full text-left text-xs py-1.5 pr-2 rounded hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] transition-colors truncate flex items-center gap-1.5 ${indentClass}`}
                     >
                       <span className="text-[10px] text-zinc-400 dark:text-zinc-500 shrink-0 font-mono">
@@ -210,7 +223,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => handleScrollToHeading(item.pos)}
+                      onClick={() => handleScrollToHeading(item.pos, item.id)}
                       className={`w-full text-left text-xs py-1.5 pr-2 rounded hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] transition-colors truncate flex items-center gap-1.5 ${indentClass}`}
                     >
                       <span className="text-[10px] text-zinc-400 dark:text-zinc-500 shrink-0 font-mono">

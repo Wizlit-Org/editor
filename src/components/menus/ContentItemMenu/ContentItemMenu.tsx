@@ -32,12 +32,31 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
 
   const copyAnchorLink = useCallback(() => {
     if (typeof window !== 'undefined') {
+      const node = data.currentNode
+      let id = node?.attrs?.id
+
+      if (!id) {
+        id =
+          typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : "pos-" + data.currentNodePos
+        if (data.currentNodePos !== -1 && node) {
+          editor.commands.command(({ tr }) => {
+            tr.setNodeMarkup(data.currentNodePos, undefined, {
+              ...node.attrs,
+              id,
+            })
+            return true
+          })
+        }
+      }
+
       const url = new URL(window.location.href)
-      url.hash = `pos-${data.currentNodePos}`
+      url.hash = id
       navigator.clipboard.writeText(url.toString())
     }
     setMenuOpen(false)
-  }, [data.currentNodePos])
+  }, [data.currentNode, data.currentNodePos, editor])
 
   // Detect whether current node is a list item or inside a list (bulletList / orderedList / taskList)
   const isListItem = useMemo(() => {

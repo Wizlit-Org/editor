@@ -150,6 +150,30 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     key,
   })
 
+  // Anchor jump smooth scroll on mount and hashchange
+  useEffect(() => {
+    if (typeof window === 'undefined' || !editor) return
+
+    const scrollToAnchor = () => {
+      const hash = window.location.hash?.slice(1)
+      if (!hash) return
+
+      setTimeout(() => {
+        const target =
+          document.getElementById(hash) ||
+          document.querySelector(`[data-id="${hash}"], [data-toc-id="${hash}"]`)
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 100)
+    }
+
+    scrollToAnchor()
+    window.addEventListener('hashchange', scrollToAnchor)
+    return () => window.removeEventListener('hashchange', scrollToAnchor)
+  }, [editor])
+
+
   const { characters = 0, words = 0 } = useEditorState({
     editor,
     selector: (ctx): { characters: number; words: number } => {
