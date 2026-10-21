@@ -29,7 +29,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
       let maxRight = -Infinity
       let minLeft = Infinity
 
-      selectedCells.forEach((cell) => {
+      selectedCells.forEach(cell => {
         const r = cell.getBoundingClientRect()
         if (r.top < minTop) minTop = r.top
         if (r.bottom > maxBottom) maxBottom = r.bottom
@@ -84,7 +84,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
       let maxBottom = -Infinity
       let maxRight = -Infinity
 
-      selectedCells.forEach((cell) => {
+      selectedCells.forEach(cell => {
         const r = cell.getBoundingClientRect()
         if (r.top < minTop) minTop = r.top
         if (r.bottom > maxBottom) maxBottom = r.bottom
@@ -197,7 +197,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
               sideOffset={8}
               className="z-50 outline-none animate-in fade-in-0 zoom-in-95 duration-150"
             >
-              <div className="glass-menu min-w-[12rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5">
+              <div className="glass-menu min-w-[12rem] p-1.5 shadow-2xl rounded-xl flex flex-col gap-0.5 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
                 {canMerge && (
                   <button type="button" onClick={onMergeCells} className={itemClass}>
                     <Icon name="Columns2" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
@@ -212,9 +212,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                   </button>
                 )}
 
-                {(canMerge || canSplit) && (
-                  <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
-                )}
+                {(canMerge || canSplit) && <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />}
 
                 <button type="button" onClick={onClearContents} className={itemClass}>
                   <Icon name="Eraser" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />

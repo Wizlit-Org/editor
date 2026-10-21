@@ -43,12 +43,11 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
     },
   })
 
-  // Detect when the inline TOC is scrolled out of view (Rock-solid scroll tracking)
+  // Detect when the inline TOC is scrolled out of view
   useEffect(() => {
     const checkScrolledOut = () => {
       if (!inlineContainerRef.current) return
       const rect = inlineContainerRef.current.getBoundingClientRect()
-      // 인라인 TOC가 화면 상단 위로 지나가면 문서 최하단까지 스티키 상태 상시 지속 유지 (조기 소멸 차단)
       const isPast = rect.bottom < 60
       setIsScrolledOut(isPast)
       if (!isPast) {
@@ -58,7 +57,6 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
 
     checkScrolledOut()
 
-    // capture: true로 모달/다이얼로그/윈도우 등 하위 컨테이너의 모든 비버블링 scroll 이벤트를 100% 포착
     window.addEventListener('scroll', checkScrolledOut, { passive: true, capture: true })
     window.addEventListener('resize', checkScrolledOut, { passive: true })
 
@@ -110,13 +108,13 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
 
   return (
     <>
-      {/* 1. Inline TOC: Placed in document flow at top, expanded by default */}
+      {/* 1. Inline TOC: Placed in document flow at top */}
       <div
         ref={inlineContainerRef}
         className={`w-full select-none transition-all duration-200 mb-6 ${className}`.trim()}
       >
         <div className="mx-auto max-w-2xl px-4 pt-2">
-          <div className="glass-panel rounded-xl shadow-sm border border-black/5 dark:border-white/10 overflow-hidden backdrop-blur-md">
+          <div className="rounded-xl shadow-md border border-black/5 dark:border-white/10 overflow-hidden bg-white/85 dark:bg-[#202020]/90 backdrop-blur-xl ring-1 ring-white/40 dark:ring-white/5">
             {/* Header */}
             <div
               onClick={() => setIsInlineExpanded(prev => !prev)}
@@ -160,7 +158,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
                       key={item.id}
                       type="button"
                       onClick={() => handleScrollToHeading(item.pos, item.id)}
-                      className={`w-full text-left text-xs py-1.5 pr-2 rounded hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] transition-colors truncate flex items-center gap-1.5 ${indentClass}`}
+                      className={`w-full text-left text-xs py-1.5 pr-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] transition-colors truncate flex items-center gap-1.5 ${indentClass}`}
                     >
                       <span className="text-[10px] text-zinc-400 dark:text-zinc-500 shrink-0 font-mono">
                         H{item.level}
@@ -184,11 +182,10 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
         }`}
       >
         <div className="relative">
-          {/* Compact Bar Trigger (Fixed 300px width) */}
           <button
             type="button"
             onClick={() => setIsStickyDropdownOpen(prev => !prev)}
-            className="glass-toolbar flex items-center justify-between w-[300px] min-w-[300px] px-3.5 py-1.5 rounded-full shadow-xl hover:shadow-2xl border border-black/10 dark:border-white/15 transition-all text-xs font-medium text-zinc-800 dark:text-[#e3e3e3]"
+            className="flex items-center justify-between w-[300px] min-w-[300px] px-3.5 py-1.5 rounded-full shadow-xl hover:shadow-2xl bg-white/85 dark:bg-[#202020]/90 backdrop-blur-xl border border-black/10 dark:border-white/15 ring-1 ring-white/40 dark:ring-white/5 transition-all text-xs font-medium text-zinc-800 dark:text-[#e3e3e3]"
           >
             <div className="flex items-center gap-2 truncate">
               <Icon name="ListOrdered" className="w-3.5 h-3.5 text-indigo-500 dark:text-violet-400 shrink-0" />
@@ -203,9 +200,8 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
             />
           </button>
 
-          {/* Sticky Dropdown Popover (Matching 300px width 1:1 aligned) */}
           {isStickyDropdownOpen && (
-            <div className="glass-menu absolute top-full left-0 right-0 mt-2 w-[300px] min-w-[300px] max-h-72 overflow-y-auto p-1.5 shadow-2xl rounded-xl z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute top-full left-0 right-0 mt-2 w-[300px] min-w-[300px] max-h-72 overflow-y-auto p-1.5 shadow-2xl rounded-2xl z-50 animate-in fade-in zoom-in-95 duration-150 bg-white/90 dark:bg-[#202020]/95 backdrop-blur-xl border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
               <div className="px-2 py-1 text-[10px] font-semibold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase select-none">
                 Table of Contents
               </div>
@@ -224,7 +220,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
                       key={item.id}
                       type="button"
                       onClick={() => handleScrollToHeading(item.pos, item.id)}
-                      className={`w-full text-left text-xs py-1.5 pr-2 rounded hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] transition-colors truncate flex items-center gap-1.5 ${indentClass}`}
+                      className={`w-full text-left text-xs py-1.5 pr-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] transition-colors truncate flex items-center gap-1.5 ${indentClass}`}
                     >
                       <span className="text-[10px] text-zinc-400 dark:text-zinc-500 shrink-0 font-mono">
                         H{item.level}
