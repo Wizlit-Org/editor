@@ -198,12 +198,16 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               }
             }
 
+            // Safe reference coordinates from Floating UI ({ x, y, width, height })
+            const refLeft = (rects?.reference?.x ?? (rects?.reference as any)?.left) ?? 0
+            const refTop = (rects?.reference?.y ?? (rects?.reference as any)?.top) ?? 0
+
             // Fixed X gutter aligned with editor ProseMirror content left edge (prosemirrorLeft - 28px)
-            // Eliminates horizontal jumping (+/- 24px) completely regardless of nested list depth
+            // Eliminates horizontal jumping (+/- 24px) and prevents NaN
             const prosemirrorEl = editor?.view?.dom
             const pmRect = prosemirrorEl?.getBoundingClientRect?.()
             const targetX = pmRect && rects?.reference
-              ? x - (rects.reference.left - (pmRect.left - 28))
+              ? x - (refLeft - (pmRect.left - 28))
               : x - 28
 
             // Vertical Y alignment:
@@ -212,7 +216,7 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               const tableEl = dom?.closest('table') || dom
               const tableRect = tableEl?.getBoundingClientRect?.()
               if (tableRect && rects?.reference) {
-                const deltaY = rects.reference.top - tableRect.top
+                const deltaY = refTop - tableRect.top
                 return {
                   x: targetX,
                   y: y - deltaY - 16,
@@ -231,7 +235,7 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               const listEl = dom?.closest('ul, ol') || dom
               const listRect = listEl?.getBoundingClientRect?.()
               if (listRect && rects?.reference) {
-                const deltaY = rects.reference.top - listRect.top
+                const deltaY = refTop - listRect.top
                 return {
                   x: targetX,
                   y: y - deltaY,

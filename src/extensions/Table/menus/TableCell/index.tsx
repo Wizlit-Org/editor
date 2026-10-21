@@ -17,6 +17,20 @@ const TABLE_CELL_MENU_OPTIONS = {
   },
 }
 
+const getCellPosFromDOM = (view: any, cellEl: HTMLElement): number | null => {
+  try {
+    const innerPos = view.posAtDOM(cellEl, 0)
+    const $pos = view.state.doc.resolve(innerPos)
+    for (let d = $pos.depth; d > 0; d--) {
+      const nodeName = $pos.node(d).type.name
+      if (nodeName === 'tableCell' || nodeName === 'tableHeader') {
+        return $pos.before(d)
+      }
+    }
+  } catch {}
+  return null
+}
+
 export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.Element => {
   const [menuOpen, setMenuOpen] = useState(false)
   const [selectionRect, setSelectionRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
@@ -156,7 +170,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
           const domAt = view.domAtPos(state.selection.from)
           const cellEl = (domAt.node instanceof HTMLElement ? domAt.node : domAt.node.parentElement)?.closest('td, th') as HTMLElement | null
           if (cellEl) {
-            anchorCellPos = view.posAtDOM(cellEl, 0)
+            anchorCellPos = getCellPosFromDOM(view, cellEl) ?? -1
           }
         } catch {
           anchorCellPos = -1
@@ -174,11 +188,13 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
           const targetEl = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)?.closest('td, th') as HTMLElement | null
           if (targetEl && anchorCellPos >= 0) {
             try {
-              const headCellPos = view.posAtDOM(targetEl, 0)
-              const $anchor = state.doc.resolve(anchorCellPos)
-              const $head = state.doc.resolve(headCellPos)
-              const newSelection = new CellSelection($anchor, $head)
-              view.dispatch(state.tr.setSelection(newSelection))
+              const headCellPos = getCellPosFromDOM(view, targetEl)
+              if (headCellPos !== null && headCellPos >= 0) {
+                const $anchor = state.doc.resolve(anchorCellPos)
+                const $head = state.doc.resolve(headCellPos)
+                const newSelection = new CellSelection($anchor, $head)
+                view.dispatch(state.tr.setSelection(newSelection))
+              }
             } catch {
               // ignore
             }
@@ -277,7 +293,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
               <button
                 type="button"
                 onMouseDown={handleButtonMouseDown}
-                className="w-3 h-3 -ml-1.5 -translate-y-1/2 rounded-full bg-white dark:bg-[#202020] border border-blue-500 shadow-md hover:scale-125 active:scale-95 cursor-pointer transition-all flex items-center justify-center p-0 outline-none z-30 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 select-none"
+                className="w-3 h-3 -ml-1.5 rounded-full bg-white dark:bg-[#202020] border border-blue-500 shadow-md hover:scale-125 active:scale-95 cursor-pointer transition-all flex items-center justify-center p-0 outline-none z-30 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 select-none"
                 title="Click for options, drag to adjust cell selection"
                 aria-label="Table cells option"
               >

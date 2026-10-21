@@ -148,11 +148,9 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
             {editorEditable && !isPlayingInEdit ? (
               <div className="relative w-full h-full bg-neutral-900 flex items-center justify-center overflow-hidden">
                 {thumbnailUrl ? (
-                  <img
-                    src={thumbnailUrl}
-                    alt={caption || 'YouTube video preview'}
-                    className="w-full h-full object-cover opacity-90 select-none"
-                    draggable={false}
+                  <div
+                    className="w-full h-full bg-cover bg-center opacity-90 group-hover/youtube:opacity-100 transition-opacity select-none pointer-events-none"
+                    style={{ backgroundImage: `url(${thumbnailUrl})` }}
                   />
                 ) : (
                   <div className="w-full h-full bg-neutral-800 flex items-center justify-center">

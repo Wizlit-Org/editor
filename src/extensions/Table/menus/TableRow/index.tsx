@@ -13,7 +13,7 @@ import {
 
 const TABLE_ROW_MENU_OPTIONS = {
   offset: 15,
-  flip: false,
+  flip: true,
 }
 
 export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.Element => {
