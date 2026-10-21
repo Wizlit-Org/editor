@@ -137,6 +137,19 @@ export const GROUPS: Group[] = [
         },
       },
       {
+        name: 'youtube',
+        label: 'YouTube',
+        iconName: 'Video',
+        description: 'Embed a YouTube video',
+        aliases: ['yt', 'youtube', 'video'],
+        action: editor => {
+          const url = prompt('YouTube URL을 입력하세요:')
+          if (url && url.trim()) {
+            editor.chain().focus().setYoutubeVideo({ src: url.trim() }).run()
+          }
+        },
+      },
+      {
         name: 'horizontalRule',
         label: 'Horizontal Rule',
         iconName: 'Minus',

@@ -84,6 +84,11 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
       const currentWidthPercent = parseFloat(width) || 100
       const parentElement = containerRef.current?.parentElement || document.body
       const parentWidth = parentElement.getBoundingClientRect().width || 624
+      let latestWidth = currentWidthPercent
+
+      if (containerRef.current) {
+        containerRef.current.style.transition = 'none'
+      }
 
       const onMouseMove = (moveEvent: MouseEvent) => {
         const deltaX = moveEvent.clientX - startX
@@ -91,17 +96,23 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
         const factor = direction === 'right' ? 1 : -1
         const widthMultiplier = align === 'center' ? 2 : 1
         const rawNewWidth = currentWidthPercent + deltaPercent * factor * widthMultiplier
-        const clampedWidth = Math.max(20, Math.min(100, Math.round(rawNewWidth)))
+        latestWidth = Math.max(20, Math.min(100, Math.round(rawNewWidth)))
 
-        updateAttributes({ width: `${clampedWidth}%` })
+        if (containerRef.current) {
+          containerRef.current.style.width = `${latestWidth}%`
+        }
       }
 
       const onMouseUp = () => {
         setIsResizing(false)
         document.body.style.userSelect = ''
         document.body.style.cursor = ''
+        if (containerRef.current) {
+          containerRef.current.style.transition = ''
+        }
         window.removeEventListener('mousemove', onMouseMove)
         window.removeEventListener('mouseup', onMouseUp)
+        updateAttributes({ width: `${latestWidth}%` })
       }
 
       window.addEventListener('mousemove', onMouseMove)
@@ -129,7 +140,8 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
     align === 'left' ? 'ml-0' : 'ml-auto',
     align === 'right' ? 'mr-0' : 'mr-auto',
     align === 'center' && 'mx-auto',
-    'group relative transition-all duration-200 select-none',
+    'group relative select-none',
+    !isResizing && 'transition-all duration-200',
     !(editorEditable || isExternalImage) ? 'active:scale-[0.99]' : '',
   )
 
@@ -145,7 +157,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
         data-drag-handle
       >
         {/* Main image container */}
-        <div className="relative rounded-lg overflow-hidden group/image w-full bg-black/[0.02] dark:bg-white/[0.02]">
+        <div className="relative rounded-lg overflow-hidden group/image w-full flex flex-col leading-none bg-black/[0.02] dark:bg-white/[0.02]">
           {/* Loading Skeleton */}
           {isLoading && !hasError && (
             <div className="w-full aspect-video min-h-[140px] rounded-lg bg-black/[0.04] dark:bg-white/[0.04] backdrop-blur-sm animate-pulse flex flex-col items-center justify-center gap-2 border border-black/5 dark:border-white/5">

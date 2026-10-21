@@ -42,6 +42,13 @@ export const YoutubeBlock = Youtube.extend<YoutubeBlockOptions>({
     return {
       src: {
         default: null,
+        parseHTML: element => {
+          return (
+            element.getAttribute('src') ||
+            element.querySelector('iframe')?.getAttribute('src') ||
+            null
+          )
+        },
       },
       start: {
         default: 0,
@@ -72,8 +79,42 @@ export const YoutubeBlock = Youtube.extend<YoutubeBlockOptions>({
     }
   },
 
+  parseHTML() {
+    return [
+      {
+        tag: 'div[data-youtube-video] iframe',
+      },
+      {
+        tag: 'div[data-youtube-video]',
+      },
+      {
+        tag: 'iframe[src*="youtube.com"]',
+      },
+      {
+        tag: 'iframe[src*="youtu.be"]',
+      },
+    ]
+  },
+
   renderHTML({ HTMLAttributes }) {
-    return ['div', mergeAttributes(this.options.HTMLAttributes || {}, HTMLAttributes)]
+    return [
+      'div',
+      {
+        'data-youtube-video': '',
+        'data-width': HTMLAttributes.width || '100%',
+        'data-align': HTMLAttributes.align || 'center',
+        'data-caption': HTMLAttributes.caption || '',
+      },
+      [
+        'iframe',
+        mergeAttributes(this.options.HTMLAttributes || {}, HTMLAttributes, {
+          src: HTMLAttributes.src,
+          width: '100%',
+          height: '100%',
+          allowfullscreen: 'true',
+        }),
+      ],
+    ]
   },
 
   addCommands() {

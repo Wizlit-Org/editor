@@ -42,15 +42,6 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
     editor.chain().focus(undefined, { scrollIntoView: false }).setImageBlockAlign('right').run()
   }, [editor])
 
-  const onToggleCaption = useCallback(() => {
-    const currentCaption = editor.getAttributes('imageBlock')?.caption || ''
-    if (!currentCaption) {
-      editor.chain().focus(undefined, { scrollIntoView: false }).setImageBlockCaption(' ').run()
-    } else {
-      editor.chain().focus(undefined, { scrollIntoView: false }).setImageBlockCaption('').run()
-    }
-  }, [editor])
-
   const onDownload = useCallback(() => {
     const src = editor.getAttributes('imageBlock')?.src
     if (src && typeof window !== 'undefined') {
@@ -69,14 +60,13 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
     editor.chain().focus(undefined, { scrollIntoView: false }).deleteSelection().run()
   }, [editor])
 
-  const { isImageCenter, isImageLeft, isImageRight, hasCaption } = useEditorState({
+  const { isImageCenter, isImageLeft, isImageRight } = useEditorState({
     editor,
     selector: ctx => {
       return {
         isImageLeft: ctx.editor.isActive('imageBlock', { align: 'left' }),
         isImageCenter: ctx.editor.isActive('imageBlock', { align: 'center' }),
         isImageRight: ctx.editor.isActive('imageBlock', { align: 'right' }),
-        hasCaption: !!ctx.editor.getAttributes('imageBlock')?.caption,
       }
     },
   })
@@ -128,16 +118,6 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
         </Toolbar.Button>
 
         <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />
-
-        <Toolbar.Button
-          tooltip="Toggle caption"
-          active={hasCaption}
-          onClick={onToggleCaption}
-          className={BTN_CLASS}
-          activeClassname={ACTIVE_CLASS}
-        >
-          <Icon name="Captions" className="w-4 h-4" />
-        </Toolbar.Button>
 
         <Toolbar.Button
           tooltip="Download image"

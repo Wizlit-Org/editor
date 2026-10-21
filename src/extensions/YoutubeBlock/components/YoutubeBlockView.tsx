@@ -27,14 +27,16 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
   const containerRef = useRef<HTMLDivElement>(null)
   const captionInputRef = useRef<HTMLInputElement>(null)
 
-  const onClick = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
+  const onSelectBlock = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault()
+      event.stopPropagation()
       editor.commands.setNodeSelection(getPos())
     },
     [editor, getPos],
   )
 
-  // Notion-style horizontal pill resize handle logic (with center-pivot physics)
+  // Notion-style horizontal pill resize handle logic (60fps direct DOM update)
   const handleResizeStart = useCallback(
     (direction: 'left' | 'right') => (e: React.MouseEvent) => {
       if (!editorEditable) return
@@ -49,6 +51,11 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
       const currentWidthPercent = parseFloat(width) || 100
       const parentElement = containerRef.current?.parentElement || document.body
       const parentWidth = parentElement.getBoundingClientRect().width || 624
+      let latestWidth = currentWidthPercent
+
+      if (containerRef.current) {
+        containerRef.current.style.transition = 'none'
+      }
 
       const onMouseMove = (moveEvent: MouseEvent) => {
         const deltaX = moveEvent.clientX - startX
@@ -56,17 +63,23 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
         const factor = direction === 'right' ? 1 : -1
         const widthMultiplier = align === 'center' ? 2 : 1
         const rawNewWidth = currentWidthPercent + deltaPercent * factor * widthMultiplier
-        const clampedWidth = Math.max(20, Math.min(100, Math.round(rawNewWidth)))
+        latestWidth = Math.max(20, Math.min(100, Math.round(rawNewWidth)))
 
-        updateAttributes({ width: `${clampedWidth}%` })
+        if (containerRef.current) {
+          containerRef.current.style.width = `${latestWidth}%`
+        }
       }
 
       const onMouseUp = () => {
         setIsResizing(false)
         document.body.style.userSelect = ''
         document.body.style.cursor = ''
+        if (containerRef.current) {
+          containerRef.current.style.transition = ''
+        }
         window.removeEventListener('mousemove', onMouseMove)
         window.removeEventListener('mouseup', onMouseUp)
+        updateAttributes({ width: `${latestWidth}%` })
       }
 
       window.addEventListener('mousemove', onMouseMove)
@@ -94,7 +107,8 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
     align === 'left' ? 'ml-0' : 'ml-auto',
     align === 'right' ? 'mr-0' : 'mr-auto',
     align === 'center' && 'mx-auto',
-    'group relative transition-all duration-200 select-none',
+    'group relative select-none',
+    !isResizing && 'transition-all duration-200',
   )
 
   return (
@@ -107,10 +121,9 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
           position: 'relative',
         }}
         data-drag-handle
-        onClick={onClick}
       >
         {/* Main video container */}
-        <div className="relative rounded-xl overflow-hidden group/youtube w-full aspect-video bg-black/[0.04] dark:bg-white/[0.04] shadow-sm">
+        <div className="relative rounded-xl overflow-hidden group/youtube w-full aspect-video flex flex-col leading-none bg-black/[0.04] dark:bg-white/[0.04] shadow-sm">
           {/* YouTube iframe */}
           <iframe
             src={src}
@@ -123,15 +136,24 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
             )}
           />
 
-          {/* YouTube-style Glass Ring Overlay on Hover */}
-          <div className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-inset ring-black/10 dark:ring-white/15 opacity-0 group-hover/youtube:opacity-100 transition-opacity duration-200" />
+          {/* Edit mode: Transparent click overlay to prevent accidental playback & trigger selection */}
+          {editorEditable && (
+            <div
+              onClick={onSelectBlock}
+              className="absolute inset-0 z-10 cursor-pointer bg-transparent"
+              title="클릭하여 유튜브 블록 선택"
+            />
+          )}
+
+          {/* YouTube-style Perfectly Symmetric Glass Ring Overlay on Hover */}
+          <div className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-inset ring-black/10 dark:ring-white/15 opacity-0 group-hover/youtube:opacity-100 transition-opacity duration-150 z-20" />
 
           {/* Floating '+ 캡션 추가' Button on Hover */}
           {editorEditable && !showCaption && (
             <button
               type="button"
               onClick={handleAddCaption}
-              className="opacity-0 group-hover/youtube:opacity-100 transition-all duration-200 absolute bottom-3 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full text-xs font-medium text-zinc-700 dark:text-zinc-200 bg-white/85 dark:bg-[#1e1e1e]/85 backdrop-blur-md shadow-md border border-black/10 dark:border-white/10 hover:bg-white dark:hover:bg-[#252525] hover:scale-105 active:scale-95 flex items-center gap-1.5 z-20 cursor-pointer"
+              className="opacity-0 group-hover/youtube:opacity-100 transition-all duration-200 absolute bottom-3 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full text-xs font-medium text-zinc-700 dark:text-zinc-200 bg-white/85 dark:bg-[#1e1e1e]/85 backdrop-blur-md shadow-md border border-black/10 dark:border-white/10 hover:bg-white dark:hover:bg-[#252525] hover:scale-105 active:scale-95 flex items-center gap-1.5 z-30 cursor-pointer"
             >
               <Icon name="Captions" className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
               <span>캡션 추가</span>

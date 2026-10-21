@@ -45,15 +45,6 @@ export const YoutubeBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element =
     editor.chain().focus(undefined, { scrollIntoView: false }).setYoutubeAlign('right').run()
   }, [editor])
 
-  const onToggleCaption = useCallback(() => {
-    const currentCaption = editor.getAttributes('youtube')?.caption || ''
-    if (!currentCaption) {
-      editor.chain().focus(undefined, { scrollIntoView: false }).setYoutubeCaption(' ').run()
-    } else {
-      editor.chain().focus(undefined, { scrollIntoView: false }).setYoutubeCaption('').run()
-    }
-  }, [editor])
-
   const onDelete = useCallback(() => {
     editor.chain().focus(undefined, { scrollIntoView: false }).deleteSelection().run()
   }, [editor])
@@ -79,14 +70,13 @@ export const YoutubeBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element =
     setIsEditingUrl(false)
   }, [])
 
-  const { isCenter, isLeft, isRight, hasCaption } = useEditorState({
+  const { isCenter, isLeft, isRight } = useEditorState({
     editor,
     selector: ctx => {
       return {
         isLeft: ctx.editor.isActive('youtube', { align: 'left' }),
         isCenter: ctx.editor.isActive('youtube', { align: 'center' }),
         isRight: ctx.editor.isActive('youtube', { align: 'right' }),
-        hasCaption: !!ctx.editor.getAttributes('youtube')?.caption,
       }
     },
   })
@@ -191,16 +181,6 @@ export const YoutubeBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element =
               activeClassname={ACTIVE_CLASS}
             >
               <Icon name="Link2" className="w-4 h-4" />
-            </Toolbar.Button>
-
-            <Toolbar.Button
-              tooltip="Toggle caption"
-              active={hasCaption}
-              onClick={onToggleCaption}
-              className={BTN_CLASS}
-              activeClassname={ACTIVE_CLASS}
-            >
-              <Icon name="Captions" className="w-4 h-4" />
             </Toolbar.Button>
 
             <Toolbar.Button
