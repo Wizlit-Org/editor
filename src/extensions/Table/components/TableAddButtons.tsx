@@ -81,7 +81,6 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
         setCurrentTableEl(table)
         setIsHovered(true)
       } else {
-        // If mouse is near the active table buttons, keep visible
         const buttonsContainer = document.getElementById('table-add-buttons-portal')
         if (buttonsContainer && buttonsContainer.contains(target)) {
           setIsHovered(true)
@@ -176,7 +175,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
     <div id="table-add-buttons-portal" className="pointer-events-auto">
       {/* 1. Right Column Add Bar: Vertical 12px bar along table right edge with col-resize cursor */}
       <div
-        className="fixed z-20 flex items-center justify-center transition-all duration-150 rounded-r cursor-col-resize group hover:bg-blue-500/10 dark:hover:bg-blue-400/10"
+        className="fixed z-20 flex items-center justify-center transition-all duration-150 rounded-r cursor-col-resize group hover:bg-black/5 dark:hover:bg-white/10"
         style={{
           top: tableRect.top,
           left: tableRect.right + 2,
@@ -188,14 +187,14 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
         title="Add column at end"
         aria-label="Add column at end"
       >
-        <div className="w-3 h-6 rounded-full bg-black/5 group-hover:bg-blue-500 group-hover:text-white dark:bg-white/10 dark:group-hover:bg-blue-500 dark:group-hover:text-white border border-black/10 dark:border-white/15 text-zinc-400 flex items-center justify-center transition-all shadow-sm">
+        <div className="w-3.5 h-7 rounded-full bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md group-hover:bg-zinc-800 group-hover:text-white dark:group-hover:bg-white dark:group-hover:text-black border border-black/10 dark:border-white/15 text-zinc-500 dark:text-zinc-400 flex items-center justify-center transition-all shadow-md">
           <Icon name="Plus" className="w-2.5 h-2.5 stroke-[2.5]" />
         </div>
       </div>
 
       {/* 2. Bottom Row Add Bar: Horizontal 12px bar along table bottom edge with row-resize cursor */}
       <div
-        className="fixed z-20 flex items-center justify-center transition-all duration-150 rounded-b cursor-row-resize group hover:bg-blue-500/10 dark:hover:bg-blue-400/10"
+        className="fixed z-20 flex items-center justify-center transition-all duration-150 rounded-b cursor-row-resize group hover:bg-black/5 dark:hover:bg-white/10"
         style={{
           top: tableRect.bottom + 2,
           left: tableRect.left,
@@ -207,7 +206,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
         title="Add row at end"
         aria-label="Add row at end"
       >
-        <div className="h-3 w-6 rounded-full bg-black/5 group-hover:bg-blue-500 group-hover:text-white dark:bg-white/10 dark:group-hover:bg-blue-500 dark:group-hover:text-white border border-black/10 dark:border-white/15 text-zinc-400 flex items-center justify-center transition-all shadow-sm">
+        <div className="h-3.5 w-7 rounded-full bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md group-hover:bg-zinc-800 group-hover:text-white dark:group-hover:bg-white dark:group-hover:text-black border border-black/10 dark:border-white/15 text-zinc-500 dark:text-zinc-400 flex items-center justify-center transition-all shadow-md">
           <Icon name="Plus" className="w-2.5 h-2.5 stroke-[2.5]" />
         </div>
       </div>

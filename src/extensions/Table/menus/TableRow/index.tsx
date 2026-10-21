@@ -5,32 +5,22 @@ import { Icon } from '@/components/ui/Icon'
 import { MenuProps, ShouldShowProps } from '@/components/menus/types'
 import {
   getSelectedRowIndex,
-  clearRowContents,
-  duplicateRow,
   moveRowUp,
   moveRowDown,
+  clearRowContents,
+  duplicateRow,
 } from './rowActions'
 
 const TABLE_ROW_MENU_OPTIONS = {
-  placement: 'left-start' as const,
-  offset: 8,
-  flip: true,
+  offset: 15,
+  flip: false,
 }
 
 export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.Element => {
   const getReferencedVirtualElement = useCallback(() => {
-    if (!editor.view?.dom) return null
+    const { view } = editor
+    const selectedCell = view.dom.querySelector('.selectedCell')
 
-    // 1. 선택된 grip-row 엘리먼트를 우선 앵커로 바인딩
-    const selectedGrip = editor.view.dom.querySelector('a.grip-row.selected') as HTMLElement | null
-    if (selectedGrip) {
-      return {
-        getBoundingClientRect: () => selectedGrip.getBoundingClientRect(),
-      }
-    }
-
-    // 2. 폴백: 선택된 셀(selectedCell)의 상위 tr 엘리먼트 기준
-    const selectedCell = editor.view.dom.querySelector('.selectedCell') as HTMLElement | null
     if (selectedCell) {
       const row = selectedCell.closest('tr')
       if (row) {
@@ -112,7 +102,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       options={TABLE_ROW_MENU_OPTIONS}
       shouldShow={shouldShow}
     >
-      <div className="glass-menu min-w-[12.5rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-50">
+      <div className="glass-menu min-w-[12.5rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-50 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
         <div className="flex items-center gap-1">
           <button type="button" onClick={onMoveRowUp} className={`${itemClass} flex-1 justify-center`}>
             <Icon name="ArrowUp" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
@@ -136,11 +126,6 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
 
         <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
 
-        <button type="button" onClick={onToggleHeaderRow} className={itemClass}>
-          <Icon name="Table" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-          <span>Toggle header row</span>
-        </button>
-
         <button type="button" onClick={onClearRow} className={itemClass}>
           <Icon name="Eraser" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
           <span>Clear row contents</span>
@@ -149,6 +134,11 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
         <button type="button" onClick={onDuplicate} className={itemClass}>
           <Icon name="Copy" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
           <span>Duplicate row</span>
+        </button>
+
+        <button type="button" onClick={onToggleHeaderRow} className={itemClass}>
+          <Icon name="Table" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+          <span>Toggle header row</span>
         </button>
 
         <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
