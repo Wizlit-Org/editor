@@ -5,7 +5,7 @@ import { Editor } from '@tiptap/react'
 import * as Popover from '@radix-ui/react-popover'
 import useContentItemActions from './hooks/useContentItemActions'
 import { useData } from './hooks/useData'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import TurnIntoSubmenu from './components/TurnIntoSubmenu'
 
 export type ContentItemMenuProps = {
@@ -70,32 +70,6 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
       navigator.clipboard.writeText(url.toString())
     }
     setMenuOpen(false)
-  }, [data.currentNode, data.currentNodePos, editor])
-
-  // Detect whether current node is a list item or inside a list (bulletList / orderedList / taskList)
-  const isListItem = useMemo(() => {
-    if (!data.currentNode || data.currentNodePos === -1) return false
-    const nodeType = data.currentNode.type.name
-    if (nodeType === 'listItem' || nodeType === 'taskItem') return true
-
-    try {
-      const resolved = editor.state.doc.resolve(data.currentNodePos)
-      for (let d = resolved.depth; d > 0; d--) {
-        const name = resolved.node(d).type.name
-        if (
-          name === 'listItem' ||
-          name === 'taskItem' ||
-          name === 'bulletList' ||
-          name === 'orderedList' ||
-          name === 'taskList'
-        ) {
-          return true
-        }
-      }
-      return false
-    } catch {
-      return false
-    }
   }, [data.currentNode, data.currentNodePos, editor])
 
   // Detect whether current node is inside a table cell (tableRow / tableCell / tableHeader)

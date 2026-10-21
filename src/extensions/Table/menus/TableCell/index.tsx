@@ -1,7 +1,7 @@
 import { BubbleMenu as BaseBubbleMenu } from '@tiptap/react/menus'
 import React, { useCallback, useState, useEffect, useRef, JSX } from 'react'
 import * as Popover from '@radix-ui/react-popover'
-import { CellSelection, TableMap } from '@tiptap/pm/tables'
+import { CellSelection } from '@tiptap/pm/tables'
 import { isCellSelection } from '../../utils'
 import { Icon } from '@/components/ui/Icon'
 import { MenuProps, ShouldShowProps } from '@/components/menus/types'
@@ -281,7 +281,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                 title="Click for options, drag to adjust cell selection"
                 aria-label="Table cells option"
               >
-                <Icon name="MoreHorizontal" className="w-2 h-2" />
+                <Icon name="Ellipsis" className="w-2 h-2" />
               </button>
             </Popover.Trigger>
             <Popover.Content

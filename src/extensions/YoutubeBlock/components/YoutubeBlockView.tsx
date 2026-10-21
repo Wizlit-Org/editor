@@ -161,7 +161,14 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
                 )}
 
                 {/* Glassmorphism Play Icon overlay */}
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors">
+                <div
+                  className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors"
+                  onClick={e => {
+                    e.stopPropagation()
+                    setIsPlayingInEdit(true)
+                  }}
+                  title="클릭하여 재생"
+                >
                   <div className="w-14 h-14 rounded-full bg-white/80 dark:bg-black/70 backdrop-blur-md shadow-xl flex items-center justify-center text-zinc-900 dark:text-white border border-white/40 dark:border-white/20 transition-transform group-hover/youtube:scale-110">
                     <Icon name="Play" className="w-6 h-6 ml-1 fill-current" />
                   </div>
