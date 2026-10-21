@@ -32,22 +32,29 @@ const isCategory = (option: ContentTypePickerOption | ContentTypePickerCategory)
   option.type === 'category'
 
 export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
-  const activeItem = useMemo(() => options.find(option => option.type === 'option' && option.isActive()), [options])
+  const activeItem = useMemo(
+    () => options.find(option => option.type === 'option' && option.isActive()) as ContentTypePickerOption | undefined,
+    [options],
+  )
+
+  const activeLabel = activeItem?.label || 'Paragraph'
+  const activeIcon = activeItem?.icon || 'Pilcrow'
 
   return (
     <Dropdown.Root>
       <Dropdown.Trigger asChild>
         <Toolbar.Button
           active={activeItem?.id !== 'paragraph' && !!activeItem?.type}
-          className="text-zinc-500 hover:text-zinc-800 dark:text-[#9b9b9b] dark:hover:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] border border-transparent transition-colors"
-          activeClassname="bg-black/10 dark:bg-white/[0.1] text-zinc-900 dark:text-white"
+          className="h-7 px-2 flex items-center gap-1.5 text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/5 dark:active:bg-white/10 rounded-md border border-transparent transition-colors text-xs font-medium"
+          activeClassname="bg-black/10 dark:bg-white/15 text-zinc-900 dark:text-white"
         >
-          <Icon name={(activeItem?.type === 'option' && activeItem.icon) || 'Pilcrow'} className="w-4 h-4" />
-          <Icon name="ChevronDown" className="w-2.5 h-2.5 opacity-60" />
+          <Icon name={activeIcon} className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate max-w-[5.5rem] leading-none">{activeLabel}</span>
+          <Icon name="ChevronDown" className="w-2.5 h-2.5 opacity-60 shrink-0" />
         </Toolbar.Button>
       </Dropdown.Trigger>
-      <Dropdown.Content asChild sideOffset={6} className="z-50 outline-none">
-        <div className="glass-menu flex flex-col gap-0.5 p-1.5 min-w-[12rem] shadow-2xl">
+      <Dropdown.Content asChild sideOffset={6} className="z-50 outline-none animate-in fade-in-0 zoom-in-95 duration-150">
+        <div className="glass-menu flex flex-col gap-0.5 p-1.5 min-w-[13rem] max-h-[22rem] overflow-y-auto shadow-2xl rounded-xl bg-white/90 dark:bg-[#202020]/95 backdrop-blur-xl border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
           {options.map(option => {
             if (isOption(option)) {
               const isActive = option.isActive()
@@ -56,20 +63,24 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
                   type="button"
                   key={option.id}
                   onClick={option.onClick}
-                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium rounded border border-transparent transition-colors text-left ${
+                  disabled={option.disabled()}
+                  className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium rounded-lg border border-transparent transition-colors text-left select-none ${
                     isActive
-                      ? 'bg-black/10 text-zinc-900 dark:bg-white/[0.1] dark:text-white'
-                      : 'text-zinc-700 hover:text-zinc-900 hover:bg-black/5 dark:text-[#e3e3e3] dark:hover:text-white dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1]'
+                      ? 'bg-black/10 text-zinc-900 dark:bg-white/[0.12] dark:text-white'
+                      : 'text-zinc-700 hover:text-zinc-900 hover:bg-black/5 dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12]'
                   }`}
                 >
-                  <Icon name={option.icon} className="w-3.5 h-3.5 text-zinc-400 dark:text-[#9b9b9b] shrink-0" />
-                  <span>{option.label}</span>
+                  <div className="flex items-center gap-2">
+                    <Icon name={option.icon} className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400 shrink-0" />
+                    <span>{option.label}</span>
+                  </div>
+                  {isActive && <Icon name="Check" className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 shrink-0" />}
                 </button>
               )
             } else if (isCategory(option)) {
               return (
                 <div
-                  className="text-[10px] font-semibold text-zinc-400 dark:text-[#9b9b9b] px-2 py-1 uppercase tracking-wider mt-1.5 first:mt-0"
+                  className="text-[10px] font-semibold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase px-2 pt-2 pb-0.5 mt-1 first:mt-0 select-none"
                   key={option.id}
                 >
                   {option.label}
@@ -82,3 +93,5 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
     </Dropdown.Root>
   )
 }
+
+export default ContentTypePicker

@@ -9,8 +9,6 @@ import { useTextmenuContentTypes } from './hooks/useTextmenuContentTypes'
 import { ContentTypePicker } from './components/ContentTypePicker'
 import { EditLinkPopover } from './components/EditLinkPopover'
 
-// We memorize the button so each button is not rerendered
-// on every editor state change
 const MemoButton = memo(Toolbar.Button)
 const MemoContentTypePicker = memo(ContentTypePicker)
 
@@ -52,7 +50,7 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
   }, [editor])
 
   const BTN_CLASS =
-    'h-7 w-7 p-0 flex items-center justify-center text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/5 dark:active:bg-white/10 rounded border border-transparent transition-colors'
+    'h-7 w-7 p-0 flex items-center justify-center text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/5 dark:active:bg-white/10 rounded-md border border-transparent transition-colors duration-150'
   const ACTIVE_CLASS = 'bg-black/10 text-zinc-900 dark:bg-white/15 dark:text-white font-semibold'
 
   return (
@@ -64,7 +62,7 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
       shouldShow={states.shouldShow}
       updateDelay={0}
     >
-      <div className="inline-flex h-full leading-none gap-0.5 p-1 rounded-lg items-center z-50 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-lg text-zinc-800 dark:text-zinc-200">
+      <div className="inline-flex h-full leading-none gap-0.5 p-1 rounded-xl items-center z-50 bg-white/90 dark:bg-[#202020]/95 backdrop-blur-xl border border-black/[0.08] dark:border-white/[0.1] shadow-2xl ring-1 ring-white/40 dark:ring-white/5 text-zinc-800 dark:text-zinc-200">
         <MemoContentTypePicker options={blockOptions} />
         <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />
         <MemoButton
@@ -75,7 +73,7 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
           className={BTN_CLASS}
           activeClassname={ACTIVE_CLASS}
         >
-          <Icon name="Bold" />
+          <Icon name="Bold" className="w-3.5 h-3.5" />
         </MemoButton>
         <MemoButton
           tooltip="Italic"
@@ -85,7 +83,7 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
           className={BTN_CLASS}
           activeClassname={ACTIVE_CLASS}
         >
-          <Icon name="Italic" />
+          <Icon name="Italic" className="w-3.5 h-3.5" />
         </MemoButton>
         <MemoButton
           tooltip="Underline"
@@ -95,7 +93,7 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
           className={BTN_CLASS}
           activeClassname={ACTIVE_CLASS}
         >
-          <Icon name="Underline" />
+          <Icon name="Underline" className="w-3.5 h-3.5" />
         </MemoButton>
         <MemoButton
           tooltip="Strikethrough"
@@ -105,7 +103,7 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
           className={BTN_CLASS}
           activeClassname={ACTIVE_CLASS}
         >
-          <Icon name="Strikethrough" />
+          <Icon name="Strikethrough" className="w-3.5 h-3.5" />
         </MemoButton>
         <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />
         <MemoButton
@@ -116,7 +114,7 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
           className={BTN_CLASS}
           activeClassname={ACTIVE_CLASS}
         >
-          <Icon name="Code" />
+          <Icon name="Code" className="w-3.5 h-3.5" />
         </MemoButton>
         <EditLinkPopover onSetLink={commands.onLink} />
       </div>
