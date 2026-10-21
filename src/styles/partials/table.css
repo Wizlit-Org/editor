@@ -1,15 +1,18 @@
 .ProseMirror {
   min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
   box-sizing: border-box;
 
   .tableWrapper {
-    @apply my-6;
+    margin: 1.5rem 0 !important;
+    padding: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
     overflow-x: auto !important;
     display: block !important;
-    contain: inline-size;
+    contain: inline-size !important;
     scrollbar-width: thin;
   }
 

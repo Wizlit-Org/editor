@@ -23,9 +23,9 @@
   caret-color: var(--editor-caret, #222325);
   outline: 0 !important;
   z-index: 0;
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 42rem;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
   position: relative;
 
   /* 본문 폭/여백은 0px도 건드리지 않으면서, 마우스가 좌측 거터(-68px)로 이동할 때 @tiptap/extension-drag-handle이 ProseMirror를 감지하도록 가상 히트박스 제공 */
@@ -208,4 +208,8 @@
 
 [data-theme='slash-command'] {
   width: 1000vw;
+}
+
+.drag-handle {
+  z-index: 50 !important;
 }
