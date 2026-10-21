@@ -17,6 +17,7 @@ declare module '@tiptap/core' {
       setImageBlockAt: (attributes: { src: string; pos: number | Range }) => ReturnType
       setImageBlockAlign: (align: 'left' | 'center' | 'right') => ReturnType
       setImageBlockWidth: (width: number) => ReturnType
+      setImageBlockCaption: (caption: string) => ReturnType
     }
   }
 }
@@ -63,6 +64,12 @@ export const ImageBlock = Image.extend<ImageBlockOptions>({
           'data-align': attributes.align,
         }),
       },
+      caption: {
+        default: '',
+        parseHTML: element => element.getAttribute('data-caption') || '',
+        renderHTML: attributes =>
+          attributes.caption ? { 'data-caption': attributes.caption } : {},
+      },
       alt: {
         default: undefined,
         parseHTML: element => element.getAttribute('alt'),
@@ -72,14 +79,6 @@ export const ImageBlock = Image.extend<ImageBlockOptions>({
       },
     }
   },
-
-  // parseHTML() {
-  //   return [
-  //     {
-  //       tag: 'img[src*="tiptap.dev"]:not([src^="data:"]), img[src*="windows.net"]:not([src^="data:"])',
-  //     },
-  //   ]
-  // },
 
   renderHTML({ HTMLAttributes }) {
     return ['img', mergeAttributes(this.options.HTMLAttributes || {}, HTMLAttributes)]
@@ -108,6 +107,11 @@ export const ImageBlock = Image.extend<ImageBlockOptions>({
         width =>
         ({ commands }) =>
           commands.updateAttributes('imageBlock', { width: `${Math.max(0, Math.min(100, width))}%` }),
+
+      setImageBlockCaption:
+        caption =>
+        ({ commands }) =>
+          commands.updateAttributes('imageBlock', { caption }),
     }
   },
 
