@@ -5,18 +5,13 @@ import { useTextmenuStates } from './hooks/useTextmenuStates'
 import { BubbleMenu } from '@tiptap/react/menus'
 import { Editor } from '@tiptap/react'
 import { memo, useEffect, useState } from 'react'
-// import { FontFamilyPicker } from './components/FontFamilyPicker'
-// import { FontSizePicker } from './components/FontSizePicker'
 import { useTextmenuContentTypes } from './hooks/useTextmenuContentTypes'
 import { ContentTypePicker } from './components/ContentTypePicker'
-// import { AIDropdown } from './components/AIDropdown'
 import { EditLinkPopover } from './components/EditLinkPopover'
 
 // We memorize the button so each button is not rerendered
 // on every editor state change
 const MemoButton = memo(Toolbar.Button)
-// const MemoFontFamilyPicker = memo(FontFamilyPicker)
-// const MemoFontSizePicker = memo(FontSizePicker)
 const MemoContentTypePicker = memo(ContentTypePicker)
 
 const MENU_OPTIONS = {
@@ -46,7 +41,7 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
 
       selectionTimeout = window.setTimeout(() => {
         setSelecting(false)
-      }, 200)
+      }, 150)
     }
 
     editor.on('selectionUpdate', onSelectionChange)
@@ -57,8 +52,8 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
   }, [editor])
 
   const BTN_CLASS =
-    'h-6 w-6 p-0 flex items-center justify-center text-zinc-500 hover:text-zinc-800 dark:text-[#9b9b9b] dark:hover:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] rounded border border-transparent transition-colors'
-  const ACTIVE_CLASS = 'bg-black/10 dark:bg-white/[0.1] text-zinc-900 dark:text-white'
+    'h-7 w-7 p-0 flex items-center justify-center text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/5 dark:active:bg-white/10 rounded border border-transparent transition-colors'
+  const ACTIVE_CLASS = 'bg-black/10 text-zinc-900 dark:bg-white/15 dark:text-white font-semibold'
 
   return (
     <BubbleMenu
@@ -69,7 +64,7 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
       shouldShow={states.shouldShow}
       updateDelay={0}
     >
-      <div className="glass-toolbar inline-flex h-full leading-none gap-0.5 p-0.5 rounded-lg items-center shadow-xl z-50">
+      <div className="inline-flex h-full leading-none gap-0.5 p-1 rounded-lg items-center z-50 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-lg text-zinc-800 dark:text-zinc-200">
         <MemoContentTypePicker options={blockOptions} />
         <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />
         <MemoButton
@@ -114,27 +109,6 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
         </MemoButton>
         <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />
         <MemoButton
-          tooltip="Subscript"
-          tooltipShortcut={['Mod', '.']}
-          onClick={commands.onSubscript}
-          active={states.isSubscript}
-          className={BTN_CLASS}
-          activeClassname={ACTIVE_CLASS}
-        >
-          <Icon name="Subscript" />
-        </MemoButton>
-        <MemoButton
-          tooltip="Superscript"
-          tooltipShortcut={['Mod', ',']}
-          onClick={commands.onSuperscript}
-          active={states.isSuperscript}
-          className={BTN_CLASS}
-          activeClassname={ACTIVE_CLASS}
-        >
-          <Icon name="Superscript" />
-        </MemoButton>
-        <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />
-        <MemoButton
           tooltip="Code"
           tooltipShortcut={['Mod', 'E']}
           onClick={commands.onCode}
@@ -143,14 +117,6 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
           activeClassname={ACTIVE_CLASS}
         >
           <Icon name="Code" />
-        </MemoButton>
-        <MemoButton
-          tooltip="Code block"
-          onClick={commands.onCodeBlock}
-          className={BTN_CLASS}
-          activeClassname={ACTIVE_CLASS}
-        >
-          <Icon name="FileCode" />
         </MemoButton>
         <EditLinkPopover onSetLink={commands.onLink} />
       </div>
