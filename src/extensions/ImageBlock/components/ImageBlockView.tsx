@@ -32,6 +32,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
   const [hasError, setHasError] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+  const [isDragOver, setIsDragOver] = useState(false)
   const [isEditingCaption, setIsEditingCaption] = useState(false)
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -133,6 +134,50 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
     [],
   )
 
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (!editorEditable) return
+    if (e.dataTransfer.types.includes('Files')) {
+      e.preventDefault()
+      e.stopPropagation()
+      setIsDragOver(true)
+    }
+  }, [editorEditable])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    if (!editorEditable) return
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+  }, [editorEditable])
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      if (!editorEditable) return
+      e.preventDefault()
+      e.stopPropagation()
+      setIsDragOver(false)
+
+      const file = e.dataTransfer.files?.[0]
+      if (!file || !file.type.startsWith('image/')) return
+
+      try {
+        const uploader = (editor as any)?.storage?.imageUpload?.upload || (editor as any)?.options?.editorProps?.uploadImage
+        let uploadedUrl = ''
+        if (typeof uploader === 'function') {
+          uploadedUrl = await uploader(file)
+        } else {
+          uploadedUrl = URL.createObjectURL(file)
+        }
+        if (uploadedUrl) {
+          updateAttributes({ src: uploadedUrl })
+        }
+      } catch (err) {
+        console.error('Failed to replace image on drop:', err)
+      }
+    },
+    [editorEditable, editor, updateAttributes],
+  )
+
   if (!rawSrc) return null
 
   const showCaption = Boolean(caption || isEditingCaption)
@@ -168,7 +213,19 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
         {/* Main image container: overflow-visible so the -inset-[10px] ring is fully visible */}
         <div className="relative group/image w-full flex flex-col p-0 m-0 leading-none">
           {/* Inner image frame: clipped with rounded-lg */}
-          <div className="relative rounded-lg overflow-hidden w-full flex flex-col p-0 m-0 leading-none bg-black/[0.02] dark:bg-white/[0.02]">
+          <div
+            className="relative rounded-lg overflow-hidden w-full flex flex-col p-0 m-0 leading-none bg-black/[0.02] dark:bg-white/[0.02]"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            {/* Drag & Drop Replace Overlay */}
+            {isDragOver && (
+              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-indigo-500/25 dark:bg-violet-500/25 backdrop-blur-md rounded-lg border-2 border-dashed border-indigo-500 dark:border-violet-400 text-indigo-700 dark:text-violet-200 transition-all pointer-events-none gap-2">
+                <Icon name="RefreshCw" className="w-8 h-8 animate-spin" />
+                <span className="text-xs font-semibold">드롭하여 이미지 교체</span>
+              </div>
+            )}
             {/* Loading Skeleton */}
             {isLoading && !hasError && (
               <div className="w-full aspect-video min-h-[140px] rounded-lg bg-black/[0.04] dark:bg-white/[0.04] backdrop-blur-sm animate-pulse flex flex-col items-center justify-center gap-2 border border-black/5 dark:border-white/5">

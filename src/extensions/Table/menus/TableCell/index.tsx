@@ -104,6 +104,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
 
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {
+      if (menuOpen) return true
       if (!state) return false
       if (editor.view?.dragging || (typeof document !== 'undefined' && document.querySelector('[data-dragging="true"]'))) {
         return false
@@ -115,7 +116,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
       if (isCellSelection(state.selection)) return true
       return editor.isActive('tableCell') || editor.isActive('tableHeader')
     },
-    [editor],
+    [editor, menuOpen],
   )
 
   const getReferencedVirtualElement = useCallback(() => {
@@ -151,7 +152,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
     return null
   }, [getActiveCells])
 
-  // Drag selection adjustment handler
+  // Drag selection adjustment handler with 6px deadzone to prevent accidental close on click
   const handleButtonMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault()
@@ -180,9 +181,10 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
 
       const onMouseMove = (moveEvent: MouseEvent) => {
         const dist = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY)
-        if (dist > 3) {
+        if (dist >= 6) {
           isDrag = true
           isDraggingHandleRef.current = true
+          setMenuOpen(false)
           document.body.style.cursor = 'crosshair'
 
           const targetEl = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)?.closest('td, th') as HTMLElement | null
@@ -279,6 +281,10 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
             <Popover.Trigger asChild>
               <button
                 type="button"
+                onPointerDown={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                }}
                 onMouseDown={handleButtonMouseDown}
                 onMouseEnter={() => setIsBtnHovered(true)}
                 onMouseLeave={() => setIsBtnHovered(false)}

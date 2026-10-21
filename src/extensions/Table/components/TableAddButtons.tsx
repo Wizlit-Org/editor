@@ -201,10 +201,17 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
   const isLastColHovered = hoveredColIndex !== null && columnGrips.length > 0 && hoveredColIndex === columnGrips.length - 1
   const isLastRowHovered = hoveredRowIndex !== null && rowGrips.length > 0 && hoveredRowIndex === rowGrips.length - 1
 
+  // Clip column grip if scrolled outside visible tableWrapper
+  const isColGripVisible =
+    activeColGrip &&
+    (!tableRect.wrapperLeft ||
+      (activeColGrip.left + activeColGrip.width > tableRect.wrapperLeft &&
+        activeColGrip.left < (tableRect.wrapperRight ?? Infinity)))
+
   return createPortal(
     <div id="table-add-buttons-portal" className="pointer-events-auto" style={{ zIndex: 1400, position: 'relative' }}>
       {/* 1. Single Top Column Grip Bar: Full column width 12px glass pill */}
-      {activeColGrip && (
+      {activeColGrip && isColGripVisible && (
         <button
           key={`active-col-grip-${activeColGrip.index}`}
           type="button"

@@ -1,10 +1,22 @@
 .ProseMirror {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+
   .tableWrapper {
-    @apply my-12;
+    @apply my-6;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: auto !important;
+    display: block !important;
+    scrollbar-width: thin;
   }
 
   table {
-    @apply border-collapse border-black/10 rounded box-border w-full;
+    @apply border-collapse border-black/10 rounded box-border;
+    width: max-content !important;
+    min-width: 100% !important;
     @apply dark:border-white/20;
 
     td,

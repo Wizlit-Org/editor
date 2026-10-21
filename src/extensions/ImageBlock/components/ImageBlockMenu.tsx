@@ -42,6 +42,39 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
     editor.chain().focus(undefined, { scrollIntoView: false }).setImageBlockAlign('right').run()
   }, [editor])
 
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const onReplaceImageClick = useCallback(() => {
+    fileInputRef.current?.click()
+  }, [])
+
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+
+      try {
+        const uploader = (editor as any)?.storage?.imageUpload?.upload || (editor as any)?.options?.editorProps?.uploadImage
+        let url = ''
+        if (typeof uploader === 'function') {
+          url = await uploader(file)
+        } else {
+          url = URL.createObjectURL(file)
+        }
+        if (url) {
+          editor.chain().focus(undefined, { scrollIntoView: false }).updateAttributes('imageBlock', { src: url }).run()
+        }
+      } catch (err) {
+        console.error('Failed to replace image:', err)
+      } finally {
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+      }
+    },
+    [editor],
+  )
+
   const onDownload = useCallback(() => {
     const src = editor.getAttributes('imageBlock')?.src
     if (src && typeof window !== 'undefined') {
@@ -118,6 +151,23 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
         </Toolbar.Button>
 
         <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+
+        <Toolbar.Button
+          tooltip="Replace image"
+          onClick={onReplaceImageClick}
+          className={BTN_CLASS}
+          activeClassname={ACTIVE_CLASS}
+        >
+          <Icon name="RefreshCw" className="w-4 h-4" />
+        </Toolbar.Button>
 
         <Toolbar.Button
           tooltip="Download image"

@@ -244,8 +244,8 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
   return (
     <>
-      <div className={`flex min-h-full h-auto flex-[1_0_auto] ${themeClass} ${className}`.trim()} ref={menuContainerRef}>
-        <div className="relative flex flex-col flex-[1_0_auto] h-auto min-h-full">
+      <div className={`flex min-h-full h-auto flex-[1_0_auto] min-w-0 max-w-full ${themeClass} ${className}`.trim()} ref={menuContainerRef}>
+        <div className="relative flex flex-col flex-[1_0_auto] h-auto min-h-full min-w-0 max-w-full w-full">
           {/* <EditorHeader
             editor={editor}
             // collabState={collabState}
@@ -253,7 +253,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           /> */}
           {/* Sticky Table of Contents (Client-only, works in both Edit and Read-only modes) */}
           <TableOfContents editor={editor} />
-          <EditorContent editor={editor} className="flex-1 focus:outline-none" />
+          <EditorContent editor={editor} className="flex-1 focus:outline-none min-w-0 max-w-full w-full" />
           <ContentItemMenu editor={editor} isEditable={!readOnly} />
           <LinkMenu
             editor={editor}

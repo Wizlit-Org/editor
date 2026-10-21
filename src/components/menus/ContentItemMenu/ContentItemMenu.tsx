@@ -114,14 +114,14 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
   // Mousemove guard: whenever cursor enters a table cell/header/row, hide DragHandle immediately
   // Nested configuration with blockStructureGuard:
   // Excludes table cells/rows so the entire table gets a stationary handle at top-left.
-  // Prioritizes list containers (bulletList, orderedList, taskList) so the entire list gets a single top-level handle.
+  // Allows list items (listItem, taskItem) to receive individual handles per item (Notion-like 1:1).
   const nestedConfig = useMemo(
     () => ({
       enabled: true,
       rules: [
         {
           id: 'blockStructureGuard',
-          evaluate: ({ node, parent, depth, $pos }: any) => {
+          evaluate: ({ node, depth, $pos }: any) => {
             const name = node?.type?.name
 
             // 1. Table containers vs table internal cells
@@ -132,32 +132,12 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               return 1000
             }
 
-            // 2. List containers: Entire list gets top priority (score 0)
-            if (['bulletList', 'orderedList', 'taskList'].includes(name)) {
-              return 0
-            }
-
-            // 3. Inside table: Suppress all child nodes
+            // 2. Inside table: Suppress all child nodes
             if ($pos?.node) {
               for (let d = depth; d > 0; d--) {
                 const typeName = $pos.node(d)?.type?.name
                 if (['tableCell', 'tableHeader', 'tableRow'].includes(typeName)) {
                   return 1000
-                }
-              }
-            }
-
-            // 4. Inside list: Demote listItem and its direct child contents (score 100)
-            // so the parent bulletList/orderedList container wins the drag handle
-            if (['listItem', 'taskItem'].includes(name) || (parent && ['listItem', 'taskItem'].includes(parent.type.name))) {
-              return 100
-            }
-
-            if ($pos?.node) {
-              for (let d = depth; d > 0; d--) {
-                const typeName = $pos.node(d)?.type?.name
-                if (['bulletList', 'orderedList', 'taskList'].includes(typeName)) {
-                  return 100
                 }
               }
             }
@@ -209,12 +189,18 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
             const prosemirrorEl = editor?.view?.dom
             const pmRect = prosemirrorEl?.getBoundingClientRect?.()
 
-            // Calculate horizontal deltaX to align handle at editor gutter (pmRect.left - 56px)
+            // Calculate horizontal deltaX to align handle at editor gutter (-52px)
+            // For list items: align at li.left - 52px so handle indents with depth (official template 1:1)
+            // For standard blocks: align at pmRect.left - 52px
+            const isInsideList = Boolean(dom?.closest('li, [data-type="taskItem"]'))
+            const desiredHandleViewportX = isInsideList && refViewportRect
+              ? refViewportRect.left - 52
+              : (pmRect ? pmRect.left - 52 : (refViewportRect ? refViewportRect.left - 52 : 0))
+
             const floatingWidth = rects?.floating?.width || 48
             let targetX = x
-            if (pmRect && refViewportRect) {
+            if (refViewportRect) {
               const defaultHandleViewportX = refViewportRect.left - floatingWidth
-              const desiredHandleViewportX = pmRect.left - 56
               const deltaX = desiredHandleViewportX - defaultHandleViewportX
               targetX = x + deltaX
             } else {
@@ -236,26 +222,8 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               return { x: targetX, y }
             }
 
-            // Case B: List container (bulletList, orderedList, taskList - single handle at list top-left)
-            if (
-              nodeType === 'bulletList' ||
-              nodeType === 'orderedList' ||
-              nodeType === 'taskList' ||
-              dom?.closest('ul, ol, div[data-type="taskList"]')
-            ) {
-              const listEl = dom?.closest('ul, ol, div[data-type="taskList"]') || dom
-              if (listEl && refViewportRect) {
-                const targetViewportTop = listEl.getBoundingClientRect().top
-                const deltaY = targetViewportTop - refViewportRect.top
-                return {
-                  x: targetX,
-                  y: y + deltaY,
-                }
-              }
-              return { x: targetX, y }
-            }
-
-            // Case C: Standard block - aligned to fixed gutter
+            // Case B: Standard block & List items:
+            // Follow each individual item/line height naturally (official TipTap notion-like template 1:1)
             return { x: targetX, y }
           },
         },
@@ -271,12 +239,12 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
     <DragHandle
       pluginKey="ContentItemMenu"
       editor={editor}
-      nested={false}
+      nested={{ edgeDetection: { threshold: -16 } } as any}
       onNodeChange={handleNodeChange}
       computePositionConfig={positionConfig}
     >
       <div
-        className={`w-[48px] h-[32px] flex items-center gap-0 select-none transition-opacity duration-150 ease-out ${
+        className={`w-[48px] h-[32px] flex items-center gap-0 select-none relative after:content-[''] after:absolute after:top-0 after:bottom-0 after:-right-4 after:w-4 after:pointer-events-auto transition-opacity duration-150 ease-out ${
           shouldHideHandle ? 'hidden pointer-events-none opacity-0 !w-0 !h-0 overflow-hidden' : ''
         }`}
         style={shouldHideHandle ? { display: 'none', pointerEvents: 'none', visibility: 'hidden' } : undefined}
