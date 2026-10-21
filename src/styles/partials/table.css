@@ -1,9 +1,4 @@
 .ProseMirror {
-  min-width: 0 !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  box-sizing: border-box;
-
   .tableWrapper {
     margin: 1.5rem 0 !important;
     padding: 0 !important;
