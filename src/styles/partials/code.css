@@ -22,7 +22,7 @@
 
     code {
       @apply bg-inherit text-inherit p-0 shadow-none;
-      white-space: pre !important;
+      white-space: pre;
     }
   
     code.wrap {
@@ -30,7 +30,7 @@
     }
   
     code.nowrap {
-      white-space: pre !important;
+      white-space: pre;
     }
 
     .hljs-comment,

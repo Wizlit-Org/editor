@@ -186,8 +186,23 @@ export const CodeBlockView = ({ editor, node, getPos, updateAttributes, extensio
         </div>
 
         {/* Code Content */}
-        <pre className={cn('p-3.5 m-0 bg-transparent text-sm font-mono leading-relaxed overflow-x-auto text-zinc-100', language && `language-${language}`)}>
-          <NodeViewContent as="div" className={cn('font-mono', shouldWrap ? 'whitespace-pre-wrap break-all' : 'whitespace-pre')} />
+        <pre
+          className={cn(
+            'p-3.5 m-0 bg-transparent text-sm font-mono leading-relaxed text-zinc-100',
+            shouldWrap ? 'whitespace-pre-wrap break-all overflow-x-hidden' : 'whitespace-pre overflow-x-auto',
+            language && `language-${language}`,
+          )}
+          style={
+            shouldWrap
+              ? { whiteSpace: 'pre-wrap', wordBreak: 'break-all', overflowX: 'hidden' }
+              : { whiteSpace: 'pre', overflowX: 'auto' }
+          }
+        >
+          <NodeViewContent
+            as="div"
+            className={cn('font-mono', shouldWrap ? 'whitespace-pre-wrap break-all' : 'whitespace-pre')}
+            style={shouldWrap ? { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } : { whiteSpace: 'pre' }}
+          />
         </pre>
       </div>
 

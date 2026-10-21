@@ -47,6 +47,7 @@ import {
 
 import { ImageUpload } from './ImageUpload'
 import { ConvertSrc, OnImageClick } from './ImageBlock/components/ImageBlockView'
+import { ListMaxDepthGuard } from './ListMaxDepthGuard/ListMaxDepthGuard'
 
 interface ExtensionKitProps {
   // provider?: HocuspocusProvider | null
@@ -180,6 +181,7 @@ export const ExtensionKit = ({
   // }),
   SmilieReplacer,
   LimitEmbedsPlugin(maxEmbeddings),
+  ListMaxDepthGuard,
 ]
 
 export default ExtensionKit

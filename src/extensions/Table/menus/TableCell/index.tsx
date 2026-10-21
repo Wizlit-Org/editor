@@ -7,8 +7,13 @@ import { MenuProps, ShouldShowProps } from '@/components/menus/types'
 
 const TABLE_CELL_MENU_OPTIONS = {
   placement: 'right' as const,
-  offset: 4,
+  offset: 6,
   flip: true,
+  tippyOptions: {
+    interactive: true,
+    interactiveBorder: 30,
+    delay: [0, 300],
+  },
 }
 
 export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.Element => {
@@ -180,11 +185,11 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
             <Popover.Trigger asChild>
               <button
                 type="button"
-                className="w-6 h-6 -ml-3 -mt-3 rounded-full bg-white dark:bg-[#202020] border border-blue-500 shadow-md hover:scale-110 active:scale-95 cursor-pointer transition-all flex items-center justify-center p-0 outline-none z-30 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                className="w-5 h-5 -ml-2.5 -mt-2.5 rounded-full bg-white dark:bg-[#202020] border border-blue-500 shadow-md hover:scale-110 active:scale-95 cursor-pointer transition-all flex items-center justify-center p-0 outline-none z-30 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30"
                 title="Table cells option"
                 aria-label="Table cells option"
               >
-                <Icon name="MoreHorizontal" className="w-3.5 h-3.5" />
+                <Icon name="MoreHorizontal" className="w-3 h-3" />
               </button>
             </Popover.Trigger>
             <Popover.Content

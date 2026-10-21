@@ -227,12 +227,12 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
             </div>
           )}
 
-          {/* Floating '+ 캡션 추가' Button on Hover (Perfect horizontal center) */}
+          {/* Floating '+ 캡션 추가' Button on Hover (Perfect margin-based horizontal center) */}
           {editorEditable && !showCaption && !hasError && !isLoading && (
             <button
               type="button"
               onClick={handleAddCaption}
-              className="opacity-0 group-hover/image:opacity-100 transition-all duration-200 absolute bottom-3 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full text-xs font-medium text-zinc-700 dark:text-zinc-200 bg-white/85 dark:bg-[#1e1e1e]/85 backdrop-blur-md shadow-md border border-black/10 dark:border-white/10 hover:bg-white dark:hover:bg-[#252525] hover:scale-105 active:scale-95 flex items-center gap-1.5 z-20 cursor-pointer whitespace-nowrap"
+              className="opacity-0 group-hover/image:opacity-100 transition-all duration-200 absolute bottom-3 left-0 right-0 mx-auto w-fit px-2.5 py-1 rounded-full text-xs font-medium text-zinc-700 dark:text-zinc-200 bg-white/85 dark:bg-[#1e1e1e]/85 backdrop-blur-md shadow-md border border-black/10 dark:border-white/10 hover:bg-white dark:hover:bg-[#252525] hover:scale-105 active:scale-95 flex items-center gap-1.5 z-20 cursor-pointer whitespace-nowrap"
             >
               <Icon name="Captions" className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
               <span>캡션 추가</span>
