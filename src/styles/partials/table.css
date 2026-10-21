@@ -1,6 +1,5 @@
 .ProseMirror {
   min-width: 0 !important;
-  max-width: 100% !important;
   box-sizing: border-box;
 
   .tableWrapper {
@@ -10,6 +9,7 @@
     min-width: 0 !important;
     overflow-x: auto !important;
     display: block !important;
+    contain: inline-size;
     scrollbar-width: thin;
   }
 

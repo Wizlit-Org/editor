@@ -33,6 +33,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
   const [isResizing, setIsResizing] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const [isEditingCaption, setIsEditingCaption] = useState(false)
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -161,18 +162,22 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
       if (!file || !file.type.startsWith('image/')) return
 
       try {
-        const uploader = (editor as any)?.storage?.imageUpload?.upload || (editor as any)?.options?.editorProps?.uploadImage
-        let uploadedUrl = ''
-        if (typeof uploader === 'function') {
-          uploadedUrl = await uploader(file)
+        const imageUploadExt = editor.extensionManager.extensions.find(e => e.name === 'imageUpload')
+        const uploadFn = (imageUploadExt?.options as any)?.onUpload
+
+        if (typeof uploadFn === 'function') {
+          setIsUploading(true)
+          const uploadedUrl = await uploadFn(file)
+          if (uploadedUrl && typeof uploadedUrl === 'string') {
+            updateAttributes({ src: uploadedUrl })
+          }
         } else {
-          uploadedUrl = URL.createObjectURL(file)
-        }
-        if (uploadedUrl) {
-          updateAttributes({ src: uploadedUrl })
+          console.error('No upload handler provided in imageUpload extension')
         }
       } catch (err) {
         console.error('Failed to replace image on drop:', err)
+      } finally {
+        setIsUploading(false)
       }
     },
     [editorEditable, editor, updateAttributes],
@@ -224,6 +229,14 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
               <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-indigo-500/25 dark:bg-violet-500/25 backdrop-blur-md rounded-lg border-2 border-dashed border-indigo-500 dark:border-violet-400 text-indigo-700 dark:text-violet-200 transition-all pointer-events-none gap-2">
                 <Icon name="RefreshCw" className="w-8 h-8 animate-spin" />
                 <span className="text-xs font-semibold">드롭하여 이미지 교체</span>
+              </div>
+            )}
+
+            {/* Uploading Server Image Overlay */}
+            {isUploading && (
+              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-md rounded-lg text-white transition-all pointer-events-none gap-2">
+                <Icon name="RefreshCw" className="w-8 h-8 animate-spin" />
+                <span className="text-xs font-semibold">이미지 업로드 중...</span>
               </div>
             )}
             {/* Loading Skeleton */}

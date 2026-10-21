@@ -54,15 +54,16 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
       if (!file) return
 
       try {
-        const uploader = (editor as any)?.storage?.imageUpload?.upload || (editor as any)?.options?.editorProps?.uploadImage
-        let url = ''
-        if (typeof uploader === 'function') {
-          url = await uploader(file)
+        const imageUploadExt = editor.extensionManager.extensions.find(e => e.name === 'imageUpload')
+        const uploadFn = (imageUploadExt?.options as any)?.onUpload
+
+        if (typeof uploadFn === 'function') {
+          const uploadedUrl = await uploadFn(file)
+          if (uploadedUrl && typeof uploadedUrl === 'string') {
+            editor.chain().focus(undefined, { scrollIntoView: false }).updateAttributes('imageBlock', { src: uploadedUrl }).run()
+          }
         } else {
-          url = URL.createObjectURL(file)
-        }
-        if (url) {
-          editor.chain().focus(undefined, { scrollIntoView: false }).updateAttributes('imageBlock', { src: url }).run()
+          console.error('No upload handler provided in imageUpload extension')
         }
       } catch (err) {
         console.error('Failed to replace image:', err)

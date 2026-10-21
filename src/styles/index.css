@@ -25,10 +25,19 @@
   z-index: 0;
   margin-left: auto;
   margin-right: auto;
-  max-width: calc(42rem + 112px);
-  padding-left: 56px !important;
-  padding-right: 56px !important;
-  box-sizing: border-box;
+  max-width: 42rem;
+  position: relative;
+
+  /* 본문 폭/여백은 0px도 건드리지 않으면서, 마우스가 좌측 거터(-68px)로 이동할 때 @tiptap/extension-drag-handle이 ProseMirror를 감지하도록 가상 히트박스 제공 */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -68px;
+    width: 68px;
+    pointer-events: auto;
+  }
 
   .selection {
     display: inline;
