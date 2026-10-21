@@ -54,31 +54,11 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
   const { isImageCenter, isImageLeft, isImageRight, width } = useEditorState({
     editor,
     selector: ctx => {
-      const rawWidthAttr = ctx.editor.getAttributes('imageBlock')?.width
-      let computedWidth = 100
-
-      if (rawWidthAttr && rawWidthAttr !== 'auto' && rawWidthAttr !== '100%') {
-        computedWidth = parseInt(rawWidthAttr, 10) || 100
-      } else {
-        const renderContainer = getRenderContainer(ctx.editor, 'node-imageBlock')
-        if (renderContainer) {
-          const imgEl = renderContainer.querySelector('img')
-          const editorDom = ctx.editor.view?.dom
-          if (imgEl && editorDom) {
-            const imgRect = imgEl.getBoundingClientRect()
-            const editorRect = editorDom.getBoundingClientRect()
-            if (editorRect.width > 0 && imgRect.width > 0) {
-              computedWidth = Math.min(100, Math.max(25, Math.round((imgRect.width / editorRect.width) * 100)))
-            }
-          }
-        }
-      }
-
       return {
         isImageLeft: ctx.editor.isActive('imageBlock', { align: 'left' }),
         isImageCenter: ctx.editor.isActive('imageBlock', { align: 'center' }),
         isImageRight: ctx.editor.isActive('imageBlock', { align: 'right' }),
-        width: computedWidth,
+        width: parseInt(ctx.editor.getAttributes('imageBlock')?.width || 0),
       }
     },
   })
