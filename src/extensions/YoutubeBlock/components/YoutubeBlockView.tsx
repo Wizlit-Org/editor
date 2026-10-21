@@ -1,9 +1,10 @@
-import React, { useState, useCallback, useRef } from 'react'
+import React, { useState, useCallback, useRef, useMemo } from 'react'
 import { Editor, NodeViewWrapper } from '@tiptap/react'
 import { Node } from '@tiptap/pm/model'
 import { cn } from '@/lib/utils'
 import { Icon } from '@/components/ui/Icon'
 import type { NodeViewProps } from '@tiptap/react'
+import { formatYoutubeEmbedUrl } from '../YoutubeBlock'
 
 interface YoutubeBlockViewProps extends NodeViewProps {
   editor: Editor
@@ -129,7 +130,7 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
         >
           {/* YouTube iframe */}
           <iframe
-            src={src}
+            src={formatYoutubeEmbedUrl(src)}
             title={caption || 'YouTube video'}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen

@@ -179,8 +179,9 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
                 setIsLoading(false)
                 setHasError(true)
               }}
+              style={{ margin: 0, padding: 0, display: 'block', width: '100%', height: 'auto' }}
               className={cn(
-                'block w-full min-w-full h-auto rounded-lg object-contain m-0 p-0 transition-all duration-200',
+                'block w-full min-w-full h-auto rounded-lg object-contain !m-0 !p-0 transition-all duration-200',
                 isLoading ? 'opacity-0 h-0 overflow-hidden absolute pointer-events-none' : 'opacity-100',
                 !editorEditable ? 'cursor-pointer' : '',
               )}

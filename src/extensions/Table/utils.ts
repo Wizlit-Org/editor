@@ -23,7 +23,13 @@ export const isRectSelected = (rect: Rect) => (selection: CellSelection) => {
 export const findTable = (selection: Selection) =>
   findParentNode(node => node.type.spec.tableRole && node.type.spec.tableRole === 'table')(selection)
 
-export const isCellSelection = (selection: Selection): selection is CellSelection => selection instanceof CellSelection
+export const isCellSelection = (selection: any): selection is CellSelection => {
+  if (!selection) return false
+  if (selection instanceof CellSelection) return true
+  if (selection.key?.startsWith('cell') || selection.constructor?.name === 'CellSelection') return true
+  if (selection.$anchorCell && selection.$headCell) return true
+  return false
+}
 
 export const isColumnSelected = (columnIndex: number) => (selection: Selection) => {
   if (isCellSelection(selection)) {

@@ -1,7 +1,7 @@
 import { NodeViewWrapper, NodeViewContent } from '@tiptap/react'
 import { Node } from '@tiptap/pm/model'
 import { Editor, Extension } from '@tiptap/core'
-import { useCallback, useState, useRef, useEffect } from 'react'
+import { useCallback, useState, useRef, useEffect, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { Icon } from '@/components/ui/Icon'
 
@@ -22,6 +22,33 @@ export const CodeBlockView = ({ editor, node, getPos, updateAttributes, extensio
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonPositionRef = useRef<HTMLDivElement>(null)
+
+  const detectedLanguage = useMemo(() => {
+    if (language === 'auto' || !language) {
+      try {
+        const text = node.textContent
+        if (text && text.trim().length > 0) {
+          const res = extension.options?.lowlight?.highlightAuto?.(text)
+          if (res?.data?.language) {
+            return res.data.language
+          }
+          if (res?.language) {
+            return res.language
+          }
+        }
+      } catch {
+        // ignore fallback
+      }
+    }
+    return null
+  }, [language, node.textContent, extension.options?.lowlight])
+
+  const displayLanguage = useMemo(() => {
+    if (language === 'auto') {
+      return detectedLanguage ? `Auto (${detectedLanguage})` : 'Auto'
+    }
+    return language
+  }, [language, detectedLanguage])
 
   const actualOpen = isOpen && editor.isEditable
 
@@ -81,7 +108,10 @@ export const CodeBlockView = ({ editor, node, getPos, updateAttributes, extensio
     setShouldWrap(prev => !prev)
   }, [])
 
-  const languages = extension.options.lowlight?.listLanguages?.() || []
+  const languages = useMemo(() => {
+    const list = extension.options.lowlight?.listLanguages?.() || []
+    return ['auto', ...list.filter((l: string) => l !== 'auto')]
+  }, [extension.options.lowlight])
   const filteredLanguages = languages.filter((lang: string) =>
     lang.toLowerCase().includes(search.toLowerCase()),
   )
@@ -147,7 +177,7 @@ export const CodeBlockView = ({ editor, node, getPos, updateAttributes, extensio
                     : 'text-zinc-400 pointer-events-none',
                 )}
               >
-                {language}
+                {displayLanguage}
               </button>
             </div>
           </div>

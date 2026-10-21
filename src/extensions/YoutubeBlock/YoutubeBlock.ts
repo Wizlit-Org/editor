@@ -3,6 +3,21 @@ import { mergeAttributes, Range } from '@tiptap/core'
 import { Youtube, getEmbedUrlFromYoutubeUrl } from '@tiptap/extension-youtube'
 import { YoutubeBlockView } from './components/YoutubeBlockView'
 
+export function formatYoutubeEmbedUrl(rawUrl: string): string {
+  if (!rawUrl) return ''
+  try {
+    const url = new URL(rawUrl)
+    url.searchParams.set('controls', '0')
+    url.searchParams.set('modestbranding', '1')
+    url.searchParams.set('rel', '0')
+    url.searchParams.set('iv_load_policy', '3')
+    return url.toString()
+  } catch {
+    const joiner = rawUrl.includes('?') ? '&' : '?'
+    return `${rawUrl}${joiner}controls=0&modestbranding=1&rel=0&iv_load_policy=3`
+  }
+}
+
 export interface YoutubeBlockOptions {
   nocookie?: boolean
   allowFullscreen?: boolean
@@ -108,7 +123,7 @@ export const YoutubeBlock = Youtube.extend<YoutubeBlockOptions>({
       [
         'iframe',
         mergeAttributes(this.options.HTMLAttributes || {}, HTMLAttributes, {
-          src: HTMLAttributes.src,
+          src: formatYoutubeEmbedUrl(HTMLAttributes.src),
           width: '100%',
           height: '100%',
           allowfullscreen: 'true',
@@ -138,9 +153,9 @@ export const YoutubeBlock = Youtube.extend<YoutubeBlockOptions>({
             enableIFrameApi: this.options.enableIFrameApi,
             endTime: this.options.endTime,
             interfaceLanguage: this.options.interfaceLanguage,
-            ivLoadPolicy: this.options.ivLoadPolicy,
+            ivLoadPolicy: this.options.ivLoadPolicy ?? 3,
             loop: this.options.loop,
-            modestBranding: this.options.modestBranding,
+            modestBranding: this.options.modestBranding ?? true,
             nocookie: this.options.nocookie ?? true,
             origin: this.options.origin,
             playlist: this.options.playlist,
@@ -148,10 +163,12 @@ export const YoutubeBlock = Youtube.extend<YoutubeBlockOptions>({
             startAt: options.start || 0,
           })
 
+          const finalUrl = formatYoutubeEmbedUrl(embedUrl || options.src)
+
           return commands.insertContent({
             type: this.name,
             attrs: {
-              src: embedUrl || options.src,
+              src: finalUrl,
               width: options.width || '100%',
             },
           })
@@ -180,8 +197,11 @@ export const YoutubeBlock = Youtube.extend<YoutubeBlockOptions>({
             allowFullscreen: this.options.allowFullscreen ?? true,
             autoplay: this.options.autoplay ?? false,
             nocookie: this.options.nocookie ?? true,
+            ivLoadPolicy: 3,
+            modestBranding: true,
           })
-          return commands.updateAttributes(this.name, { src: embedUrl || url })
+          const finalUrl = formatYoutubeEmbedUrl(embedUrl || url)
+          return commands.updateAttributes(this.name, { src: finalUrl })
         },
     }
   },

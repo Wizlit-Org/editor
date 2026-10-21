@@ -197,9 +197,10 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               const tableRect = tableEl?.getBoundingClientRect?.()
               if (tableRect && rects?.reference) {
                 const deltaX = rects.reference.left - tableRect.left
+                const deltaY = rects.reference.top - tableRect.top
                 return {
                   x: x - deltaX - 64,
-                  y: tableRect.top - 16,
+                  y: y - deltaY - 16,
                 }
               }
               return { x: x - 64, y: y - 16 }
@@ -217,9 +218,10 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               const listRect = listEl?.getBoundingClientRect?.()
               if (listRect && rects?.reference) {
                 const deltaX = rects.reference.left - listRect.left
+                const deltaY = rects.reference.top - listRect.top
                 return {
                   x: x - deltaX - 64,
-                  y: listRect.top,
+                  y: y - deltaY,
                 }
               }
               return { x: x - 64, y }
