@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { Editor, NodeViewWrapper } from '@tiptap/react'
 import { Node } from '@tiptap/pm/model'
 import { cn } from '@/lib/utils'
+import { Icon } from '@/components/ui/Icon'
 import type { NodeViewProps } from '@tiptap/react'
 
 interface ImageBlockViewProps extends NodeViewProps {
@@ -27,17 +28,23 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
 
   const originalSrc = rawSrc?.match(/^https?:\/\//) ? rawSrc : undefined
   const [src, setSrc] = useState<string | 'EXTERNAL_IMAGE' | undefined>(originalSrc)
+  const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
+  const [isEditingCaption, setIsEditingCaption] = useState(false)
+
   const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
+  const captionInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    setIsLoading(true)
     setHasError(false)
     if (convertSrc && rawSrc) {
       Promise.resolve(convertSrc(rawSrc))
         .then(resolved => setSrc(resolved))
         .catch(() => {
+          setIsLoading(false)
           setHasError(true)
         })
     } else if (rawSrc) {
@@ -62,7 +69,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
     editor.chain().focus().deleteRange({ from: getPos(), to: getPos() + 1 }).run()
   }, [editor, rawSrc, getPos])
 
-  // Notion-style horizontal pill resize handle logic
+  // Notion-style horizontal pill resize handle logic (with center-pivot physics)
   const handleResizeStart = useCallback(
     (direction: 'left' | 'right') => (e: React.MouseEvent) => {
       if (!editorEditable) return
@@ -82,7 +89,8 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
         const deltaX = moveEvent.clientX - startX
         const deltaPercent = (deltaX / parentWidth) * 100
         const factor = direction === 'right' ? 1 : -1
-        const rawNewWidth = currentWidthPercent + deltaPercent * factor
+        const widthMultiplier = align === 'center' ? 2 : 1
+        const rawNewWidth = currentWidthPercent + deltaPercent * factor * widthMultiplier
         const clampedWidth = Math.max(20, Math.min(100, Math.round(rawNewWidth)))
 
         updateAttributes({ width: `${clampedWidth}%` })
@@ -99,10 +107,23 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
       window.addEventListener('mousemove', onMouseMove)
       window.addEventListener('mouseup', onMouseUp)
     },
-    [editorEditable, width, updateAttributes],
+    [editorEditable, width, align, updateAttributes],
+  )
+
+  const handleAddCaption = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      setIsEditingCaption(true)
+      setTimeout(() => {
+        captionInputRef.current?.focus()
+      }, 50)
+    },
+    [],
   )
 
   if (!rawSrc) return null
+
+  const showCaption = Boolean(caption || isEditingCaption)
 
   const wrapperClassName = cn(
     align === 'left' ? 'ml-0' : 'ml-auto',
@@ -123,7 +144,17 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
         }}
         data-drag-handle
       >
-        <div className="relative rounded-lg overflow-hidden group">
+        {/* Main image container */}
+        <div className="relative rounded-lg overflow-hidden group/image w-full bg-black/[0.02] dark:bg-white/[0.02]">
+          {/* Loading Skeleton */}
+          {isLoading && !hasError && (
+            <div className="w-full aspect-video min-h-[140px] rounded-lg bg-black/[0.04] dark:bg-white/[0.04] backdrop-blur-sm animate-pulse flex flex-col items-center justify-center gap-2 border border-black/5 dark:border-white/5">
+              <Icon name="Image" className="w-7 h-7 text-zinc-400 dark:text-zinc-500 animate-pulse" />
+              <span className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">이미지 불러오는 중...</span>
+            </div>
+          )}
+
+          {/* Actual Image */}
           {src && !isExternalImage && (
             <img
               ref={imgRef}
@@ -131,57 +162,35 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
               alt={caption || ''}
               loading="lazy"
               onClick={onClick}
-              onError={() => setHasError(true)}
+              onLoad={() => setIsLoading(false)}
+              onError={() => {
+                setIsLoading(false)
+                setHasError(true)
+              }}
               className={cn(
-                'block w-full h-auto rounded-lg transition-opacity duration-200',
+                'block w-full min-w-full h-auto rounded-lg transition-all duration-200',
+                isLoading ? 'opacity-0 h-0 overflow-hidden absolute pointer-events-none' : 'opacity-100',
                 !editorEditable ? 'cursor-pointer' : '',
               )}
               draggable={editorEditable}
             />
           )}
 
-          {/* Notion-style Left Pill Resize Handle */}
-          {editorEditable && (
-            <div
-              onMouseDown={handleResizeStart('left')}
-              className={cn(
-                'tiptap-image-handle left absolute left-2 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-20 transition-all duration-150',
-                'bg-black/30 hover:bg-black/60 dark:bg-white/30 dark:hover:bg-white/60 shadow-md backdrop-blur-sm',
-                isResizing
-                  ? 'opacity-100 scale-110 bg-black/70 dark:bg-white/70'
-                  : 'opacity-0 group-hover:opacity-100',
-              )}
-              title="Resize width"
-              role="slider"
-              aria-label="Resize image width left"
-            />
+          {/* Subtle YouTube-style Glass Ring Overlay on Hover */}
+          {!hasError && !isLoading && (
+            <div className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-inset ring-black/10 dark:ring-white/15 opacity-0 group-hover/image:opacity-100 transition-opacity duration-200" />
           )}
 
-          {/* Notion-style Right Pill Resize Handle */}
-          {editorEditable && (
-            <div
-              onMouseDown={handleResizeStart('right')}
-              className={cn(
-                'tiptap-image-handle right absolute right-2 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-20 transition-all duration-150',
-                'bg-black/30 hover:bg-black/60 dark:bg-white/30 dark:hover:bg-white/60 shadow-md backdrop-blur-sm',
-                isResizing
-                  ? 'opacity-100 scale-110 bg-black/70 dark:bg-white/70'
-                  : 'opacity-0 group-hover:opacity-100',
-              )}
-              title="Resize width"
-              role="slider"
-              aria-label="Resize image width right"
-            />
-          )}
-
+          {/* Error / Fallback Card */}
           {hasError && !isExternalImage && (
-            <div className="w-full flex flex-col items-center justify-center bg-black/5 dark:bg-white/5 text-zinc-500 rounded-lg p-6 border border-black/10 dark:border-white/10 z-[2]">
-              <span className="text-xs font-medium">이미지를 불러올 수 없습니다</span>
+            <div className="w-full flex flex-col items-center justify-center bg-black/[0.02] dark:bg-white/[0.03] backdrop-blur-md text-zinc-500 rounded-lg p-6 border border-dashed border-black/15 dark:border-white/15 gap-2 z-[2]">
+              <Icon name="ImageOff" className="w-8 h-8 text-zinc-400 dark:text-zinc-500" />
+              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">이미지를 불러올 수 없습니다</span>
               {editorEditable && (
                 <button
                   type="button"
                   onClick={handleReupload}
-                  className="mt-2.5 px-3 py-1 bg-red-500/80 hover:bg-red-600 text-white rounded text-xs transition-colors"
+                  className="mt-1 px-3 py-1 bg-zinc-800 hover:bg-zinc-700 dark:bg-zinc-200 dark:hover:bg-zinc-300 text-white dark:text-zinc-900 rounded-md text-xs font-medium transition-colors shadow-sm"
                 >
                   다시 업로드
                 </button>
@@ -189,35 +198,100 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
             </div>
           )}
 
+          {/* External Image Fallback */}
           {isExternalImage && (
-            <div className="w-full flex flex-col items-center justify-center p-6 bg-black/5 dark:bg-white/5 rounded-lg border border-black/10 dark:border-white/10 z-[2]">
-              <div className="mb-2 text-xs text-zinc-500">External image not available</div>
+            <div className="w-full flex flex-col items-center justify-center p-6 bg-black/[0.02] dark:bg-white/[0.03] backdrop-blur-md rounded-lg border border-dashed border-black/15 dark:border-white/15 gap-2 z-[2]">
+              <Icon name="ImageOff" className="w-8 h-8 text-zinc-400 dark:text-zinc-500" />
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">외부 이미지를 표시할 수 없습니다</div>
               {editorEditable && (
                 <button
                   type="button"
                   onClick={handleReupload}
-                  className="mt-2 px-2.5 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-xs"
+                  className="mt-1 px-3 py-1 bg-zinc-800 hover:bg-zinc-700 dark:bg-zinc-200 dark:hover:bg-zinc-300 text-white dark:text-zinc-900 rounded-md text-xs font-medium transition-colors shadow-sm"
                 >
-                  Upload again
+                  다시 업로드
                 </button>
               )}
             </div>
           )}
+
+          {/* Floating '+ 캡션 추가' Button on Hover */}
+          {editorEditable && !showCaption && !hasError && !isLoading && (
+            <button
+              type="button"
+              onClick={handleAddCaption}
+              className="opacity-0 group-hover/image:opacity-100 transition-all duration-200 absolute bottom-3 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full text-xs font-medium text-zinc-700 dark:text-zinc-200 bg-white/85 dark:bg-[#1e1e1e]/85 backdrop-blur-md shadow-md border border-black/10 dark:border-white/10 hover:bg-white dark:hover:bg-[#252525] hover:scale-105 active:scale-95 flex items-center gap-1.5 z-20 cursor-pointer"
+            >
+              <Icon name="Captions" className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
+              <span>캡션 추가</span>
+            </button>
+          )}
         </div>
 
-        {/* Inline Notion-style Caption Input */}
-        {(editorEditable || caption) && (
+        {/* Notion-style Left Pill Resize Handle (Directly attached to image boundary) */}
+        {editorEditable && !hasError && !isLoading && (
+          <div
+            onMouseDown={handleResizeStart('left')}
+            className={cn(
+              'tiptap-image-handle left absolute left-1.5 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150',
+              'bg-black/40 hover:bg-black/70 dark:bg-white/40 dark:hover:bg-white/70 shadow-md backdrop-blur-sm',
+              isResizing
+                ? 'opacity-100 scale-110 bg-black/80 dark:bg-white/80'
+                : 'opacity-0 group-hover:opacity-100',
+            )}
+            title="Resize width"
+            role="slider"
+            aria-label="Resize image width left"
+          />
+        )}
+
+        {/* Notion-style Right Pill Resize Handle (Directly attached to image boundary) */}
+        {editorEditable && !hasError && !isLoading && (
+          <div
+            onMouseDown={handleResizeStart('right')}
+            className={cn(
+              'tiptap-image-handle right absolute right-1.5 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150',
+              'bg-black/40 hover:bg-black/70 dark:bg-white/40 dark:hover:bg-white/70 shadow-md backdrop-blur-sm',
+              isResizing
+                ? 'opacity-100 scale-110 bg-black/80 dark:bg-white/80'
+                : 'opacity-0 group-hover:opacity-100',
+            )}
+            title="Resize width"
+            role="slider"
+            aria-label="Resize image width right"
+          />
+        )}
+
+        {/* Notion-style Inline Caption (0px height when empty and not editing) */}
+        {showCaption && (
           <div className="mt-1.5 text-center px-2">
             {editorEditable ? (
               <input
+                ref={captionInputRef}
                 type="text"
                 value={caption}
                 onChange={e => updateAttributes({ caption: e.target.value })}
+                onBlur={() => {
+                  if (!caption.trim()) {
+                    setIsEditingCaption(false)
+                    updateAttributes({ caption: '' })
+                  }
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === 'Escape') {
+                    e.preventDefault()
+                    if (!caption.trim()) {
+                      setIsEditingCaption(false)
+                      updateAttributes({ caption: '' })
+                    }
+                    editor.commands.focus()
+                  }
+                }}
                 placeholder="캡션 입력..."
-                className="w-full text-center text-sm text-zinc-500 dark:text-zinc-400 placeholder:text-zinc-400/60 dark:placeholder:text-zinc-500/60 bg-transparent outline-none border-b border-transparent hover:border-black/10 dark:hover:border-white/10 focus:border-black/20 dark:focus:border-white/20 transition-colors py-0.5"
+                className="w-full text-center text-xs text-zinc-500 dark:text-zinc-400 placeholder:text-zinc-400/60 dark:placeholder:text-zinc-500/60 bg-transparent outline-none border-b border-transparent hover:border-black/10 dark:hover:border-white/10 focus:border-black/20 dark:focus:border-white/20 transition-colors py-0.5"
               />
             ) : (
-              <div className="text-sm text-center text-zinc-500 dark:text-zinc-400 italic py-0.5">{caption}</div>
+              <div className="text-xs text-center text-zinc-500 dark:text-zinc-400 italic py-0.5">{caption}</div>
             )}
           </div>
         )}

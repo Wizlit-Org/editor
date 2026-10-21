@@ -136,7 +136,7 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
           className={BTN_CLASS}
           activeClassname={ACTIVE_CLASS}
         >
-          <Icon name="Subtitles" className="w-4 h-4" />
+          <Icon name="Captions" className="w-4 h-4" />
         </Toolbar.Button>
 
         <Toolbar.Button
