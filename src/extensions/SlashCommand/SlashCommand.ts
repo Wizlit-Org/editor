@@ -19,13 +19,14 @@ export const SlashCommand = Extension.create({
   onCreate() {
     popup = tippy('body', {
       interactive: true,
-      interactiveBorder: 60,
-      delay: [0, 300],
+      interactiveBorder: 80,
+      delay: [0, 500],
       trigger: 'manual',
       placement: 'bottom-start',
       theme: 'slash-command',
       maxWidth: '16rem',
-      offset: [16, 8],
+      offset: [16, 4],
+      hideOnClick: false,
       popperOptions: {
         strategy: 'fixed',
         modifiers: [

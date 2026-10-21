@@ -53,6 +53,8 @@ declare module '@tiptap/core' {
 export const YoutubeBlock = Youtube.extend<YoutubeBlockOptions>({
   name: 'youtube',
 
+  marks: '',
+
   addAttributes() {
     return {
       src: {

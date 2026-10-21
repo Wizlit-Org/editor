@@ -189,9 +189,9 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
             />
           )}
 
-          {/* Subtle YouTube-style 0px Symmetric Glass Ring Overlay on Hover */}
+          {/* Notion-style 10px Padded Symmetric Glass Ring Overlay on Hover */}
           {!hasError && !isLoading && (
-            <div className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-inset ring-black/10 dark:ring-white/15 opacity-0 group-hover/image:opacity-100 transition-opacity duration-150 z-10" />
+            <div className="pointer-events-none absolute -inset-[10px] rounded-xl ring-1 ring-black/15 dark:ring-white/25 opacity-0 group-hover/image:opacity-100 transition-opacity duration-150 z-10" />
           )}
 
           {/* Error / Fallback Card */}
@@ -247,9 +247,9 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
             onMouseDown={handleResizeStart('left')}
             className={cn(
               'tiptap-image-handle left absolute left-1.5 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150',
-              'bg-black/40 hover:bg-black/70 dark:bg-white/40 dark:hover:bg-white/70 shadow-md backdrop-blur-sm',
+              'bg-white dark:bg-white border border-black/30 dark:border-black/50 shadow-[0_0_0_1.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.5)]',
               isResizing
-                ? 'opacity-100 scale-110 bg-black/80 dark:bg-white/80'
+                ? 'opacity-100 scale-110 bg-white dark:bg-white ring-2 ring-blue-500'
                 : 'opacity-0 group-hover:opacity-100',
             )}
             title="Resize width"
@@ -264,9 +264,9 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
             onMouseDown={handleResizeStart('right')}
             className={cn(
               'tiptap-image-handle right absolute right-1.5 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150',
-              'bg-black/40 hover:bg-black/70 dark:bg-white/40 dark:hover:bg-white/70 shadow-md backdrop-blur-sm',
+              'bg-white dark:bg-white border border-black/30 dark:border-black/50 shadow-[0_0_0_1.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.5)]',
               isResizing
-                ? 'opacity-100 scale-110 bg-black/80 dark:bg-white/80'
+                ? 'opacity-100 scale-110 bg-white dark:bg-white ring-2 ring-blue-500'
                 : 'opacity-0 group-hover:opacity-100',
             )}
             title="Resize width"
