@@ -33,6 +33,7 @@ const getCellPosFromDOM = (view: any, cellEl: HTMLElement): number | null => {
 
 export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.Element => {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [isBtnHovered, setIsBtnHovered] = useState(false)
   const [selectionRect, setSelectionRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
   const isDraggingHandleRef = useRef(false)
 
@@ -104,12 +105,10 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
       if (editor.view?.dragging || (typeof document !== 'undefined' && document.querySelector('[data-dragging="true"]'))) {
         return false
       }
-      // Suppress if full row or column grip is selected
       if (typeof document !== 'undefined' && document.querySelector('a.grip-column.selected, a.grip-row.selected')) {
         return false
       }
 
-      // Show if cell selection OR cursor is inside a single table cell
       if (isCellSelection(state.selection)) return true
       return editor.isActive('tableCell') || editor.isActive('tableHeader')
     },
@@ -149,7 +148,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
     return null
   }, [getActiveCells])
 
-  // Drag selection adjustment handler: Dragging the circle button expands/adjusts CellSelection
+  // Drag selection adjustment handler
   const handleButtonMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault()
@@ -162,7 +161,6 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
       const { view, state } = editor
       let anchorCellPos = -1
 
-      // Find anchor cell pos
       if (isCellSelection(state.selection)) {
         anchorCellPos = (state.selection as any).$anchorCell.pos
       } else {
@@ -184,7 +182,6 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
           isDraggingHandleRef.current = true
           document.body.style.cursor = 'crosshair'
 
-          // Find cell under mouse point
           const targetEl = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)?.closest('td, th') as HTMLElement | null
           if (targetEl && anchorCellPos >= 0) {
             try {
@@ -211,7 +208,6 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         }, 50)
 
         if (!isDrag) {
-          // Pure click: toggle Popover menu
           setMenuOpen(prev => !prev)
         }
       }
@@ -237,47 +233,30 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
     setMenuOpen(false)
   }, [editor])
 
-  const onDeleteRow = useCallback(() => {
-    editor.chain().focus().deleteRow().run()
-    setMenuOpen(false)
-  }, [editor])
-
-  const onDeleteColumn = useCallback(() => {
-    editor.chain().focus().deleteColumn().run()
-    setMenuOpen(false)
-  }, [editor])
-
-  const onDeleteTable = useCallback(() => {
-    editor.chain().focus().deleteTable().run()
-    setMenuOpen(false)
-  }, [editor])
-
   const canMerge = editor.can().mergeCells()
   const canSplit = editor.can().splitCell()
 
   const itemClass =
     'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none'
-  const dangerClass =
-    'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-red-600 dark:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 select-none'
+
+  const isExpanded = isBtnHovered || menuOpen
 
   return (
     <>
-      {/* 1. Selection Perimeter Continuous 2px Outline (Notion Style) */}
+      {/* 1. Selection Perimeter Continuous 2px Outline (Notion Style point border) */}
       {isCellSelected && !editor.view?.dragging && selectionRect && (
         <div
-          className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-20"
+          className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-20 border-2 border-indigo-500/80 dark:border-violet-400/80 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
           style={{
             top: selectionRect.top,
             left: selectionRect.left,
             width: selectionRect.width,
             height: selectionRect.height,
-            border: '2px solid #3b82f6',
-            boxShadow: '0 0 0 1px rgba(59, 130, 246, 0.25)',
           }}
         />
       )}
 
-      {/* 2. BubbleMenu with Right-Edge 12px Circle Trigger and TableCell Popover */}
+      {/* 2. BubbleMenu with Expandable 4-dot Circle Trigger (8px -> 16px) */}
       <BaseBubbleMenu
         editor={editor}
         pluginKey="tableCellMenu"
@@ -293,11 +272,26 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
               <button
                 type="button"
                 onMouseDown={handleButtonMouseDown}
-                className="w-3 h-3 -ml-1.5 rounded-full bg-white dark:bg-[#202020] border border-blue-500 shadow-md hover:scale-125 active:scale-95 cursor-pointer transition-all flex items-center justify-center p-0 outline-none z-30 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 select-none"
+                onMouseEnter={() => setIsBtnHovered(true)}
+                onMouseLeave={() => setIsBtnHovered(false)}
+                className={`rounded-full bg-indigo-600 dark:bg-violet-500 text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-30 select-none ${
+                  isExpanded ? 'w-4 h-4 -ml-2' : 'w-2 h-2 -ml-1'
+                }`}
                 title="Click for options, drag to adjust cell selection"
                 aria-label="Table cells option"
               >
-                <Icon name="Ellipsis" className="w-2 h-2" />
+                {/* 2x2 4-dot grid icon visible when expanded */}
+                <svg
+                  className={`w-2.5 h-2.5 fill-current transition-opacity duration-150 ${
+                    isExpanded ? 'opacity-100 scale-100' : 'opacity-0 scale-50'
+                  }`}
+                  viewBox="0 0 16 16"
+                >
+                  <circle cx="5" cy="5" r="1.5" />
+                  <circle cx="11" cy="5" r="1.5" />
+                  <circle cx="5" cy="11" r="1.5" />
+                  <circle cx="11" cy="11" r="1.5" />
+                </svg>
               </button>
             </Popover.Trigger>
             <Popover.Content
@@ -326,23 +320,6 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                 <button type="button" onClick={onClearContents} className={itemClass}>
                   <Icon name="Eraser" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
                   <span>Clear cell contents</span>
-                </button>
-
-                <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
-
-                <button type="button" onClick={onDeleteRow} className={dangerClass}>
-                  <Icon name="Trash2" className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
-                  <span>Delete row</span>
-                </button>
-
-                <button type="button" onClick={onDeleteColumn} className={dangerClass}>
-                  <Icon name="Trash2" className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
-                  <span>Delete column</span>
-                </button>
-
-                <button type="button" onClick={onDeleteTable} className={dangerClass}>
-                  <Icon name="Trash" className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
-                  <span>Delete entire table</span>
                 </button>
               </div>
             </Popover.Content>

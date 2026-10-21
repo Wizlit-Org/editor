@@ -31,6 +31,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
   const [isEditingCaption, setIsEditingCaption] = useState(false)
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -145,6 +146,12 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
     !(editorEditable || isExternalImage) ? 'active:scale-[0.99]' : '',
   )
 
+  // Show hover UI purely when hovered or resizing (0ms dismiss on mouseleave)
+  const isInteracting = isHovered || isResizing
+
+  const PILL_HANDLE_CLASS =
+    'w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150 bg-white/60 dark:bg-white/45 backdrop-blur-md border border-white/90 dark:border-white/70 shadow-[0_2px_12px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.95)] hover:bg-white/85 dark:hover:bg-white/75 hover:scale-y-105'
+
   return (
     <NodeViewWrapper className="w-full my-4">
       <div
@@ -155,6 +162,8 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
           position: 'relative',
         }}
         data-drag-handle
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         {/* Main image container: overflow-visible so the -inset-[10px] ring is fully visible */}
         <div className="relative group/image w-full flex flex-col p-0 m-0 leading-none">
@@ -226,14 +235,12 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
             )}
           </div>
 
-          {/* Notion-style 10px Padded Symmetric Glass Ring Overlay on Hover / Active Selection */}
+          {/* Notion-style 10px Padded Symmetric Glass Ring Overlay (Dismissed immediately on mouseleave) */}
           {!hasError && !isLoading && (
             <div
               className={cn(
                 'pointer-events-none absolute -inset-[10px] rounded-xl ring-2 ring-black/20 dark:ring-white/30 bg-black/[0.02] dark:bg-white/[0.03] transition-opacity duration-150 z-10',
-                (editor.isActive('imageBlock') || isResizing)
-                  ? 'opacity-100'
-                  : 'opacity-0 group-hover/image:opacity-100',
+                isInteracting ? 'opacity-100' : 'opacity-0',
               )}
             />
           )}
@@ -243,23 +250,24 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
             <button
               type="button"
               onClick={handleAddCaption}
-              className="opacity-0 group-hover/image:opacity-100 transition-all duration-200 absolute bottom-3 left-0 right-0 mx-auto w-fit px-2.5 py-1 rounded-full text-xs font-medium text-zinc-700 dark:text-zinc-200 bg-white/85 dark:bg-[#1e1e1e]/85 backdrop-blur-md shadow-md border border-black/10 dark:border-white/10 hover:bg-white dark:hover:bg-[#252525] hover:scale-105 active:scale-95 flex items-center gap-1.5 z-20 cursor-pointer whitespace-nowrap"
+              className={cn(
+                'transition-all duration-150 absolute bottom-3 left-0 right-0 mx-auto w-fit px-2.5 py-1 rounded-full text-xs font-medium text-zinc-700 dark:text-zinc-200 bg-white/85 dark:bg-[#1e1e1e]/85 backdrop-blur-md shadow-md border border-black/10 dark:border-white/10 hover:bg-white dark:hover:bg-[#252525] hover:scale-105 active:scale-95 flex items-center gap-1.5 z-20 cursor-pointer whitespace-nowrap',
+                isInteracting ? 'opacity-100' : 'opacity-0 pointer-events-none',
+              )}
             >
               <Icon name="Captions" className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
               <span>캡션 추가</span>
             </button>
           )}
 
-          {/* Notion-style Left Pill Resize Handle (Locked to image center, unaffected by caption) */}
+          {/* Frosted Glassmorphism Left Pill Resize Handle */}
           {editorEditable && !hasError && !isLoading && (
             <div
               onMouseDown={handleResizeStart('left')}
               className={cn(
-                'tiptap-image-handle left absolute left-1.5 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150',
-                'bg-white dark:bg-white border border-black/30 dark:border-black/50 shadow-[0_0_0_1.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.5)]',
-                isResizing
-                  ? 'opacity-100 scale-110 bg-white dark:bg-white ring-2 ring-blue-500'
-                  : 'opacity-0 group-hover/image:opacity-100',
+                'tiptap-image-handle left absolute left-1.5 top-1/2 -translate-y-1/2',
+                PILL_HANDLE_CLASS,
+                isInteracting ? 'opacity-100' : 'opacity-0 pointer-events-none',
               )}
               title="Resize width"
               role="slider"
@@ -267,16 +275,14 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
             />
           )}
 
-          {/* Notion-style Right Pill Resize Handle (Locked to image center, unaffected by caption) */}
+          {/* Frosted Glassmorphism Right Pill Resize Handle */}
           {editorEditable && !hasError && !isLoading && (
             <div
               onMouseDown={handleResizeStart('right')}
               className={cn(
-                'tiptap-image-handle right absolute right-1.5 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150',
-                'bg-white dark:bg-white border border-black/30 dark:border-black/50 shadow-[0_0_0_1.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.5)]',
-                isResizing
-                  ? 'opacity-100 scale-110 bg-white dark:bg-white ring-2 ring-blue-500'
-                  : 'opacity-0 group-hover/image:opacity-100',
+                'tiptap-image-handle right absolute right-1.5 top-1/2 -translate-y-1/2',
+                PILL_HANDLE_CLASS,
+                isInteracting ? 'opacity-100' : 'opacity-0 pointer-events-none',
               )}
               title="Resize width"
               role="slider"

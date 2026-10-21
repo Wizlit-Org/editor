@@ -9,8 +9,12 @@
 
     td,
     th {
-      @apply border border-black/10 min-w-[100px] p-2 relative text-left align-top;
-      @apply dark:border-white/20;
+      border: 1px solid rgba(47, 50, 55, 0.2) !important;
+      min-width: 120px !important;
+      padding: 8px 10px !important;
+      position: relative;
+      text-align: left;
+      vertical-align: top;
 
       &:first-of-type:not(a) {
         @apply mt-0;
@@ -25,8 +29,21 @@
       }
     }
 
+    .dark td,
+    .dark th,
+    .theme-dark td,
+    .theme-dark th {
+      border-color: rgba(255, 255, 255, 0.16) !important;
+    }
+
     th {
-      @apply font-bold;
+      background-color: rgba(15, 22, 36, 0.04) !important;
+      font-weight: 600 !important;
+    }
+
+    .dark th,
+    .theme-dark th {
+      background-color: rgba(255, 255, 255, 0.06) !important;
     }
 
     .column-resize-handle {
@@ -54,242 +71,15 @@
       background-color: rgba(100, 120, 255, 0.3) !important;
     }
 
+    /* Suppress ProseMirror native grip widgets completely to eliminate double rendering */
     .grip-column,
-    .grip-row {
-      @apply items-center flex justify-center absolute z-10 select-none;
-      cursor: grab;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
-      background-color: rgba(0, 0, 0, 0.06);
-    }
-    .grip-column:active,
-    .grip-row:active {
-      cursor: grabbing;
-    }
-    .dark .grip-column,
-    .dark .grip-row,
-    .theme-dark .grip-column,
-    .theme-dark .grip-row {
-      background-color: rgba(255, 255, 255, 0.08);
-    }
-
-    /* 마우스 호버된 행(tr) 및 해당 셀의 열(column) 핸들만 단독 플로팅 노출 */
-    tr:hover .grip-row,
-    td:hover .grip-column,
-    th:hover .grip-column {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    table:has(tr > :nth-child(1):hover) tr:first-child > :nth-child(1) .grip-column,
-    table:has(tr > :nth-child(2):hover) tr:first-child > :nth-child(2) .grip-column,
-    table:has(tr > :nth-child(3):hover) tr:first-child > :nth-child(3) .grip-column,
-    table:has(tr > :nth-child(4):hover) tr:first-child > :nth-child(4) .grip-column,
-    table:has(tr > :nth-child(5):hover) tr:first-child > :nth-child(5) .grip-column,
-    table:has(tr > :nth-child(6):hover) tr:first-child > :nth-child(6) .grip-column,
-    table:has(tr > :nth-child(7):hover) tr:first-child > :nth-child(7) .grip-column,
-    table:has(tr > :nth-child(8):hover) tr:first-child > :nth-child(8) .grip-column,
-    table:has(tr > :nth-child(9):hover) tr:first-child > :nth-child(9) .grip-column,
-    table:has(tr > :nth-child(10):hover) tr:first-child > :nth-child(10) .grip-column,
-    table:has(tr > :nth-child(11):hover) tr:first-child > :nth-child(11) .grip-column,
-    table:has(tr > :nth-child(12):hover) tr:first-child > :nth-child(12) .grip-column,
-    table:has(tr > :nth-child(13):hover) tr:first-child > :nth-child(13) .grip-column,
-    table:has(tr > :nth-child(14):hover) tr:first-child > :nth-child(14) .grip-column,
-    table:has(tr > :nth-child(15):hover) tr:first-child > :nth-child(15) .grip-column {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .grip-column:hover,
-    .grip-row:hover,
-    .grip-column.selected,
-    .grip-row.selected,
-    .grip-column.active,
-    .grip-row.active,
-    .grip-column:active,
-    .grip-row:active {
-      opacity: 1 !important;
-      pointer-events: auto !important;
-    }
-
-    .grip-column {
-      @apply w-[calc(100%+1px)] h-3 left-0 -ml-[1px] -top-[16px] rounded-full;
-      border: 1px solid rgba(0, 0, 0, 0.12);
-      background-color: rgba(0, 0, 0, 0.06);
-
-      &::before {
-        content: '';
-        position: absolute;
-        bottom: -5px;
-        left: 0;
-        right: 0;
-        height: 5px;
-      }
-
-      &::after {
-        content: '•••';
-        font-size: 8px;
-        line-height: 1;
-        letter-spacing: 1px;
-        color: rgba(0, 0, 0, 0.5);
-        font-weight: bold;
-      }
-
-      &:hover {
-        background-color: rgba(0, 0, 0, 0.12) !important;
-        border-color: rgba(0, 0, 0, 0.18) !important;
-        &::after {
-          color: rgba(0, 0, 0, 0.85);
-        }
-      }
-
-      &.selected,
-      &.active,
-      &:active {
-        background-color: rgba(59, 130, 246, 0.9) !important;
-        border-color: rgba(37, 99, 235, 1) !important;
-        &::after {
-          color: #ffffff !important;
-        }
-      }
-    }
-
-    .dark .grip-column,
-    .theme-dark .grip-column {
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      background-color: rgba(255, 255, 255, 0.08);
-
-      &::after {
-        color: rgba(255, 255, 255, 0.5);
-      }
-
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.16) !important;
-        border-color: rgba(255, 255, 255, 0.22) !important;
-        &::after {
-          color: rgba(255, 255, 255, 0.9);
-        }
-      }
-
-      &.selected,
-      &.active,
-      &:active {
-        background-color: rgba(59, 130, 246, 0.9) !important;
-        border-color: rgba(37, 99, 235, 1) !important;
-        &::after {
-          color: #ffffff !important;
-        }
-      }
-    }
-
-    .grip-row {
-      @apply h-[calc(100%+1px)] w-3 -left-[16px] top-0 -mt-[1px] rounded-full;
-      border: 1px solid rgba(0, 0, 0, 0.12);
-      background-color: rgba(0, 0, 0, 0.06);
-
-      &::before {
-        content: '';
-        position: absolute;
-        right: -5px;
-        top: 0;
-        bottom: 0;
-        width: 5px;
-      }
-
-      &::after {
-        content: '⋮';
-        font-size: 11px;
-        line-height: 1;
-        color: rgba(0, 0, 0, 0.5);
-        font-weight: bold;
-      }
-
-      &:hover {
-        background-color: rgba(0, 0, 0, 0.12) !important;
-        border-color: rgba(0, 0, 0, 0.18) !important;
-        &::after {
-          color: rgba(0, 0, 0, 0.85);
-        }
-      }
-
-      &.selected,
-      &.active,
-      &:active {
-        background-color: rgba(59, 130, 246, 0.9) !important;
-        border-color: rgba(37, 99, 235, 1) !important;
-        &::after {
-          color: rgba(0, 0, 0, 0.95);
-        }
-      }
-    }
-
-    .dark .grip-row,
-    .theme-dark .grip-row {
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      background-color: rgba(255, 255, 255, 0.08);
-
-      &::after {
-        color: rgba(255, 255, 255, 0.5);
-      }
-
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.16) !important;
-        border-color: rgba(255, 255, 255, 0.22) !important;
-        &::after {
-          color: rgba(255, 255, 255, 0.9);
-        }
-      }
-
-      &.selected,
-      &.active,
-      &:active {
-        background-color: rgba(59, 130, 246, 0.9) !important;
-        border-color: rgba(37, 99, 235, 1) !important;
-        &::after {
-          color: #ffffff !important;
-        }
-      }
-    }
-
-    .table-column-drop-indicator,
-    .column-indicator {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background-color: rgba(0, 0, 0, 0.4);
-      box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
-      z-index: 30;
-      pointer-events: none;
-    }
-
-    .dark .table-column-drop-indicator,
-    .dark .column-indicator,
-    .theme-dark .table-column-drop-indicator,
-    .theme-dark .column-indicator {
-      background-color: rgba(255, 255, 255, 0.6);
-      box-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
-    }
-
-    .table-row-drop-indicator,
-    .row-indicator {
-      position: absolute;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background-color: rgba(0, 0, 0, 0.4);
-      box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
-      z-index: 30;
-      pointer-events: none;
-    }
-
-    .dark .table-row-drop-indicator,
-    .dark .row-indicator,
-    .theme-dark .table-row-drop-indicator,
-    .theme-dark .row-indicator {
-      background-color: rgba(255, 255, 255, 0.6);
-      box-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+    .grip-row,
+    a.grip-column,
+    a.grip-row {
+      display: none !important;
+      pointer-events: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
     }
   }
 }

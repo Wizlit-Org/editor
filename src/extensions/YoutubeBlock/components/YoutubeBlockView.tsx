@@ -30,8 +30,9 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
   const editorEditable = editor.isEditable
 
   const [isResizing, setIsResizing] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
   const [isEditingCaption, setIsEditingCaption] = useState(false)
-  const [isPlayingInEdit, setIsPlayingInEdit] = useState(false)
+  const [isPlayingInRead, setIsPlayingInRead] = useState(false)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const captionInputRef = useRef<HTMLInputElement>(null)
@@ -123,7 +124,16 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
     !isResizing && 'transition-all duration-200',
   )
 
-  const isSelected = editor.isActive('youtube')
+  // Show hover UI purely when hovered or resizing (0ms dismiss on mouseleave)
+  const isInteracting = isHovered || isResizing
+
+  const PILL_HANDLE_CLASS =
+    'w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150 bg-white/60 dark:bg-white/45 backdrop-blur-md border border-white/90 dark:border-white/70 shadow-[0_2px_12px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.95)] hover:bg-white/85 dark:hover:bg-white/75 hover:scale-y-105'
+
+  // Embed URL for playback (in read mode with standard controls)
+  const activeEmbedUrl = videoId
+    ? `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&rel=0&modestbranding=1`
+    : formatYoutubeEmbedUrl(src)
 
   return (
     <NodeViewWrapper className="w-full my-4">
@@ -135,6 +145,8 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
           position: 'relative',
         }}
         data-drag-handle
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         {/* Main video outer container: overflow-visible so the -inset-[10px] ring is not clipped */}
         <div className="relative group/youtube w-full flex flex-col p-0 m-0 leading-none">
@@ -142,11 +154,14 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
           <div
             data-youtube-video="true"
             className="relative rounded-xl overflow-hidden w-full aspect-video flex flex-col leading-none bg-black/[0.04] dark:bg-white/[0.04] shadow-sm cursor-pointer"
-            onClick={onSelectBlock}
+            onClick={editorEditable ? onSelectBlock : undefined}
           >
-            {/* Edit Mode: High-res Facade Preview to eliminate cross-origin 🔗 link icon */}
-            {editorEditable && !isPlayingInEdit ? (
-              <div className="relative w-full h-full bg-neutral-900 flex items-center justify-center overflow-hidden">
+            {/* Edit Mode OR Read Mode (prior to click): High-res Facade Preview to eliminate 🔗 link icon */}
+            {editorEditable || !isPlayingInRead ? (
+              <div
+                className="relative w-full h-full bg-neutral-900 flex items-center justify-center overflow-hidden"
+                onClick={!editorEditable ? () => setIsPlayingInRead(true) : undefined}
+              >
                 {thumbnailUrl ? (
                   <div
                     className="w-full h-full bg-cover bg-center opacity-90 group-hover/youtube:opacity-100 transition-opacity select-none pointer-events-none"
@@ -159,39 +174,29 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
                 )}
 
                 {/* Glassmorphism Play Icon overlay */}
-                <div
-                  className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors"
-                  onClick={e => {
-                    e.stopPropagation()
-                    setIsPlayingInEdit(true)
-                  }}
-                  title="클릭하여 재생"
-                >
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors">
                   <div className="w-14 h-14 rounded-full bg-white/80 dark:bg-black/70 backdrop-blur-md shadow-xl flex items-center justify-center text-zinc-900 dark:text-white border border-white/40 dark:border-white/20 transition-transform group-hover/youtube:scale-110">
                     <Icon name="Play" className="w-6 h-6 ml-1 fill-current" />
                   </div>
                 </div>
               </div>
             ) : (
-              /* Read Mode (or active playback): Render actual iframe */
+              /* Read Mode (active playback): Render iframe with controls=1 */
               <iframe
-                src={formatYoutubeEmbedUrl(src)}
+                src={activeEmbedUrl}
                 title={caption || 'YouTube video'}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
-                className={cn(
-                  'w-full h-full border-0 rounded-xl block',
-                  isResizing ? 'pointer-events-none' : '',
-                )}
+                className="w-full h-full border-0 rounded-xl block"
               />
             )}
           </div>
 
-          {/* YouTube-style 10px Padded Symmetric Glass Ring Overlay on Hover / Active Selection */}
+          {/* YouTube-style 10px Padded Symmetric Glass Ring Overlay (Dismissed immediately on mouseleave) */}
           <div
             className={cn(
               'pointer-events-none absolute -inset-[10px] rounded-2xl ring-2 ring-black/20 dark:ring-white/30 bg-black/[0.02] dark:bg-white/[0.03] transition-opacity duration-150 z-20',
-              isSelected || isResizing ? 'opacity-100' : 'opacity-0 group-hover/youtube:opacity-100',
+              isInteracting ? 'opacity-100' : 'opacity-0',
             )}
           />
 
@@ -200,23 +205,24 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
             <button
               type="button"
               onClick={handleAddCaption}
-              className="opacity-0 group-hover/youtube:opacity-100 transition-all duration-200 absolute bottom-3 left-0 right-0 mx-auto w-fit px-2.5 py-1 rounded-full text-xs font-medium text-zinc-700 dark:text-zinc-200 bg-white/85 dark:bg-[#1e1e1e]/85 backdrop-blur-md shadow-md border border-black/10 dark:border-white/10 hover:bg-white dark:hover:bg-[#252525] hover:scale-105 active:scale-95 flex items-center gap-1.5 z-30 cursor-pointer whitespace-nowrap"
+              className={cn(
+                'transition-all duration-150 absolute bottom-3 left-0 right-0 mx-auto w-fit px-2.5 py-1 rounded-full text-xs font-medium text-zinc-700 dark:text-zinc-200 bg-white/85 dark:bg-[#1e1e1e]/85 backdrop-blur-md shadow-md border border-black/10 dark:border-white/10 hover:bg-white dark:hover:bg-[#252525] hover:scale-105 active:scale-95 flex items-center gap-1.5 z-30 cursor-pointer whitespace-nowrap',
+                isInteracting ? 'opacity-100' : 'opacity-0 pointer-events-none',
+              )}
             >
               <Icon name="Captions" className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
               <span>캡션 추가</span>
             </button>
           )}
 
-          {/* Notion-style Left Pill Resize Handle (Locked to pure video center, unaffected by caption) */}
+          {/* Frosted Glassmorphism Left Pill Resize Handle */}
           {editorEditable && (
             <div
               onMouseDown={handleResizeStart('left')}
               className={cn(
-                'tiptap-image-handle left absolute left-1.5 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150',
-                'bg-white dark:bg-white border border-black/30 dark:border-black/50 shadow-[0_0_0_1.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.5)]',
-                isResizing
-                  ? 'opacity-100 scale-110 bg-white dark:bg-white ring-2 ring-blue-500'
-                  : 'opacity-0 group-hover/youtube:opacity-100',
+                'tiptap-image-handle left absolute left-1.5 top-1/2 -translate-y-1/2',
+                PILL_HANDLE_CLASS,
+                isInteracting ? 'opacity-100' : 'opacity-0 pointer-events-none',
               )}
               title="Resize width"
               role="slider"
@@ -224,16 +230,14 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
             />
           )}
 
-          {/* Notion-style Right Pill Resize Handle (Locked to pure video center, unaffected by caption) */}
+          {/* Frosted Glassmorphism Right Pill Resize Handle */}
           {editorEditable && (
             <div
               onMouseDown={handleResizeStart('right')}
               className={cn(
-                'tiptap-image-handle right absolute right-1.5 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150',
-                'bg-white dark:bg-white border border-black/30 dark:border-black/50 shadow-[0_0_0_1.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.5)]',
-                isResizing
-                  ? 'opacity-100 scale-110 bg-white dark:bg-white ring-2 ring-blue-500'
-                  : 'opacity-0 group-hover/youtube:opacity-100',
+                'tiptap-image-handle right absolute right-1.5 top-1/2 -translate-y-1/2',
+                PILL_HANDLE_CLASS,
+                isInteracting ? 'opacity-100' : 'opacity-0 pointer-events-none',
               )}
               title="Resize width"
               role="slider"

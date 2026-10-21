@@ -93,17 +93,25 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
       options={TABLE_COLUMN_MENU_OPTIONS}
       shouldShow={shouldShow}
     >
-      <div className="glass-menu min-w-[13.5rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-50 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
-        <div className="flex items-center gap-1">
-          <button type="button" onClick={onMoveColumnLeft} className={`${itemClass} flex-1 justify-center`}>
-            <Icon name="ArrowLeft" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-            <span>Move left</span>
-          </button>
-          <button type="button" onClick={onMoveColumnRight} className={`${itemClass} flex-1 justify-center`}>
-            <span>Move right</span>
-            <Icon name="ArrowRight" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-          </button>
-        </div>
+      <div className="glass-menu min-w-[14rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-50 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
+        <button type="button" onClick={onToggleHeaderColumn} className={itemClass}>
+          <Icon name="Table" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+          <span>Header column</span>
+        </button>
+
+        <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
+
+        <button type="button" onClick={onMoveColumnLeft} className={itemClass}>
+          <Icon name="ArrowLeft" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+          <span>Move column left</span>
+        </button>
+
+        <button type="button" onClick={onMoveColumnRight} className={itemClass}>
+          <Icon name="ArrowRight" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+          <span>Move column right</span>
+        </button>
+
+        <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
 
         <button type="button" onClick={onAddColumnBefore} className={itemClass}>
           <Icon name="ArrowLeftToLine" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
@@ -117,11 +125,6 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
 
         <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
 
-        <button type="button" onClick={onClearColumn} className={itemClass}>
-          <Icon name="Eraser" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-          <span>Clear contents</span>
-        </button>
-
         <button type="button" onClick={onSortAsc} className={itemClass}>
           <Icon name="ArrowDownUp" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
           <span>Sort ascending</span>
@@ -132,14 +135,16 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
           <span>Sort descending</span>
         </button>
 
+        <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
+
+        <button type="button" onClick={onClearColumn} className={itemClass}>
+          <Icon name="Eraser" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+          <span>Clear contents</span>
+        </button>
+
         <button type="button" onClick={onDuplicate} className={itemClass}>
           <Icon name="Copy" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
           <span>Duplicate column</span>
-        </button>
-
-        <button type="button" onClick={onToggleHeaderColumn} className={itemClass}>
-          <Icon name="Table" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-          <span>Toggle header column</span>
         </button>
 
         <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />

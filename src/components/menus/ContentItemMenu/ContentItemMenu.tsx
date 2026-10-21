@@ -202,30 +202,29 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
             const refLeft = (rects?.reference?.x ?? (rects?.reference as any)?.left) ?? 0
             const refTop = (rects?.reference?.y ?? (rects?.reference as any)?.top) ?? 0
 
-            // Fixed X gutter aligned with editor ProseMirror content left edge (prosemirrorLeft - 28px)
-            // Eliminates horizontal jumping (+/- 24px) and prevents NaN
+            // Fixed X gutter aligned with editor ProseMirror content left edge (prosemirrorLeft - 52px for 48px handle)
             const prosemirrorEl = editor?.view?.dom
             const pmRect = prosemirrorEl?.getBoundingClientRect?.()
             const targetX = pmRect && rects?.reference
-              ? x - (refLeft - (pmRect.left - 28))
-              : x - 28
+              ? x - (refLeft - (pmRect.left - 52))
+              : x - 52
 
             // Vertical Y alignment:
-            // Case A: Table block (single drag handle for the entire table at top-left)
+            // Case A: Table block (single stationary handle at table top-left)
             if (nodeType === 'table' || dom?.closest('table')) {
               const tableEl = dom?.closest('table') || dom
-              const tableRect = tableEl?.getBoundingClientRect?.()
-              if (tableRect && rects?.reference) {
-                const deltaY = refTop - tableRect.top
+              if (tableEl && rects?.reference) {
+                const tableTop = tableEl.getBoundingClientRect().top
+                const deltaTop = tableTop - refTop
                 return {
                   x: targetX,
-                  y: y - deltaY - 16,
+                  y: y + deltaTop - 16,
                 }
               }
               return { x: targetX, y: y - 16 }
             }
 
-            // Case B: List container (bulletList, orderedList, taskList)
+            // Case B: List container (bulletList, orderedList, taskList - single handle at list top-left)
             if (
               nodeType === 'bulletList' ||
               nodeType === 'orderedList' ||
@@ -233,12 +232,12 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               dom?.closest('ul, ol')
             ) {
               const listEl = dom?.closest('ul, ol') || dom
-              const listRect = listEl?.getBoundingClientRect?.()
-              if (listRect && rects?.reference) {
-                const deltaY = refTop - listRect.top
+              if (listEl && rects?.reference) {
+                const listTop = listEl.getBoundingClientRect().top
+                const deltaTop = listTop - refTop
                 return {
                   x: targetX,
-                  y: y - deltaY,
+                  y: y + deltaTop,
                 }
               }
               return { x: targetX, y }
@@ -256,19 +255,16 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
     return null
   }
 
-  const DRAG_BTN_CLASS =
-    'w-6 h-6 p-0 flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:text-[#9b9b9b] dark:hover:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] rounded border border-transparent transition-all duration-150'
-
   return (
     <DragHandle
       pluginKey="ContentItemMenu"
       editor={editor}
-      nested={nestedConfig}
+      nested={false}
       onNodeChange={handleNodeChange}
       computePositionConfig={positionConfig}
     >
       <div
-        className={`w-12 h-8 flex items-center justify-center gap-0.5 transition-opacity duration-150 ease-out ${
+        className={`w-[48px] h-[32px] flex items-center gap-0 select-none transition-opacity duration-150 ease-out ${
           shouldHideHandle ? 'hidden pointer-events-none opacity-0 !w-0 !h-0 overflow-hidden' : ''
         }`}
         style={shouldHideHandle ? { display: 'none', pointerEvents: 'none', visibility: 'hidden' } : undefined}
@@ -276,22 +272,22 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
         <button
           type="button"
           onClick={actions.handleAdd}
-          className={`${DRAG_BTN_CLASS} cursor-pointer`}
+          className="w-[24px] h-[32px] rounded-[10px] p-0 flex items-center justify-center transition-colors duration-150 hover:bg-black/[0.06] dark:hover:bg-white/[0.08] hover:backdrop-blur-sm cursor-pointer outline-none"
           title="Click to add a block below"
           aria-label="Add block below"
         >
-          <Icon name="Plus" className="w-3.5 h-3.5" />
+          <Icon name="Plus" className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
         </button>
 
         <Popover.Root open={menuOpen} onOpenChange={setMenuOpen}>
           <Popover.Trigger asChild>
             <button
               type="button"
-              className={`${DRAG_BTN_CLASS} cursor-grab active:cursor-grabbing`}
+              className="w-[24px] h-[32px] rounded-[10px] p-0 flex items-center justify-center transition-colors duration-150 hover:bg-black/[0.06] dark:hover:bg-white/[0.08] hover:backdrop-blur-sm cursor-grab active:cursor-grabbing outline-none"
               title="Drag to move, click for options"
               aria-label="Drag handle and block menu"
             >
-              <Icon name="GripVertical" className="w-3.5 h-3.5" />
+              <Icon name="GripVertical" className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
             </button>
           </Popover.Trigger>
           <Popover.Content
