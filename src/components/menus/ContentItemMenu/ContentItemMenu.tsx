@@ -21,6 +21,20 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
   const data = useData()
   const actions = useContentItemActions(editor, data.currentNode, data.currentNodePos)
 
+  const currentNodeRef = useRef(data.currentNode)
+  const currentNodePosRef = useRef(data.currentNodePos)
+  currentNodeRef.current = data.currentNode
+  currentNodePosRef.current = data.currentNodePos
+
+  const handleNodeChange = useCallback(
+    (info: any) => {
+      currentNodeRef.current = info?.node
+      currentNodePosRef.current = info?.pos
+      data.handleNodeChange(info)
+    },
+    [data],
+  )
+
   useEffect(() => {
     if (menuOpen) {
       editor.commands.setMeta('lockDragHandle', true)
@@ -183,6 +197,7 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
   )
 
   // Floating UI position configuration with gutterAlignMiddleware
+  // Stable reference [editor] alone prevents unregisterPlugin -> view.destroyPluginViews() cascade
   const positionConfig = useMemo(() => {
     return {
       placement: 'left-start' as const,
@@ -190,14 +205,18 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
         {
           name: 'gutterAlign',
           fn({ x, y, rects }: any) {
+            const pos = currentNodePosRef.current
+            const currentNode = currentNodeRef.current
+            const nodeType = currentNode?.type?.name
+
             let dom: HTMLElement | null = null
-            if (data.currentNodePos >= 0 && editor?.view) {
+            if (pos >= 0 && editor?.view) {
               try {
-                const nodeDom = editor.view.nodeDOM(data.currentNodePos)
+                const nodeDom = editor.view.nodeDOM(pos)
                 if (nodeDom instanceof HTMLElement) {
                   dom = nodeDom
                 } else {
-                  const domAt = editor.view.domAtPos(data.currentNodePos)
+                  const domAt = editor.view.domAtPos(pos)
                   dom = (domAt?.node instanceof HTMLElement ? domAt.node : domAt?.node?.parentElement) || null
                 }
               } catch {
@@ -205,26 +224,30 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               }
             }
 
-            const nodeType = data.currentNode?.type?.name
+            // Fixed X gutter aligned with editor ProseMirror content left edge (prosemirrorLeft - 28px)
+            // Eliminates horizontal jumping (+/- 24px) completely regardless of nested list depth
+            const prosemirrorEl = editor?.view?.dom
+            const pmRect = prosemirrorEl?.getBoundingClientRect?.()
+            const targetX = pmRect && rects?.reference
+              ? x - (rects.reference.left - (pmRect.left - 28))
+              : x - 28
 
-            // Case A: Table block (single drag handle for the entire table)
-            // Stays stationary at the top-left outer gutter of the table (tableRect.left - 32px, tableRect.top - 16px)
+            // Vertical Y alignment:
+            // Case A: Table block (single drag handle for the entire table at top-left)
             if (nodeType === 'table' || dom?.closest('table')) {
               const tableEl = dom?.closest('table') || dom
               const tableRect = tableEl?.getBoundingClientRect?.()
               if (tableRect && rects?.reference) {
-                const deltaX = rects.reference.left - tableRect.left
                 const deltaY = rects.reference.top - tableRect.top
                 return {
-                  x: x - deltaX - 32,
+                  x: targetX,
                   y: y - deltaY - 16,
                 }
               }
-              return { x: x - 32, y: y - 16 }
+              return { x: targetX, y: y - 16 }
             }
 
             // Case B: List container (bulletList, orderedList, taskList)
-            // Stays stationary at the top-left outer gutter of the entire list container (listRect.left - 28px, listRect.top)
             if (
               nodeType === 'bulletList' ||
               nodeType === 'orderedList' ||
@@ -234,23 +257,22 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               const listEl = dom?.closest('ul, ol') || dom
               const listRect = listEl?.getBoundingClientRect?.()
               if (listRect && rects?.reference) {
-                const deltaX = rects.reference.left - listRect.left
                 const deltaY = rects.reference.top - listRect.top
                 return {
-                  x: x - deltaX - 28,
+                  x: targetX,
                   y: y - deltaY,
                 }
               }
-              return { x: x - 28, y }
+              return { x: targetX, y }
             }
 
-            // Case C: Standard block - 16px gutter offset
-            return { x: x - 16, y }
+            // Case C: Standard block - aligned to fixed gutter
+            return { x: targetX, y }
           },
         },
       ],
     }
-  }, [editor, data.currentNode, data.currentNodePos])
+  }, [editor])
 
   if (!isEditable) {
     return null
@@ -264,7 +286,7 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
       pluginKey="ContentItemMenu"
       editor={editor}
       nested={nestedConfig}
-      onNodeChange={data.handleNodeChange}
+      onNodeChange={handleNodeChange}
       computePositionConfig={positionConfig}
     >
       <div

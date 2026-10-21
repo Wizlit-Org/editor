@@ -1,6 +1,7 @@
 import { BubbleMenu as BaseBubbleMenu } from '@tiptap/react/menus'
-import React, { useCallback, useState, useEffect, JSX } from 'react'
+import React, { useCallback, useState, useEffect, useRef, JSX } from 'react'
 import * as Popover from '@radix-ui/react-popover'
+import { CellSelection, TableMap } from '@tiptap/pm/tables'
 import { isCellSelection } from '../../utils'
 import { Icon } from '@/components/ui/Icon'
 import { MenuProps, ShouldShowProps } from '@/components/menus/types'
@@ -19,22 +20,39 @@ const TABLE_CELL_MENU_OPTIONS = {
 export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.Element => {
   const [menuOpen, setMenuOpen] = useState(false)
   const [selectionRect, setSelectionRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
+  const isDraggingHandleRef = useRef(false)
 
   const isCellSelected = isCellSelection(editor.state?.selection)
 
-  const updateSelectionRect = useCallback(() => {
-    if (!editor.view?.dom) {
-      setSelectionRect(null)
-      return
+  // Find target cell element(s) - either multiple selected cells or single active cell
+  const getActiveCells = useCallback((): HTMLElement[] => {
+    if (!editor.view?.dom) return []
+    const selectedCells = Array.from(editor.view.dom.querySelectorAll('.selectedCell')) as HTMLElement[]
+    if (selectedCells.length > 0) return selectedCells
+
+    // Single cell fallback: active cursor inside tableCell/tableHeader
+    if (editor.isActive('tableCell') || editor.isActive('tableHeader')) {
+      try {
+        const { from } = editor.state.selection
+        const domAt = editor.view.domAtPos(from)
+        const cellEl = (domAt.node instanceof HTMLElement ? domAt.node : domAt.node.parentElement)?.closest('td, th') as HTMLElement | null
+        if (cellEl) return [cellEl]
+      } catch {
+        // Fallback
+      }
     }
-    const selectedCells = editor.view.dom.querySelectorAll('.selectedCell')
-    if (selectedCells.length > 0) {
+    return []
+  }, [editor])
+
+  const updateSelectionRect = useCallback(() => {
+    const cells = getActiveCells()
+    if (cells.length > 0) {
       let minTop = Infinity
       let maxBottom = -Infinity
       let maxRight = -Infinity
       let minLeft = Infinity
 
-      selectedCells.forEach(cell => {
+      cells.forEach(cell => {
         const r = cell.getBoundingClientRect()
         if (r.top < minTop) minTop = r.top
         if (r.bottom > maxBottom) maxBottom = r.bottom
@@ -51,7 +69,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
     } else {
       setSelectionRect(null)
     }
-  }, [editor])
+  }, [getActiveCells])
 
   useEffect(() => {
     updateSelectionRect()
@@ -72,24 +90,26 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
       if (editor.view?.dragging || (typeof document !== 'undefined' && document.querySelector('[data-dragging="true"]'))) {
         return false
       }
+      // Suppress if full row or column grip is selected
       if (typeof document !== 'undefined' && document.querySelector('a.grip-column.selected, a.grip-row.selected')) {
         return false
       }
-      return isCellSelection(state.selection)
+
+      // Show if cell selection OR cursor is inside a single table cell
+      if (isCellSelection(state.selection)) return true
+      return editor.isActive('tableCell') || editor.isActive('tableHeader')
     },
     [editor],
   )
 
   const getReferencedVirtualElement = useCallback(() => {
-    if (!editor.view?.dom) return null
-
-    const selectedCells = editor.view.dom.querySelectorAll('.selectedCell')
-    if (selectedCells.length > 0) {
+    const cells = getActiveCells()
+    if (cells.length > 0) {
       let minTop = Infinity
       let maxBottom = -Infinity
       let maxRight = -Infinity
 
-      selectedCells.forEach(cell => {
+      cells.forEach(cell => {
         const r = cell.getBoundingClientRect()
         if (r.top < minTop) minTop = r.top
         if (r.bottom > maxBottom) maxBottom = r.bottom
@@ -113,7 +133,78 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
     }
 
     return null
-  }, [editor])
+  }, [getActiveCells])
+
+  // Drag selection adjustment handler: Dragging the circle button expands/adjusts CellSelection
+  const handleButtonMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      const startX = e.clientX
+      const startY = e.clientY
+      let isDrag = false
+
+      const { view, state } = editor
+      let anchorCellPos = -1
+
+      // Find anchor cell pos
+      if (isCellSelection(state.selection)) {
+        anchorCellPos = (state.selection as any).$anchorCell.pos
+      } else {
+        try {
+          const domAt = view.domAtPos(state.selection.from)
+          const cellEl = (domAt.node instanceof HTMLElement ? domAt.node : domAt.node.parentElement)?.closest('td, th') as HTMLElement | null
+          if (cellEl) {
+            anchorCellPos = view.posAtDOM(cellEl, 0)
+          }
+        } catch {
+          anchorCellPos = -1
+        }
+      }
+
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        const dist = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY)
+        if (dist > 3) {
+          isDrag = true
+          isDraggingHandleRef.current = true
+          document.body.style.cursor = 'crosshair'
+
+          // Find cell under mouse point
+          const targetEl = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)?.closest('td, th') as HTMLElement | null
+          if (targetEl && anchorCellPos >= 0) {
+            try {
+              const headCellPos = view.posAtDOM(targetEl, 0)
+              const $anchor = state.doc.resolve(anchorCellPos)
+              const $head = state.doc.resolve(headCellPos)
+              const newSelection = new CellSelection($anchor, $head)
+              view.dispatch(state.tr.setSelection(newSelection))
+            } catch {
+              // ignore
+            }
+          }
+        }
+      }
+
+      const onMouseUp = () => {
+        window.removeEventListener('mousemove', onMouseMove)
+        window.removeEventListener('mouseup', onMouseUp)
+        document.body.style.cursor = ''
+        setTimeout(() => {
+          isDraggingHandleRef.current = false
+        }, 50)
+
+        if (!isDrag) {
+          // Pure click: toggle Popover menu
+          setMenuOpen(prev => !prev)
+        }
+      }
+
+      window.addEventListener('mousemove', onMouseMove)
+      window.addEventListener('mouseup', onMouseUp)
+    },
+    [editor],
+  )
 
   const onMergeCells = useCallback(() => {
     editor.chain().focus().mergeCells().run()
@@ -170,7 +261,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         />
       )}
 
-      {/* 2. BubbleMenu with Top-Right Edge 4-dot Trigger and TableCell Popover */}
+      {/* 2. BubbleMenu with Right-Edge 12px Circle Trigger and TableCell Popover */}
       <BaseBubbleMenu
         editor={editor}
         pluginKey="tableCellMenu"
@@ -185,18 +276,19 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
             <Popover.Trigger asChild>
               <button
                 type="button"
-                className="w-4 h-4 -ml-2 -mt-2 rounded-full bg-white dark:bg-[#202020] border border-blue-500 shadow-md hover:scale-110 active:scale-95 cursor-pointer transition-all flex items-center justify-center p-0 outline-none z-30 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30"
-                title="Table cells option"
+                onMouseDown={handleButtonMouseDown}
+                className="w-3 h-3 -ml-1.5 -translate-y-1/2 rounded-full bg-white dark:bg-[#202020] border border-blue-500 shadow-md hover:scale-125 active:scale-95 cursor-pointer transition-all flex items-center justify-center p-0 outline-none z-30 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 select-none"
+                title="Click for options, drag to adjust cell selection"
                 aria-label="Table cells option"
               >
-                <Icon name="MoreHorizontal" className="w-2.5 h-2.5" />
+                <Icon name="MoreHorizontal" className="w-2 h-2" />
               </button>
             </Popover.Trigger>
             <Popover.Content
               side="right"
               align="start"
               sideOffset={8}
-              className="z-50 outline-none animate-in fade-in-0 zoom-in-95 duration-150"
+              className="z-[1400] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
             >
               <div className="glass-menu min-w-[12rem] p-1.5 shadow-2xl rounded-xl flex flex-col gap-0.5 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
                 {canMerge && (

@@ -38,7 +38,7 @@ export const isColumnGripSelected = ({
     try {
       const map = TableMap.get(selection.$anchorCell.node(-1))
       const start = selection.$anchorCell.start(-1)
-      const rect = map.findCell(selection.$anchorCell.pos - start)
+      const rect = map.rectBetween(selection.$anchorCell.pos - start, selection.$headCell.pos - start)
       const isSingleCol = rect.right - rect.left === 1 && rect.bottom - rect.top === map.height
       return isSingleCol
     } catch {

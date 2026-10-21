@@ -38,7 +38,7 @@ export const isRowGripSelected = ({
     try {
       const map = TableMap.get(selection.$anchorCell.node(-1))
       const start = selection.$anchorCell.start(-1)
-      const rect = map.findCell(selection.$anchorCell.pos - start)
+      const rect = map.rectBetween(selection.$anchorCell.pos - start, selection.$headCell.pos - start)
       const isSingleRow = rect.bottom - rect.top === 1 && rect.right - rect.left === map.width
       return isSingleRow
     } catch {

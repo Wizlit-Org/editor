@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Editor } from '@tiptap/react'
 import { CellSelection, TableMap } from '@tiptap/pm/tables'
 import { Icon } from '@/components/ui/Icon'
+import { moveTableColumn, moveTableRow } from '../utils/TableDndUtils'
 
 export interface TableAddButtonsProps {
   editor: Editor
@@ -98,7 +99,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
         }
         return {
           index: idx,
-          top: cr.top,
+          top: r.top,
           left: cr.left,
           width: cr.width,
           height: cr.height,
@@ -112,23 +113,20 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
     const rows = Array.from(currentTableEl.querySelectorAll('tr')) as HTMLElement[]
     if (rows.length > 0 && tablePos >= 0) {
       const rowItems: GripItem[] = rows.map((row, idx) => {
-        const firstCell = row.firstElementChild as HTMLElement | null
-        const rr = (firstCell || row).getBoundingClientRect()
-        let rowCellPos = -1
+        const rr = row.getBoundingClientRect()
+        let rowPos = -1
         try {
-          if (firstCell) {
-            rowCellPos = editor.view.posAtDOM(firstCell, 0)
-          }
+          rowPos = editor.view.posAtDOM(row, 0)
         } catch {
-          rowCellPos = -1
+          rowPos = -1
         }
         return {
           index: idx,
           top: rr.top,
-          left: rr.left,
+          left: r.left,
           width: rr.width,
           height: rr.height,
-          pos: rowCellPos,
+          pos: rowPos,
         }
       })
       setRowGrips(rowItems)
@@ -141,75 +139,64 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
     const editorDom = editor.view.dom
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (editor.view?.dragging || document.querySelector('[data-dragging="true"]')) {
-        setTableRect(null)
-        setIsHovered(false)
-        return
-      }
-
       const target = e.target as HTMLElement | null
-      const table = target?.closest('table') as HTMLTableElement | null
+      if (!target) return
 
-      if (table && editorDom.contains(table)) {
+      const table = target.closest('table')
+      if (table && table !== currentTableEl) {
         clearHoverTimer()
-        setCurrentTableEl(table)
+        setCurrentTableEl(table as HTMLTableElement)
         setIsHovered(true)
         return
       }
 
-      const buttonsContainer = document.getElementById('table-add-buttons-portal')
-      if (buttonsContainer && buttonsContainer.contains(target)) {
-        clearHoverTimer()
-        setIsHovered(true)
-        return
-      }
-
-      // Check proximity to current table (buffer of 35px)
-      if (currentTableEl && tableRect) {
-        const buffer = 35
-        const inBuffer =
-          e.clientX >= tableRect.left - buffer &&
-          e.clientX <= tableRect.right + buffer &&
-          e.clientY >= tableRect.top - buffer &&
-          e.clientY <= tableRect.bottom + buffer
-
-        if (inBuffer) {
+      if (currentTableEl && !table) {
+        const portal = document.getElementById('table-add-buttons-portal')
+        if (portal && portal.contains(target)) {
           clearHoverTimer()
           setIsHovered(true)
           return
         }
-      }
 
-      // Delay hiding by 300ms to allow smooth mouse transit to '+' bars
-      if (!hoverTimerRef.current) {
-        hoverTimerRef.current = setTimeout(() => {
-          setIsHovered(false)
-          hoverTimerRef.current = null
-        }, 300)
+        const r = currentTableEl.getBoundingClientRect()
+        const buffer = 35
+        const inBufferZone =
+          e.clientX >= r.left - buffer &&
+          e.clientX <= r.right + buffer &&
+          e.clientY >= r.top - buffer &&
+          e.clientY <= r.bottom + buffer
+
+        if (inBufferZone) {
+          clearHoverTimer()
+          setIsHovered(true)
+        } else {
+          if (!hoverTimerRef.current) {
+            hoverTimerRef.current = setTimeout(() => {
+              setIsHovered(false)
+              setCurrentTableEl(null)
+              setTableRect(null)
+              hoverTimerRef.current = null
+            }, 300)
+          }
+        }
       }
     }
 
-    const handleMouseLeave = () => {
-      clearHoverTimer()
-      hoverTimerRef.current = setTimeout(() => {
-        setIsHovered(false)
-        hoverTimerRef.current = null
-      }, 300)
+    const handleScroll = () => {
+      updateTableRect()
     }
 
-    editorDom.addEventListener('mousemove', handleMouseMove, { passive: true })
-    editorDom.addEventListener('mouseleave', handleMouseLeave, { passive: true })
-    window.addEventListener('scroll', updateTableRect, { passive: true, capture: true })
-    window.addEventListener('resize', updateTableRect, { passive: true })
+    window.addEventListener('mousemove', handleMouseMove, { passive: true })
+    window.addEventListener('scroll', handleScroll, { capture: true, passive: true })
+    window.addEventListener('resize', handleScroll, { passive: true })
 
     return () => {
       clearHoverTimer()
-      editorDom.removeEventListener('mousemove', handleMouseMove)
-      editorDom.removeEventListener('mouseleave', handleMouseLeave)
-      window.removeEventListener('scroll', updateTableRect, { capture: true })
-      window.removeEventListener('resize', updateTableRect)
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('scroll', handleScroll, { capture: true })
+      window.removeEventListener('resize', handleScroll)
     }
-  }, [editor, currentTableEl, tableRect, updateTableRect])
+  }, [currentTableEl, editor, updateTableRect])
 
   useEffect(() => {
     updateTableRect()
@@ -263,6 +250,64 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
       }
     },
     [editor, tableRect],
+  )
+
+  const handleGripMouseDown = useCallback(
+    (type: 'col' | 'row', index: number) => (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (!tableRect || tableRect.pos < 0) return
+
+      const startX = e.clientX
+      const startY = e.clientY
+      let isDragging = false
+
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        const dist = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY)
+        if (dist > 3) {
+          isDragging = true
+          document.body.style.cursor = type === 'col' ? 'col-resize' : 'row-resize'
+        }
+      }
+
+      const onMouseUp = (upEvent: MouseEvent) => {
+        window.removeEventListener('mousemove', onMouseMove)
+        window.removeEventListener('mouseup', onMouseUp)
+        document.body.style.cursor = ''
+
+        if (isDragging) {
+          if (type === 'col') {
+            const targetCol = columnGrips.find(
+              g => upEvent.clientX >= g.left && upEvent.clientX <= g.left + g.width,
+            )
+            if (targetCol && targetCol.index !== index) {
+              moveTableColumn(editor, tableRect.pos, index, targetCol.index)
+              setTimeout(updateTableRect, 50)
+              return
+            }
+          } else {
+            const targetRow = rowGrips.find(
+              g => upEvent.clientY >= g.top && upEvent.clientY <= g.top + g.height,
+            )
+            if (targetRow && targetRow.index !== index) {
+              moveTableRow(editor, tableRect.pos, index, targetRow.index)
+              setTimeout(updateTableRect, 50)
+              return
+            }
+          }
+        } else {
+          if (type === 'col') {
+            onSelectColumn(index)(e)
+          } else {
+            onSelectRow(index)(e)
+          }
+        }
+      }
+
+      window.addEventListener('mousemove', onMouseMove)
+      window.addEventListener('mouseup', onMouseUp)
+    },
+    [editor, tableRect, columnGrips, rowGrips, updateTableRect, onSelectColumn, onSelectRow],
   )
 
   const onAddColumnAtEnd = useCallback(
@@ -326,19 +371,20 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
   }
 
   return createPortal(
-    <div id="table-add-buttons-portal" className="pointer-events-auto">
+    <div id="table-add-buttons-portal" className="pointer-events-auto" style={{ zIndex: 1400, position: 'relative' }}>
       {/* 1. Top Column Grips (···) */}
       {columnGrips.map(col => (
         <button
           key={`col-grip-${col.index}`}
           type="button"
-          onClick={onSelectColumn(col.index)}
-          className="fixed z-30 w-7 h-3.5 -mt-3.5 rounded-t-md bg-white/90 dark:bg-[#202020]/90 backdrop-blur-md border-t border-x border-black/10 dark:border-white/15 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all flex items-center justify-center p-0 shadow-sm cursor-pointer"
+          onMouseDown={handleGripMouseDown('col', col.index)}
+          className="fixed z-[1400] w-7 h-3.5 -mt-3.5 rounded-t-md bg-white/90 dark:bg-[#202020]/90 backdrop-blur-md border-t border-x border-black/10 dark:border-white/15 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all flex items-center justify-center p-0 shadow-sm cursor-pointer select-none"
           style={{
             top: col.top,
             left: col.left + col.width / 2 - 14,
+            zIndex: 1400,
           }}
-          title={`Select column ${col.index + 1}`}
+          title={`Click to select, drag to reorder column ${col.index + 1}`}
         >
           <div className="flex items-center gap-0.5">
             <span className="w-1 h-1 rounded-full bg-current opacity-70" />
@@ -353,13 +399,14 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
         <button
           key={`row-grip-${row.index}`}
           type="button"
-          onClick={onSelectRow(row.index)}
-          className="fixed z-30 w-3.5 h-7 -ml-3.5 rounded-l-md bg-white/90 dark:bg-[#202020]/90 backdrop-blur-md border-l border-y border-black/10 dark:border-white/15 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all flex items-center justify-center p-0 shadow-sm cursor-pointer"
+          onMouseDown={handleGripMouseDown('row', row.index)}
+          className="fixed z-[1400] w-3.5 h-7 -ml-3.5 rounded-l-md bg-white/90 dark:bg-[#202020]/90 backdrop-blur-md border-l border-y border-black/10 dark:border-white/15 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all flex items-center justify-center p-0 shadow-sm cursor-pointer select-none"
           style={{
             top: row.top + row.height / 2 - 14,
             left: row.left,
+            zIndex: 1400,
           }}
-          title={`Select row ${row.index + 1}`}
+          title={`Click to select, drag to reorder row ${row.index + 1}`}
         >
           <div className="flex flex-col items-center gap-0.5">
             <span className="w-1 h-1 rounded-full bg-current opacity-70" />
@@ -369,14 +416,15 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
         </button>
       ))}
 
-      {/* 3. Right Column Add Bar: Vertical bar along table right edge with persistent hover buffer */}
+      {/* 3. Right Column Add Bar */}
       <div
-        className="fixed z-20 flex items-center justify-center transition-all duration-150 rounded-r cursor-pointer group hover:bg-black/5 dark:hover:bg-white/10"
+        className="fixed z-[1400] flex items-center justify-center transition-all duration-150 rounded-r cursor-pointer group hover:bg-black/5 dark:hover:bg-white/10"
         style={{
           top: tableRect.top,
           left: tableRect.right + 2,
           height: tableRect.height,
           width: 16,
+          zIndex: 1400,
         }}
         onClick={onAddColumnAtEnd}
         onMouseEnter={() => {
@@ -391,14 +439,15 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
         </div>
       </div>
 
-      {/* 4. Bottom Row Add Bar: Horizontal bar along table bottom edge with persistent hover buffer */}
+      {/* 4. Bottom Row Add Bar */}
       <div
-        className="fixed z-20 flex items-center justify-center transition-all duration-150 rounded-b cursor-pointer group hover:bg-black/5 dark:hover:bg-white/10"
+        className="fixed z-[1400] flex items-center justify-center transition-all duration-150 rounded-b cursor-pointer group hover:bg-black/5 dark:hover:bg-white/10"
         style={{
           top: tableRect.bottom + 2,
           left: tableRect.left,
           width: tableRect.width,
           height: 16,
+          zIndex: 1400,
         }}
         onClick={onAddRowAtEnd}
         onMouseEnter={() => {

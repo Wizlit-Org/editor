@@ -156,79 +156,89 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
         }}
         data-drag-handle
       >
-        {/* Main image container: 0px baseline gap, perfectly symmetric */}
-        <div className="relative rounded-lg overflow-hidden group/image w-full flex flex-col p-0 m-0 leading-none bg-black/[0.02] dark:bg-white/[0.02]">
-          {/* Loading Skeleton */}
-          {isLoading && !hasError && (
-            <div className="w-full aspect-video min-h-[140px] rounded-lg bg-black/[0.04] dark:bg-white/[0.04] backdrop-blur-sm animate-pulse flex flex-col items-center justify-center gap-2 border border-black/5 dark:border-white/5">
-              <Icon name="Image" className="w-7 h-7 text-zinc-400 dark:text-zinc-500 animate-pulse" />
-              <span className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">이미지 불러오는 중...</span>
-            </div>
-          )}
+        {/* Main image container: overflow-visible so the -inset-[10px] ring is fully visible */}
+        <div className="relative group/image w-full flex flex-col p-0 m-0 leading-none">
+          {/* Inner image frame: clipped with rounded-lg */}
+          <div className="relative rounded-lg overflow-hidden w-full flex flex-col p-0 m-0 leading-none bg-black/[0.02] dark:bg-white/[0.02]">
+            {/* Loading Skeleton */}
+            {isLoading && !hasError && (
+              <div className="w-full aspect-video min-h-[140px] rounded-lg bg-black/[0.04] dark:bg-white/[0.04] backdrop-blur-sm animate-pulse flex flex-col items-center justify-center gap-2 border border-black/5 dark:border-white/5">
+                <Icon name="Image" className="w-7 h-7 text-zinc-400 dark:text-zinc-500 animate-pulse" />
+                <span className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">이미지 불러오는 중...</span>
+              </div>
+            )}
 
-          {/* Actual Image */}
-          {src && !isExternalImage && (
-            <img
-              ref={imgRef}
-              src={isExternalImage ? originalSrc : (src as string)}
-              alt={caption || ''}
-              loading="lazy"
-              onClick={onClick}
-              onLoad={() => setIsLoading(false)}
-              onError={() => {
-                setIsLoading(false)
-                setHasError(true)
-              }}
-              style={{ margin: 0, padding: 0, display: 'block', width: '100%', height: 'auto' }}
+            {/* Actual Image */}
+            {src && !isExternalImage && (
+              <img
+                ref={imgRef}
+                src={isExternalImage ? originalSrc : (src as string)}
+                alt={caption || ''}
+                loading="lazy"
+                onClick={onClick}
+                onLoad={() => setIsLoading(false)}
+                onError={() => {
+                  setIsLoading(false)
+                  setHasError(true)
+                }}
+                style={{ margin: 0, padding: 0, display: 'block', width: '100%', height: 'auto' }}
+                className={cn(
+                  'block w-full min-w-full h-auto rounded-lg object-contain !m-0 !p-0 transition-all duration-200',
+                  isLoading ? 'opacity-0 h-0 overflow-hidden absolute pointer-events-none' : 'opacity-100',
+                  !editorEditable ? 'cursor-pointer' : '',
+                )}
+                draggable={editorEditable}
+              />
+            )}
+
+            {/* Error / Fallback Card */}
+            {hasError && !isExternalImage && (
+              <div className="w-full flex flex-col items-center justify-center bg-black/[0.02] dark:bg-white/[0.03] backdrop-blur-md text-zinc-500 rounded-lg p-6 border border-dashed border-black/15 dark:border-white/15 gap-2 z-[2]">
+                <Icon name="ImageOff" className="w-8 h-8 text-zinc-400 dark:text-zinc-500" />
+                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">이미지를 불러올 수 없습니다</span>
+                {editorEditable && (
+                  <button
+                    type="button"
+                    onClick={handleReupload}
+                    className="mt-1 px-3 py-1 bg-zinc-800 hover:bg-zinc-700 dark:bg-zinc-200 dark:hover:bg-zinc-300 text-white dark:text-zinc-900 rounded-md text-xs font-medium transition-colors shadow-sm"
+                  >
+                    다시 업로드
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* External Image Fallback */}
+            {isExternalImage && (
+              <div className="w-full flex flex-col items-center justify-center p-6 bg-black/[0.02] dark:bg-white/[0.03] backdrop-blur-md rounded-lg border border-dashed border-black/15 dark:border-white/15 gap-2 z-[2]">
+                <Icon name="ImageOff" className="w-8 h-8 text-zinc-400 dark:text-zinc-500" />
+                <div className="text-xs text-zinc-500 dark:text-zinc-400">외부 이미지를 표시할 수 없습니다</div>
+                {editorEditable && (
+                  <button
+                    type="button"
+                    onClick={handleReupload}
+                    className="mt-1 px-3 py-1 bg-zinc-800 hover:bg-zinc-700 dark:bg-zinc-200 dark:hover:bg-zinc-300 text-white dark:text-zinc-900 rounded-md text-xs font-medium transition-colors shadow-sm"
+                  >
+                    다시 업로드
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Notion-style 10px Padded Symmetric Glass Ring Overlay on Hover / Active Selection */}
+          {!hasError && !isLoading && (
+            <div
               className={cn(
-                'block w-full min-w-full h-auto rounded-lg object-contain !m-0 !p-0 transition-all duration-200',
-                isLoading ? 'opacity-0 h-0 overflow-hidden absolute pointer-events-none' : 'opacity-100',
-                !editorEditable ? 'cursor-pointer' : '',
+                'pointer-events-none absolute -inset-[10px] rounded-xl ring-2 ring-black/20 dark:ring-white/30 bg-black/[0.02] dark:bg-white/[0.03] transition-opacity duration-150 z-10',
+                (editor.isActive('imageBlock') || isResizing)
+                  ? 'opacity-100'
+                  : 'opacity-0 group-hover/image:opacity-100',
               )}
-              draggable={editorEditable}
             />
           )}
 
-          {/* Notion-style 10px Padded Symmetric Glass Ring Overlay on Hover */}
-          {!hasError && !isLoading && (
-            <div className="pointer-events-none absolute -inset-[10px] rounded-xl ring-1 ring-black/15 dark:ring-white/25 opacity-0 group-hover/image:opacity-100 transition-opacity duration-150 z-10" />
-          )}
-
-          {/* Error / Fallback Card */}
-          {hasError && !isExternalImage && (
-            <div className="w-full flex flex-col items-center justify-center bg-black/[0.02] dark:bg-white/[0.03] backdrop-blur-md text-zinc-500 rounded-lg p-6 border border-dashed border-black/15 dark:border-white/15 gap-2 z-[2]">
-              <Icon name="ImageOff" className="w-8 h-8 text-zinc-400 dark:text-zinc-500" />
-              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">이미지를 불러올 수 없습니다</span>
-              {editorEditable && (
-                <button
-                  type="button"
-                  onClick={handleReupload}
-                  className="mt-1 px-3 py-1 bg-zinc-800 hover:bg-zinc-700 dark:bg-zinc-200 dark:hover:bg-zinc-300 text-white dark:text-zinc-900 rounded-md text-xs font-medium transition-colors shadow-sm"
-                >
-                  다시 업로드
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* External Image Fallback */}
-          {isExternalImage && (
-            <div className="w-full flex flex-col items-center justify-center p-6 bg-black/[0.02] dark:bg-white/[0.03] backdrop-blur-md rounded-lg border border-dashed border-black/15 dark:border-white/15 gap-2 z-[2]">
-              <Icon name="ImageOff" className="w-8 h-8 text-zinc-400 dark:text-zinc-500" />
-              <div className="text-xs text-zinc-500 dark:text-zinc-400">외부 이미지를 표시할 수 없습니다</div>
-              {editorEditable && (
-                <button
-                  type="button"
-                  onClick={handleReupload}
-                  className="mt-1 px-3 py-1 bg-zinc-800 hover:bg-zinc-700 dark:bg-zinc-200 dark:hover:bg-zinc-300 text-white dark:text-zinc-900 rounded-md text-xs font-medium transition-colors shadow-sm"
-                >
-                  다시 업로드
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Floating '+ 캡션 추가' Button on Hover (Perfect margin-based horizontal center) */}
+          {/* Floating '+ 캡션 추가' Button on Hover */}
           {editorEditable && !showCaption && !hasError && !isLoading && (
             <button
               type="button"
@@ -239,41 +249,41 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
               <span>캡션 추가</span>
             </button>
           )}
+
+          {/* Notion-style Left Pill Resize Handle (Locked to image center, unaffected by caption) */}
+          {editorEditable && !hasError && !isLoading && (
+            <div
+              onMouseDown={handleResizeStart('left')}
+              className={cn(
+                'tiptap-image-handle left absolute left-1.5 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150',
+                'bg-white dark:bg-white border border-black/30 dark:border-black/50 shadow-[0_0_0_1.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.5)]',
+                isResizing
+                  ? 'opacity-100 scale-110 bg-white dark:bg-white ring-2 ring-blue-500'
+                  : 'opacity-0 group-hover/image:opacity-100',
+              )}
+              title="Resize width"
+              role="slider"
+              aria-label="Resize image width left"
+            />
+          )}
+
+          {/* Notion-style Right Pill Resize Handle (Locked to image center, unaffected by caption) */}
+          {editorEditable && !hasError && !isLoading && (
+            <div
+              onMouseDown={handleResizeStart('right')}
+              className={cn(
+                'tiptap-image-handle right absolute right-1.5 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150',
+                'bg-white dark:bg-white border border-black/30 dark:border-black/50 shadow-[0_0_0_1.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.5)]',
+                isResizing
+                  ? 'opacity-100 scale-110 bg-white dark:bg-white ring-2 ring-blue-500'
+                  : 'opacity-0 group-hover/image:opacity-100',
+              )}
+              title="Resize width"
+              role="slider"
+              aria-label="Resize image width right"
+            />
+          )}
         </div>
-
-        {/* Notion-style Left Pill Resize Handle (Directly attached to image boundary) */}
-        {editorEditable && !hasError && !isLoading && (
-          <div
-            onMouseDown={handleResizeStart('left')}
-            className={cn(
-              'tiptap-image-handle left absolute left-1.5 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150',
-              'bg-white dark:bg-white border border-black/30 dark:border-black/50 shadow-[0_0_0_1.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.5)]',
-              isResizing
-                ? 'opacity-100 scale-110 bg-white dark:bg-white ring-2 ring-blue-500'
-                : 'opacity-0 group-hover:opacity-100',
-            )}
-            title="Resize width"
-            role="slider"
-            aria-label="Resize image width left"
-          />
-        )}
-
-        {/* Notion-style Right Pill Resize Handle (Directly attached to image boundary) */}
-        {editorEditable && !hasError && !isLoading && (
-          <div
-            onMouseDown={handleResizeStart('right')}
-            className={cn(
-              'tiptap-image-handle right absolute right-1.5 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150',
-              'bg-white dark:bg-white border border-black/30 dark:border-black/50 shadow-[0_0_0_1.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.5)]',
-              isResizing
-                ? 'opacity-100 scale-110 bg-white dark:bg-white ring-2 ring-blue-500'
-                : 'opacity-0 group-hover:opacity-100',
-            )}
-            title="Resize width"
-            role="slider"
-            aria-label="Resize image width right"
-          />
-        )}
 
         {/* Notion-style Inline Caption (0px height when empty and not editing) */}
         {showCaption && (

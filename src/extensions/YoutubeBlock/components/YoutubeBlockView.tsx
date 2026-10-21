@@ -13,6 +13,13 @@ interface YoutubeBlockViewProps extends NodeViewProps {
   updateAttributes: (attrs: Record<string, any>) => void
 }
 
+function getYoutubeVideoId(url: string): string | null {
+  if (!url) return null
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+  const match = url.match(regExp)
+  return match && match[2].length === 11 ? match[2] : null
+}
+
 export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
   editor,
   getPos,
@@ -24,9 +31,13 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
 
   const [isResizing, setIsResizing] = useState(false)
   const [isEditingCaption, setIsEditingCaption] = useState(false)
+  const [isPlayingInEdit, setIsPlayingInEdit] = useState(false)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const captionInputRef = useRef<HTMLInputElement>(null)
+
+  const videoId = useMemo(() => getYoutubeVideoId(src), [src])
+  const thumbnailUrl = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null
 
   const onSelectBlock = useCallback(
     (event: React.MouseEvent) => {
@@ -112,6 +123,8 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
     !isResizing && 'transition-all duration-200',
   )
 
+  const isSelected = editor.isActive('youtube')
+
   return (
     <NodeViewWrapper className="w-full my-4">
       <div
@@ -123,81 +136,106 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
         }}
         data-drag-handle
       >
-        {/* Main video container */}
-        <div
-          data-youtube-video="true"
-          className="relative rounded-xl overflow-hidden group/youtube w-full aspect-video flex flex-col leading-none bg-black/[0.04] dark:bg-white/[0.04] shadow-sm"
-        >
-          {/* YouTube iframe */}
-          <iframe
-            src={formatYoutubeEmbedUrl(src)}
-            title={caption || 'YouTube video'}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
+        {/* Main video outer container: overflow-visible so the -inset-[10px] ring is not clipped */}
+        <div className="relative group/youtube w-full flex flex-col p-0 m-0 leading-none">
+          {/* Inner video frame: clipped with rounded-xl */}
+          <div
+            data-youtube-video="true"
+            className="relative rounded-xl overflow-hidden w-full aspect-video flex flex-col leading-none bg-black/[0.04] dark:bg-white/[0.04] shadow-sm cursor-pointer"
+            onClick={onSelectBlock}
+          >
+            {/* Edit Mode: High-res Facade Preview to eliminate cross-origin 🔗 link icon */}
+            {editorEditable && !isPlayingInEdit ? (
+              <div className="relative w-full h-full bg-neutral-900 flex items-center justify-center overflow-hidden">
+                {thumbnailUrl ? (
+                  <img
+                    src={thumbnailUrl}
+                    alt={caption || 'YouTube video preview'}
+                    className="w-full h-full object-cover opacity-90 select-none"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-neutral-800 flex items-center justify-center">
+                    <Icon name="Play" className="w-12 h-12 text-white/50" />
+                  </div>
+                )}
+
+                {/* Glassmorphism Play Icon overlay */}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors">
+                  <div className="w-14 h-14 rounded-full bg-white/80 dark:bg-black/70 backdrop-blur-md shadow-xl flex items-center justify-center text-zinc-900 dark:text-white border border-white/40 dark:border-white/20 transition-transform group-hover/youtube:scale-110">
+                    <Icon name="Play" className="w-6 h-6 ml-1 fill-current" />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Read Mode (or active playback): Render actual iframe */
+              <iframe
+                src={formatYoutubeEmbedUrl(src)}
+                title={caption || 'YouTube video'}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className={cn(
+                  'w-full h-full border-0 rounded-xl block',
+                  isResizing ? 'pointer-events-none' : '',
+                )}
+              />
+            )}
+          </div>
+
+          {/* YouTube-style 10px Padded Symmetric Glass Ring Overlay on Hover / Active Selection */}
+          <div
             className={cn(
-              'w-full h-full border-0 rounded-xl block',
-              isResizing ? 'pointer-events-none' : '',
+              'pointer-events-none absolute -inset-[10px] rounded-2xl ring-2 ring-black/20 dark:ring-white/30 bg-black/[0.02] dark:bg-white/[0.03] transition-opacity duration-150 z-20',
+              isSelected || isResizing ? 'opacity-100' : 'opacity-0 group-hover/youtube:opacity-100',
             )}
           />
 
-          {/* Edit mode: Transparent click overlay to prevent accidental playback & trigger selection */}
-          {editorEditable && (
-            <div
-              onClick={onSelectBlock}
-              className="absolute inset-0 z-10 cursor-pointer bg-transparent"
-              title="클릭하여 유튜브 블록 선택"
-            />
-          )}
-
-          {/* YouTube-style 10px Padded Symmetric Glass Ring Overlay on Hover / Active Selection */}
-          <div className="pointer-events-none absolute -inset-[10px] rounded-2xl ring-1 ring-black/15 dark:ring-white/25 opacity-0 group-hover:opacity-100 group-hover/youtube:opacity-100 transition-opacity duration-150 z-20" />
-
-          {/* Floating '+ 캡션 추가' Button on Hover (Perfect margin-based horizontal center) */}
+          {/* Floating '+ 캡션 추가' Button on Hover */}
           {editorEditable && !showCaption && (
             <button
               type="button"
               onClick={handleAddCaption}
-              className="opacity-0 group-hover:opacity-100 group-hover/youtube:opacity-100 transition-all duration-200 absolute bottom-3 left-0 right-0 mx-auto w-fit px-2.5 py-1 rounded-full text-xs font-medium text-zinc-700 dark:text-zinc-200 bg-white/85 dark:bg-[#1e1e1e]/85 backdrop-blur-md shadow-md border border-black/10 dark:border-white/10 hover:bg-white dark:hover:bg-[#252525] hover:scale-105 active:scale-95 flex items-center gap-1.5 z-30 cursor-pointer whitespace-nowrap"
+              className="opacity-0 group-hover/youtube:opacity-100 transition-all duration-200 absolute bottom-3 left-0 right-0 mx-auto w-fit px-2.5 py-1 rounded-full text-xs font-medium text-zinc-700 dark:text-zinc-200 bg-white/85 dark:bg-[#1e1e1e]/85 backdrop-blur-md shadow-md border border-black/10 dark:border-white/10 hover:bg-white dark:hover:bg-[#252525] hover:scale-105 active:scale-95 flex items-center gap-1.5 z-30 cursor-pointer whitespace-nowrap"
             >
               <Icon name="Captions" className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
               <span>캡션 추가</span>
             </button>
           )}
+
+          {/* Notion-style Left Pill Resize Handle (Locked to pure video center, unaffected by caption) */}
+          {editorEditable && (
+            <div
+              onMouseDown={handleResizeStart('left')}
+              className={cn(
+                'tiptap-image-handle left absolute left-1.5 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150',
+                'bg-white dark:bg-white border border-black/30 dark:border-black/50 shadow-[0_0_0_1.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.5)]',
+                isResizing
+                  ? 'opacity-100 scale-110 bg-white dark:bg-white ring-2 ring-blue-500'
+                  : 'opacity-0 group-hover/youtube:opacity-100',
+              )}
+              title="Resize width"
+              role="slider"
+              aria-label="Resize video width left"
+            />
+          )}
+
+          {/* Notion-style Right Pill Resize Handle (Locked to pure video center, unaffected by caption) */}
+          {editorEditable && (
+            <div
+              onMouseDown={handleResizeStart('right')}
+              className={cn(
+                'tiptap-image-handle right absolute right-1.5 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150',
+                'bg-white dark:bg-white border border-black/30 dark:border-black/50 shadow-[0_0_0_1.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.5)]',
+                isResizing
+                  ? 'opacity-100 scale-110 bg-white dark:bg-white ring-2 ring-blue-500'
+                  : 'opacity-0 group-hover/youtube:opacity-100',
+              )}
+              title="Resize width"
+              role="slider"
+              aria-label="Resize video width right"
+            />
+          )}
         </div>
-
-        {/* Notion-style Left Pill Resize Handle */}
-        {editorEditable && (
-          <div
-            onMouseDown={handleResizeStart('left')}
-            className={cn(
-              'tiptap-image-handle left absolute left-1.5 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150',
-              'bg-white dark:bg-white border border-black/30 dark:border-black/50 shadow-[0_0_0_1.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.5)]',
-              isResizing
-                ? 'opacity-100 scale-110 bg-white dark:bg-white ring-2 ring-blue-500'
-                : 'opacity-0 group-hover:opacity-100',
-            )}
-            title="Resize width"
-            role="slider"
-            aria-label="Resize video width left"
-          />
-        )}
-
-        {/* Notion-style Right Pill Resize Handle */}
-        {editorEditable && (
-          <div
-            onMouseDown={handleResizeStart('right')}
-            className={cn(
-              'tiptap-image-handle right absolute right-1.5 top-1/2 -translate-y-1/2 w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150',
-              'bg-white dark:bg-white border border-black/30 dark:border-black/50 shadow-[0_0_0_1.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.5)]',
-              isResizing
-                ? 'opacity-100 scale-110 bg-white dark:bg-white ring-2 ring-blue-500'
-                : 'opacity-0 group-hover:opacity-100',
-            )}
-            title="Resize width"
-            role="slider"
-            aria-label="Resize video width right"
-          />
-        )}
 
         {/* Notion-style Inline Caption (0px height when empty and not editing) */}
         {showCaption && (
