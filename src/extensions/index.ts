@@ -24,7 +24,7 @@ export { TaskItem } from '@tiptap/extension-task-item'
 export { TaskList } from '@tiptap/extension-task-list'
 // export { FileHandler } from '@tiptap-pro/extension-file-handler'
 // export { UniqueID } from '@tiptap-pro/extension-unique-id'
-export { Youtube } from '@tiptap/extension-youtube'
+export { YoutubeBlock, YoutubeBlock as Youtube } from './YoutubeBlock'
 
 export { Selection } from './Selection'
 // export { AiWriter } from './AiWriter'

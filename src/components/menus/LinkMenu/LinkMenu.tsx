@@ -17,7 +17,7 @@ export const LinkMenu = ({ editor, appendTo, onLinkClick = () => false, disableD
   })
 
   const shouldShow = useCallback(() => {
-    const isActive = editor.isActive('link')
+    const isActive = editor.isActive('link') && !editor.isActive('youtube') && !editor.isActive('imageBlock')
     return isActive
   }, [editor])
 

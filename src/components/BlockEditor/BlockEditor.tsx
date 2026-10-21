@@ -7,6 +7,7 @@ import { EditorContent, useEditorState } from '@tiptap/react'
 import React, { useRef, useEffect, useCallback, useState } from 'react'
 
 import ImageBlockMenu from '@/extensions/ImageBlock/components/ImageBlockMenu'
+import YoutubeBlockMenu from '@/extensions/YoutubeBlock/components/YoutubeBlockMenu'
 import { TableColumnMenu, TableRowMenu, TableCellMenu } from '@/extensions/Table/menus'
 import { TableAddButtons } from '@/extensions/Table/components/TableAddButtons'
 import { TextMenu } from '@/components/menus/TextMenu'
@@ -268,6 +269,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
               <TableCellMenu editor={editor} appendTo={menuContainerRef} />
               <TableAddButtons editor={editor} />
               <ImageBlockMenu editor={editor} appendTo={menuContainerRef} />
+              <YoutubeBlockMenu editor={editor} appendTo={menuContainerRef} />
             </>
           )}
         </div>
