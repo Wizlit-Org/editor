@@ -117,17 +117,17 @@ export const MenuList = React.forwardRef((props: MenuListProps, ref) => {
   }
 
   return (
-    <div className="flex flex-col gap-1.5 mb-8">
-      {/* 1. /Filter... Pill Header */}
-      <div className="w-fit px-2.5 py-0.5 rounded-md bg-white/80 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 text-xs font-mono font-medium border border-black/5 dark:border-white/10 select-none shadow-sm backdrop-blur-md">
-        /Filter...
-      </div>
-
-      {/* 2. Glassmorphism Popover Menu */}
+    <div className="flex flex-col mb-8">
+      {/* Glassmorphism Popover Menu */}
       <div
         ref={scrollContainer}
         className="glass-menu text-zinc-800 dark:text-zinc-200 max-h-[min(70vh,22rem)] w-64 min-w-[15rem] overflow-y-auto p-1.5 shadow-2xl z-50 outline-none rounded-2xl bg-white/90 dark:bg-[#202020]/95 backdrop-blur-xl border border-black/5 dark:border-white/10"
       >
+        {/* Unified Top Header Caption */}
+        <div className="px-2.5 py-1 mb-1 border-b border-black/5 dark:border-white/10 text-[11px] font-mono text-zinc-400 dark:text-zinc-500 flex items-center justify-between select-none">
+          <span>명령어 검색</span>
+          <span className="text-[10px] opacity-70">/Filter...</span>
+        </div>
         <div className="flex flex-col gap-0.5">
           {props.items.map((group, groupIndex: number) => (
             <React.Fragment key={`${group.title}-wrapper`}>

@@ -156,8 +156,8 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
         }}
         data-drag-handle
       >
-        {/* Main image container */}
-        <div className="relative rounded-lg overflow-hidden group/image w-full flex flex-col leading-none bg-black/[0.02] dark:bg-white/[0.02]">
+        {/* Main image container: 0px baseline gap, perfectly symmetric */}
+        <div className="relative rounded-lg overflow-hidden group/image w-full flex flex-col p-0 m-0 leading-none bg-black/[0.02] dark:bg-white/[0.02]">
           {/* Loading Skeleton */}
           {isLoading && !hasError && (
             <div className="w-full aspect-video min-h-[140px] rounded-lg bg-black/[0.04] dark:bg-white/[0.04] backdrop-blur-sm animate-pulse flex flex-col items-center justify-center gap-2 border border-black/5 dark:border-white/5">
@@ -180,7 +180,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
                 setHasError(true)
               }}
               className={cn(
-                'block w-full min-w-full h-auto rounded-lg transition-all duration-200',
+                'block w-full min-w-full h-auto rounded-lg object-contain m-0 p-0 transition-all duration-200',
                 isLoading ? 'opacity-0 h-0 overflow-hidden absolute pointer-events-none' : 'opacity-100',
                 !editorEditable ? 'cursor-pointer' : '',
               )}
@@ -188,9 +188,9 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
             />
           )}
 
-          {/* Subtle YouTube-style Glass Ring Overlay on Hover */}
+          {/* Subtle YouTube-style 0px Symmetric Glass Ring Overlay on Hover */}
           {!hasError && !isLoading && (
-            <div className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-inset ring-black/10 dark:ring-white/15 opacity-0 group-hover/image:opacity-100 transition-opacity duration-200" />
+            <div className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-inset ring-black/10 dark:ring-white/15 opacity-0 group-hover/image:opacity-100 transition-opacity duration-150 z-10" />
           )}
 
           {/* Error / Fallback Card */}
@@ -227,12 +227,12 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
             </div>
           )}
 
-          {/* Floating '+ 캡션 추가' Button on Hover */}
+          {/* Floating '+ 캡션 추가' Button on Hover (Perfect horizontal center) */}
           {editorEditable && !showCaption && !hasError && !isLoading && (
             <button
               type="button"
               onClick={handleAddCaption}
-              className="opacity-0 group-hover/image:opacity-100 transition-all duration-200 absolute bottom-3 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full text-xs font-medium text-zinc-700 dark:text-zinc-200 bg-white/85 dark:bg-[#1e1e1e]/85 backdrop-blur-md shadow-md border border-black/10 dark:border-white/10 hover:bg-white dark:hover:bg-[#252525] hover:scale-105 active:scale-95 flex items-center gap-1.5 z-20 cursor-pointer"
+              className="opacity-0 group-hover/image:opacity-100 transition-all duration-200 absolute bottom-3 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full text-xs font-medium text-zinc-700 dark:text-zinc-200 bg-white/85 dark:bg-[#1e1e1e]/85 backdrop-blur-md shadow-md border border-black/10 dark:border-white/10 hover:bg-white dark:hover:bg-[#252525] hover:scale-105 active:scale-95 flex items-center gap-1.5 z-20 cursor-pointer whitespace-nowrap"
             >
               <Icon name="Captions" className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
               <span>캡션 추가</span>

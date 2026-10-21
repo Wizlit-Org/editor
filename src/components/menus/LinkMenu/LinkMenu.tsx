@@ -17,7 +17,9 @@ export const LinkMenu = ({ editor, appendTo, onLinkClick = () => false, disableD
   })
 
   const shouldShow = useCallback(() => {
-    const isActive = editor.isActive('link') && !editor.isActive('youtube') && !editor.isActive('imageBlock')
+    const isMedia = editor.isActive('youtube') || editor.isActive('imageBlock') || editor.state.doc.nodeAt(editor.state.selection.from)?.type.name === 'youtube'
+    if (isMedia) return false
+    const isActive = editor.isActive('link')
     return isActive
   }, [editor])
 

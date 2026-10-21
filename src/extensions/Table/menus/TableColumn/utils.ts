@@ -33,15 +33,7 @@ export const isColumnGripSelected = ({
     return false
   }
 
-  // 3. Must have an active grip-column with .selected class in the DOM
-  // (Meaning the user explicitly clicked the ··· column grip pill)
-  const editorDom = view.dom
-  const gripColumn = editorDom?.querySelector('a.grip-column.selected')
-  if (!gripColumn) {
-    return false
-  }
-
-  // 4. Ensure it's purely a single column selection
+  // 3. Ensure it's purely a single column selection
   if (isCellSelection(selection)) {
     try {
       const map = TableMap.get(selection.$anchorCell.node(-1))

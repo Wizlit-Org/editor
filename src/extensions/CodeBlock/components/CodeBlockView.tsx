@@ -122,23 +122,34 @@ export const CodeBlockView = ({ editor, node, getPos, updateAttributes, extensio
 
   return (
     <NodeViewWrapper spellCheck="false" className="relative group my-4">
-      <div className="rounded-xl overflow-hidden bg-[#18181b]/95 backdrop-blur-md border border-white/10 shadow-xl transition-all">
-        {/* Code Header Bar: Language Badge on Left, Action Buttons on Right */}
-        <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/[0.08] bg-white/[0.02]">
-          <div className="relative" ref={buttonPositionRef}>
-            <button
-              type="button"
-              onClick={() => setIsOpen(prev => !prev)}
-              tabIndex={-1}
-              className={cn(
-                'text-[11px] font-mono px-2 py-0.5 rounded-md transition-colors',
-                editor.isEditable
-                  ? 'text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10'
-                  : 'text-zinc-400 pointer-events-none',
-              )}
-            >
-              {language}
-            </button>
+      <div className="rounded-xl overflow-hidden bg-zinc-900/85 dark:bg-[#18181b]/80 backdrop-blur-xl border border-black/10 dark:border-white/15 shadow-2xl transition-all ring-1 ring-black/5 dark:ring-white/5">
+        {/* Code Header Bar: macOS 3-dot + Language Badge on Left, Action Buttons on Right */}
+        <div className="flex items-center justify-between px-3.5 py-2 border-b border-white/[0.08] bg-white/[0.03]">
+          <div className="flex items-center gap-2.5">
+            {/* macOS 3-dot decoration */}
+            <div className="flex items-center gap-1.5 select-none" aria-hidden="true">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500/80 inline-block" />
+              <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80 inline-block" />
+              <span className="w-2.5 h-2.5 rounded-full bg-green-500/80 inline-block" />
+            </div>
+
+            <div className="h-3 w-[1px] bg-white/10 mx-0.5" />
+
+            <div className="relative" ref={buttonPositionRef}>
+              <button
+                type="button"
+                onClick={() => setIsOpen(prev => !prev)}
+                tabIndex={-1}
+                className={cn(
+                  'text-[11px] font-mono px-2 py-0.5 rounded-md transition-colors',
+                  editor.isEditable
+                    ? 'text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10'
+                    : 'text-zinc-400 pointer-events-none',
+                )}
+              >
+                {language}
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center gap-1">

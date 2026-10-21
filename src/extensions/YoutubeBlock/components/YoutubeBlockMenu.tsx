@@ -9,6 +9,10 @@ import { getRenderContainer } from '@/lib/utils'
 const YOUTUBE_BLOCK_MENU_OPTIONS = {
   offset: 8,
   flip: false,
+  tippyOptions: {
+    interactive: true,
+    delay: [0, 300],
+  },
 }
 
 export const YoutubeBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => {
@@ -18,7 +22,9 @@ export const YoutubeBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element =
   const [urlInput, setUrlInput] = useState('')
 
   const getReferenceClientRect = useCallback(() => {
-    const renderContainer = getRenderContainer(editor, 'node-youtube')
+    const renderContainer =
+      getRenderContainer(editor, 'node-youtube') ||
+      editor.view?.dom?.querySelector('.node-youtube, [data-youtube-video]')
     const rect = renderContainer?.getBoundingClientRect() || new DOMRect(-1000, -1000, 0, 0)
 
     return rect

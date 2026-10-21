@@ -114,11 +114,14 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
     }
   }, [data.currentNode, data.currentNodePos, editor])
 
+  // Hide handle inside table cell only if it's NOT the table block itself
+  const shouldHideHandle = isInsideTableCell && data.currentNode?.type?.name !== 'table'
+
   useEffect(() => {
-    if (isInsideTableCell && menuOpen) {
+    if (shouldHideHandle && menuOpen) {
       setMenuOpen(false)
     }
-  }, [isInsideTableCell, menuOpen])
+  }, [shouldHideHandle, menuOpen])
 
   // Mousemove guard: whenever cursor enters a table cell/header/row, hide DragHandle immediately
   // Nested configuration with blockStructureGuard:
@@ -247,9 +250,9 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
     >
       <div
         className={`w-12 h-8 flex items-center justify-center gap-0.5 transition-opacity duration-150 ease-out ${
-          isInsideTableCell ? 'hidden pointer-events-none opacity-0 !w-0 !h-0 overflow-hidden' : ''
+          shouldHideHandle ? 'hidden pointer-events-none opacity-0 !w-0 !h-0 overflow-hidden' : ''
         }`}
-        style={isInsideTableCell ? { display: 'none', pointerEvents: 'none', visibility: 'hidden' } : undefined}
+        style={shouldHideHandle ? { display: 'none', pointerEvents: 'none', visibility: 'hidden' } : undefined}
       >
         <button
           type="button"

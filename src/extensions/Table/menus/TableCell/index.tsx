@@ -91,16 +91,17 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         if (r.right > maxRight) maxRight = r.right
       })
 
+      const centerY = (minTop + maxBottom) / 2
       return {
         getBoundingClientRect: () => ({
-          top: minTop,
-          bottom: minTop,
+          top: centerY,
+          bottom: centerY,
           left: maxRight,
           right: maxRight,
           width: 0,
           height: 0,
           x: maxRight,
-          y: minTop,
+          y: centerY,
           toJSON: () => {},
         }),
       }
@@ -179,16 +180,11 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
             <Popover.Trigger asChild>
               <button
                 type="button"
-                className="w-4 h-4 -ml-2 -mt-2 rounded bg-white dark:bg-[#1e1e1e] border border-blue-500 shadow-md hover:scale-125 cursor-pointer transition-transform flex items-center justify-center p-0.5 outline-none z-30"
+                className="w-6 h-6 -ml-3 -mt-3 rounded-full bg-white dark:bg-[#202020] border border-blue-500 shadow-md hover:scale-110 active:scale-95 cursor-pointer transition-all flex items-center justify-center p-0 outline-none z-30 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30"
                 title="Table cells option"
                 aria-label="Table cells option"
               >
-                <div className="grid grid-cols-2 gap-0.5 pointer-events-none">
-                  <span className="w-1 h-1 rounded-full bg-blue-500" />
-                  <span className="w-1 h-1 rounded-full bg-blue-500" />
-                  <span className="w-1 h-1 rounded-full bg-blue-500" />
-                  <span className="w-1 h-1 rounded-full bg-blue-500" />
-                </div>
+                <Icon name="MoreHorizontal" className="w-3.5 h-3.5" />
               </button>
             </Popover.Trigger>
             <Popover.Content

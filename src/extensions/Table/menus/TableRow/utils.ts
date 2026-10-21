@@ -33,15 +33,7 @@ export const isRowGripSelected = ({
     return false
   }
 
-  // 3. Must have an active grip-row with .selected class in the DOM
-  // (Meaning the user explicitly clicked the ⋮ row grip pill)
-  const editorDom = view.dom
-  const gripRow = editorDom?.querySelector('a.grip-row.selected')
-  if (!gripRow) {
-    return false
-  }
-
-  // 4. Ensure it's purely a single row selection
+  // 3. Ensure it's purely a single row selection
   if (isCellSelection(selection)) {
     try {
       const map = TableMap.get(selection.$anchorCell.node(-1))
