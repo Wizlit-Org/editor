@@ -16,7 +16,10 @@
   }
 
   h3 {
-    @apply text-xl;
+    font-size: 18px;
+    line-height: 27px;
+    margin-top: 36px;
+    margin-bottom: 0px;
   }
 
   h4 {
@@ -41,8 +44,7 @@
   }
 
   h1,
-  h2,
-  h3 {
+  h2 {
     @apply mt-12;
   }
 

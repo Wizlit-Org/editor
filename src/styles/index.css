@@ -19,8 +19,8 @@
 }
 
 .ProseMirror {
-  color: var(--editor-text, #18181b);
-  caret-color: var(--editor-caret, #18181b);
+  color: var(--editor-text, #222325);
+  caret-color: var(--editor-caret, #222325);
   outline: 0 !important;
   z-index: 0;
   margin-left: auto;
@@ -62,7 +62,7 @@
     margin-right: auto;
 
     &:after {
-      border-top: 1px solid var(--editor-caret, #18181b);
+      border-top: 1px solid var(--editor-caret, #222325);
       opacity: 0.4;
       width: 100%;
       top: -1.5em;
@@ -82,9 +82,9 @@
 :root,
 .theme-light {
   --editor-bg: #ffffff;
-  --editor-text: #18181b;
+  --editor-text: #222325;
   --editor-subtext: #71717a;
-  --editor-caret: #18181b;
+  --editor-caret: #222325;
   --editor-selection: rgba(0, 0, 0, 0.1);
   --editor-divider: rgba(0, 0, 0, 0.08);
 
@@ -186,7 +186,7 @@
 
 .notion-light-canvas {
   background-color: #ffffff;
-  color: #18181b;
+  color: #222325;
 }
 
 .notion-dark-canvas {
@@ -197,4 +197,3 @@
 [data-theme='slash-command'] {
   width: 1000vw;
 }
-
