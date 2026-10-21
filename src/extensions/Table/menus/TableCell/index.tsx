@@ -1,5 +1,6 @@
 import { BubbleMenu as BaseBubbleMenu } from '@tiptap/react/menus'
 import React, { useCallback, useState, useEffect, useRef, JSX } from 'react'
+import { createPortal } from 'react-dom'
 import * as Popover from '@radix-ui/react-popover'
 import { CellSelection } from '@tiptap/pm/tables'
 import { isCellSelection } from '../../utils'
@@ -89,11 +90,13 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   useEffect(() => {
     updateSelectionRect()
     editor.on('selectionUpdate', updateSelectionRect)
+    editor.on('transaction', updateSelectionRect)
     window.addEventListener('scroll', updateSelectionRect, { passive: true, capture: true })
     window.addEventListener('resize', updateSelectionRect, { passive: true })
 
     return () => {
       editor.off('selectionUpdate', updateSelectionRect)
+      editor.off('transaction', updateSelectionRect)
       window.removeEventListener('scroll', updateSelectionRect, { capture: true })
       window.removeEventListener('resize', updateSelectionRect)
     }
@@ -244,17 +247,22 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   return (
     <>
       {/* 1. Selection Perimeter Continuous 2px Outline (Notion Style point border) */}
-      {isCellSelected && !editor.view?.dragging && selectionRect && (
-        <div
-          className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-20 border-2 border-indigo-500/80 dark:border-violet-400/80 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
-          style={{
-            top: selectionRect.top,
-            left: selectionRect.left,
-            width: selectionRect.width,
-            height: selectionRect.height,
-          }}
-        />
-      )}
+      {typeof document !== 'undefined' &&
+        selectionRect &&
+        !editor.view?.dragging &&
+        (isCellSelected || editor.isActive('tableCell') || editor.isActive('tableHeader')) &&
+        createPortal(
+          <div
+            className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[1390] border-2 border-indigo-500/85 dark:border-violet-400/85 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
+            style={{
+              top: selectionRect.top,
+              left: selectionRect.left,
+              width: selectionRect.width,
+              height: selectionRect.height,
+            }}
+          />,
+          document.body,
+        )}
 
       {/* 2. BubbleMenu with Expandable 4-dot Circle Trigger (8px -> 16px) */}
       <BaseBubbleMenu

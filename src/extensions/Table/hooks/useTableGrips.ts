@@ -28,6 +28,8 @@ export function useTableGrips(editor: Editor) {
   const [rowGrips, setRowGrips] = useState<GripItem[]>([])
   const [hoveredColIndex, setHoveredColIndex] = useState<number | null>(null)
   const [hoveredRowIndex, setHoveredRowIndex] = useState<number | null>(null)
+  const [showRightAddBar, setShowRightAddBar] = useState(false)
+  const [showBottomAddBar, setShowBottomAddBar] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
 
   const hoverTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -158,15 +160,37 @@ export function useTableGrips(editor: Editor) {
 
           // Detect which single column and row are hovered
           const td = target.closest('td, th') as HTMLElement | null
+          let activeCol = hoveredColIndex
+          let activeRow = hoveredRowIndex
           if (td) {
             const tr = td.parentElement as HTMLTableRowElement | null
             if (tr) {
               const rowIdx = Array.from(currentTableEl.querySelectorAll('tr')).indexOf(tr)
               const colIdx = Array.from(tr.children).indexOf(td)
-              if (rowIdx >= 0) setHoveredRowIndex(rowIdx)
-              if (colIdx >= 0) setHoveredColIndex(colIdx)
+              if (rowIdx >= 0) {
+                setHoveredRowIndex(rowIdx)
+                activeRow = rowIdx
+              }
+              if (colIdx >= 0) {
+                setHoveredColIndex(colIdx)
+                activeCol = colIdx
+              }
             }
           }
+
+          // Right column add bar visibility:
+          // Visible only when hovering the last column, or mouse near right edge (within 24px), or hovering the bar itself
+          const isLastCol = activeCol !== null && columnGrips.length > 0 && activeCol === columnGrips.length - 1
+          const isNearRightEdge = e.clientX >= r.right - 24 && e.clientX <= r.right + 24
+          const inRightBar = Boolean(target.closest('[aria-label="Add column at end"]'))
+          setShowRightAddBar(Boolean(isLastCol || isNearRightEdge || inRightBar))
+
+          // Bottom row add bar visibility:
+          // Visible only when hovering the last row, or mouse near bottom edge (within 24px), or hovering the bar itself
+          const isLastRow = activeRow !== null && rowGrips.length > 0 && activeRow === rowGrips.length - 1
+          const isNearBottomEdge = e.clientY >= r.bottom - 24 && e.clientY <= r.bottom + 24
+          const inBottomBar = Boolean(target.closest('[aria-label="Add row at end"]'))
+          setShowBottomAddBar(Boolean(isLastRow || isNearBottomEdge || inBottomBar))
         } else {
           if (!hoverTimerRef.current) {
             hoverTimerRef.current = setTimeout(() => {
@@ -175,6 +199,8 @@ export function useTableGrips(editor: Editor) {
               setTableRect(null)
               setHoveredColIndex(null)
               setHoveredRowIndex(null)
+              setShowRightAddBar(false)
+              setShowBottomAddBar(false)
               hoverTimerRef.current = null
             }, 300)
           }
@@ -207,6 +233,8 @@ export function useTableGrips(editor: Editor) {
     rowGrips,
     hoveredColIndex,
     hoveredRowIndex,
+    showRightAddBar,
+    showBottomAddBar,
     isHovered,
     setIsHovered,
     clearHoverTimer,

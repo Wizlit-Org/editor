@@ -178,7 +178,7 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
       middleware: [
         {
           name: 'gutterAlign',
-          fn({ x, y, rects }: any) {
+          fn({ x, y, rects, elements }: any) {
             const pos = currentNodePosRef.current
             const currentNode = currentNodeRef.current
             const nodeType = currentNode?.type?.name
@@ -198,30 +198,42 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               }
             }
 
-            // Safe reference coordinates from Floating UI ({ x, y, width, height })
-            const refLeft = (rects?.reference?.x ?? (rects?.reference as any)?.left) ?? 0
-            const refTop = (rects?.reference?.y ?? (rects?.reference as any)?.top) ?? 0
+            // Viewport rect of the reference element (VirtualElement or DOM element)
+            const refEl = elements?.reference as any
+            const refViewportRect: { top: number; left: number; width: number; height: number } | null =
+              refEl && typeof refEl.getBoundingClientRect === 'function'
+                ? refEl.getBoundingClientRect()
+                : null
 
-            // Fixed X gutter aligned with editor ProseMirror content left edge (prosemirrorLeft - 52px for 48px handle)
+            // Viewport rect of the ProseMirror editor container
             const prosemirrorEl = editor?.view?.dom
             const pmRect = prosemirrorEl?.getBoundingClientRect?.()
-            const targetX = pmRect && rects?.reference
-              ? x - (refLeft - (pmRect.left - 52))
-              : x - 52
+
+            // Calculate horizontal deltaX to align handle at editor gutter (pmRect.left - 56px)
+            const floatingWidth = rects?.floating?.width || 48
+            let targetX = x
+            if (pmRect && refViewportRect) {
+              const defaultHandleViewportX = refViewportRect.left - floatingWidth
+              const desiredHandleViewportX = pmRect.left - 56
+              const deltaX = desiredHandleViewportX - defaultHandleViewportX
+              targetX = x + deltaX
+            } else {
+              targetX = x - 52
+            }
 
             // Vertical Y alignment:
             // Case A: Table block (single stationary handle at table top-left)
             if (nodeType === 'table' || dom?.closest('table')) {
               const tableEl = dom?.closest('table') || dom
-              if (tableEl && rects?.reference) {
-                const tableTop = tableEl.getBoundingClientRect().top
-                const deltaTop = tableTop - refTop
+              if (tableEl && refViewportRect) {
+                const targetViewportTop = tableEl.getBoundingClientRect().top
+                const deltaY = targetViewportTop - refViewportRect.top
                 return {
                   x: targetX,
-                  y: y + deltaTop - 16,
+                  y: y + deltaY,
                 }
               }
-              return { x: targetX, y: y - 16 }
+              return { x: targetX, y }
             }
 
             // Case B: List container (bulletList, orderedList, taskList - single handle at list top-left)
@@ -229,15 +241,15 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               nodeType === 'bulletList' ||
               nodeType === 'orderedList' ||
               nodeType === 'taskList' ||
-              dom?.closest('ul, ol')
+              dom?.closest('ul, ol, div[data-type="taskList"]')
             ) {
-              const listEl = dom?.closest('ul, ol') || dom
-              if (listEl && rects?.reference) {
-                const listTop = listEl.getBoundingClientRect().top
-                const deltaTop = listTop - refTop
+              const listEl = dom?.closest('ul, ol, div[data-type="taskList"]') || dom
+              if (listEl && refViewportRect) {
+                const targetViewportTop = listEl.getBoundingClientRect().top
+                const deltaY = targetViewportTop - refViewportRect.top
                 return {
                   x: targetX,
-                  y: y + deltaTop,
+                  y: y + deltaY,
                 }
               }
               return { x: targetX, y }

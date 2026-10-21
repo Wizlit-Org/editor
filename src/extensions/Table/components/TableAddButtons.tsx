@@ -17,6 +17,8 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
     rowGrips,
     hoveredColIndex,
     hoveredRowIndex,
+    showRightAddBar,
+    showBottomAddBar,
     isHovered,
     setIsHovered,
     clearHoverTimer,
@@ -246,6 +248,8 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
       {/* 3. Full-length Right Column & Bottom Row Add Bars */}
       <TableAddBar
         tableRect={tableRect}
+        showRightBar={showRightAddBar}
+        showBottomBar={showBottomAddBar}
         onAddColumn={onAddColumnAtEnd}
         onAddRow={onAddRowAtEnd}
         onHoverKeepAlive={() => {
