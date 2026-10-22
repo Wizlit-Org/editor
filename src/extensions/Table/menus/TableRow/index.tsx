@@ -120,7 +120,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       pluginKey="tableRowMenu"
       updateDelay={0}
       className="z-50"
-      appendTo={typeof document !== 'undefined' ? document.body : undefined}
+      appendTo={appendTo?.current || (typeof document !== 'undefined' ? document.body : undefined)}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={TABLE_ROW_MENU_OPTIONS}
       shouldShow={shouldShow}

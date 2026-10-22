@@ -326,7 +326,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                     </svg>
                   </button>
                 </Popover.Anchor>
-                <Popover.Portal container={typeof document !== 'undefined' ? document.body : undefined}>
+                <Popover.Portal container={appendTo?.current || (typeof document !== 'undefined' ? document.body : undefined)}>
                   <Popover.Content
                     side="right"
                     align="center"
@@ -405,7 +405,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
             </div>
           )}
         </>,
-        typeof document !== 'undefined' ? (document.body as HTMLElement) : (null as any),
+        (appendTo?.current as HTMLElement) || (typeof document !== 'undefined' ? document.body : (null as any)),
       )}
     </>
   )
