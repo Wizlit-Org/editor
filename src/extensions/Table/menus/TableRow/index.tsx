@@ -23,10 +23,8 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
   useEffect(() => {
     const handleUpdate = () => setTick(t => t + 1)
     editor.on('selectionUpdate', handleUpdate)
-    editor.on('transaction', handleUpdate)
     return () => {
       editor.off('selectionUpdate', handleUpdate)
-      editor.off('transaction', handleUpdate)
     }
   }, [editor])
 
@@ -36,7 +34,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
 
   const shouldShow = useCallback(
     ({ view, state, from }: ShouldShowProps) => {
-      if (!state || !from) {
+      if (!state || typeof from !== 'number') {
         return false
       }
 

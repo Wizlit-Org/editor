@@ -25,11 +25,13 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
   useEffect(() => {
     const handleUpdate = () => setTick(t => t + 1)
     editor.on('selectionUpdate', handleUpdate)
-    editor.on('transaction', handleUpdate)
     return () => {
       editor.off('selectionUpdate', handleUpdate)
-      editor.off('transaction', handleUpdate)
     }
+  }, [editor])
+
+  const getReferencedVirtualElement = useCallback(() => {
+    return getColumnAnchorVirtualElement(editor)
   }, [editor])
 
   const shouldShow = useCallback(
@@ -127,7 +129,7 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
       editor={editor}
       pluginKey="tableColumnMenu"
       updateDelay={0}
-      getReferencedVirtualElement={() => getColumnAnchorVirtualElement(editor)}
+      getReferencedVirtualElement={getReferencedVirtualElement}
       options={TABLE_COLUMN_MENU_OPTIONS}
       shouldShow={shouldShow}
     >

@@ -22,11 +22,16 @@ const getCellPosFromDOM = (view: any, cellEl: HTMLElement): number | null => {
 }
 
 export const TableCellMenu = React.memo(({ editor }: MenuProps): JSX.Element => {
+  const [mounted, setMounted] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [isBtnHovered, setIsBtnHovered] = useState(false)
   const [selectionRect, setSelectionRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
   const [isButtonVisible, setIsButtonVisible] = useState(false)
   const isDraggingHandleRef = useRef(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const isCellSelected = isCellSelection(editor.state?.selection)
 
@@ -74,11 +79,22 @@ export const TableCellMenu = React.memo(({ editor }: MenuProps): JSX.Element => 
         return
       }
 
-      setSelectionRect({
-        top: minTop,
-        left: minLeft,
-        width: maxRight - minLeft,
-        height: maxBottom - minTop,
+      setSelectionRect(prev => {
+        if (
+          prev &&
+          prev.top === minTop &&
+          prev.left === minLeft &&
+          prev.width === maxRight - minLeft &&
+          prev.height === maxBottom - minTop
+        ) {
+          return prev
+        }
+        return {
+          top: minTop,
+          left: minLeft,
+          width: maxRight - minLeft,
+          height: maxBottom - minTop,
+        }
       })
 
       // Check horizontal visibility inside tableWrapper
@@ -92,8 +108,8 @@ export const TableCellMenu = React.memo(({ editor }: MenuProps): JSX.Element => 
         setIsButtonVisible(true)
       }
     } else {
-      setSelectionRect(null)
-      setIsButtonVisible(false)
+      setSelectionRect(prev => (prev === null ? prev : null))
+      setIsButtonVisible(prev => (prev === false ? prev : false))
     }
   }, [getActiveCells])
 
@@ -110,13 +126,11 @@ export const TableCellMenu = React.memo(({ editor }: MenuProps): JSX.Element => 
   useEffect(() => {
     updateSelectionRect()
     editor.on('selectionUpdate', updateSelectionRect)
-    editor.on('transaction', updateSelectionRect)
     window.addEventListener('scroll', updateSelectionRect, { passive: true, capture: true })
     window.addEventListener('resize', updateSelectionRect, { passive: true })
 
     return () => {
       editor.off('selectionUpdate', updateSelectionRect)
-      editor.off('transaction', updateSelectionRect)
       window.removeEventListener('scroll', updateSelectionRect, { capture: true })
       window.removeEventListener('resize', updateSelectionRect)
     }
@@ -224,6 +238,7 @@ export const TableCellMenu = React.memo(({ editor }: MenuProps): JSX.Element => 
   const isExpanded = isBtnHovered || menuOpen
 
   const shouldRender =
+    mounted &&
     typeof document !== 'undefined' &&
     selectionRect &&
     !editor.view?.dragging &&

@@ -6,7 +6,7 @@ import { Editor } from '@tiptap/react'
  */
 export const getColumnAnchorVirtualElement = (editor: Editor) => {
   const { view } = editor
-  if (!view?.dom) return null
+  if (typeof window === 'undefined' || !view?.dom) return null
 
   const selectedCells = Array.from(
     view.dom.querySelectorAll('.selectedCell'),
@@ -51,7 +51,7 @@ export const getColumnAnchorVirtualElement = (editor: Editor) => {
  */
 export const getRowAnchorVirtualElement = (editor: Editor) => {
   const { view } = editor
-  if (!view?.dom) return null
+  if (typeof window === 'undefined' || !view?.dom) return null
 
   const selectedCells = Array.from(
     view.dom.querySelectorAll('.selectedCell'),

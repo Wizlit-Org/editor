@@ -16,11 +16,17 @@ export type ContentItemMenuProps = {
 type MenuView = 'main' | 'turnInto'
 
 export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuProps) => {
+  const [mounted, setMounted] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuView, setMenuView] = useState<MenuView>('main')
   const isDraggingRef = useRef(false)
+  const prevMenuOpenRef = useRef(false)
   const data = useData()
   const actions = useContentItemActions(editor, data.currentNode, data.currentNodePos)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const currentNodeRef = useRef(data.currentNode)
   const currentNodePosRef = useRef(data.currentNodePos)
@@ -37,13 +43,17 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
   )
 
   useEffect(() => {
+    if (!mounted) return
+    if (prevMenuOpenRef.current === menuOpen) return
+    prevMenuOpenRef.current = menuOpen
+
     if (menuOpen) {
       editor.commands.setMeta('lockDragHandle', true)
     } else {
       editor.commands.setMeta('lockDragHandle', false)
       setMenuView('main')
     }
-  }, [editor, menuOpen])
+  }, [editor, menuOpen, mounted])
 
   // Close menu immediately on any scroll (window, document, or scrollable container)
   useEffect(() => {
@@ -288,7 +298,7 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
     }
   }, [editor])
 
-  if (!isEditable) {
+  if (!mounted || !isEditable) {
     return null
   }
 
