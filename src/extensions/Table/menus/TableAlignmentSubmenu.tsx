@@ -68,7 +68,7 @@ export const TableAlignmentSubmenu: React.FC<TableAlignmentSubmenuProps> = ({ ed
       </button>
 
       {isOpen && (
-        <div className="absolute left-full top-0 ml-1 min-w-[11rem] p-1.5 shadow-2xl rounded-xl flex flex-col gap-0.5 bg-white/95 dark:bg-[#202020]/95 backdrop-blur-md border border-black/10 dark:border-white/10 z-[1500] text-zinc-800 dark:text-zinc-200 animate-in fade-in-0 zoom-in-95 duration-100">
+        <div className="absolute left-full top-0 ml-1 min-w-[11rem] p-1.5 shadow-2xl rounded-xl flex flex-col gap-0.5 bg-white/95 dark:bg-[#202020]/95 backdrop-blur-md border border-black/10 dark:border-white/10 z-[1350] text-zinc-800 dark:text-zinc-200 animate-in fade-in-0 zoom-in-95 duration-100">
           {/* Horizontal Alignments */}
           <button
             type="button"

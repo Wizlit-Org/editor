@@ -365,8 +365,8 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               side="bottom"
               align="start"
               sideOffset={6}
-              className="z-[9999] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
-              style={{ zIndex: 9999 }}
+              className="z-[1340] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
+              style={{ zIndex: 1340 }}
             >
               <div className="glass-menu p-1.5 flex flex-col min-w-[15rem] max-h-[24rem] overflow-y-auto bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200 shadow-xl rounded-xl transition-all duration-150">
                 {menuView === 'main' && (

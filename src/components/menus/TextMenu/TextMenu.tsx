@@ -60,14 +60,14 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
 
   return (
     <BubbleMenu
-      className={selecting ? 'opacity-0 pointer-events-none' : 'opacity-100 transition-opacity duration-150'}
+      className={selecting ? 'opacity-0 pointer-events-none z-[1330]' : 'opacity-100 transition-opacity duration-150 z-[1330]'}
       options={MENU_OPTIONS}
       editor={editor}
       pluginKey="textMenu"
       shouldShow={states.shouldShow}
       updateDelay={0}
     >
-      <div className="inline-flex h-full leading-none gap-0.5 p-1 rounded-xl items-center z-50 bg-white/90 dark:bg-[#202020]/95 backdrop-blur-xl border border-black/[0.08] dark:border-white/[0.1] shadow-2xl ring-1 ring-white/40 dark:ring-white/5 text-zinc-800 dark:text-zinc-200">
+      <div className="inline-flex h-full leading-none gap-0.5 p-1 rounded-xl items-center z-[1330] bg-white/90 dark:bg-[#202020]/95 backdrop-blur-xl border border-black/[0.08] dark:border-white/[0.1] shadow-2xl ring-1 ring-white/40 dark:ring-white/5 text-zinc-800 dark:text-zinc-200">
         <MemoContentTypePicker options={blockOptions} />
         <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />
         <MemoButton

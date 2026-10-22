@@ -10,6 +10,7 @@ import { UploadQueue } from '@/extensions/ImageUpload/ImageUploadQueue'
 import { useEffect, useMemo, useState } from 'react'
 import { UploadListDialogProps, UploadListItem } from '@/extensions/ImageUpload/components/UploadListDialog.tsx'
 import { ConvertSrc, OnImageClick } from '@/extensions/ImageBlock/components/ImageBlockView'
+import { detectPasteType } from '@/components/menus/SmartPasteMenu'
 // import { userColors, userNames } from '../lib/constants'
 // import { randomElement } from '../lib/utils'
 // import type { EditorUser } from '../components/BlockEditor/types'
@@ -96,56 +97,31 @@ export const useBlockEditor = ({
             return true
           }
 
-          // 3) URL detection
-          const url = (() => {
-            try {
-              if (text.startsWith('http://') || text.startsWith('https://')) {
-                return new URL(text)
-              }
-              return null
-            } catch {
-              return null
-            }
-          })()
-
-          if (url) {
-            // 3-a) YouTube URL detection (watch, embed, shorts, youtu.be)
-            const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?.*v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
-            const ytMatch = text.match(youtubeRegex)
-            if (ytMatch) {
-              event.preventDefault()
-              const videoId = ytMatch[1]
-              editor?.chain().focus().setYoutubeVideo({
-                src: `https://www.youtube.com/embed/${videoId}`,
-              }).run()
-              return true
-            }
-
-            // 3-b) Image URL detection (.png, .jpg, .jpeg, .gif, .webp, .svg)
-            const isImageUrl = /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(url.pathname)
-            if (isImageUrl) {
-              event.preventDefault()
-              editor?.chain().focus().setImageBlock({ src: text }).run()
-              return true
-            }
-
-            // 3-c) General Web URL: Convert to Hyperlink!
+          // 3) Smart Paste Detection (Image URL, YouTube, Web URL, Code snippet, Markdown list)
+          const detected = detectPasteType(text)
+          if (detected && editor && editor.view) {
             event.preventDefault()
-            if (editor && !editor.state.selection.empty) {
-              // Selection exists: wrap selected text with link mark
-              editor.chain().focus().setLink({ href: text }).run()
-            } else if (editor) {
-              // Cursor only: insert hyperlinked text
-              editor
-                .chain()
-                .focus()
-                .insertContent({
-                  type: 'text',
+            const { state, view } = editor
+            const pos = state.selection.from
+            const coords = view.coordsAtPos(pos)
+            window.dispatchEvent(
+              new CustomEvent('tiptap:smart-paste', {
+                detail: {
                   text,
-                  marks: [{ type: 'link', attrs: { href: text } }],
-                })
-                .run()
-            }
+                  type: detected.type,
+                  meta: detected.meta,
+                  coords: {
+                    top: coords.top,
+                    left: coords.left,
+                    bottom: coords.bottom,
+                  },
+                  selection: {
+                    from: state.selection.from,
+                    to: state.selection.to,
+                  },
+                },
+              }),
+            )
             return true
           }
 

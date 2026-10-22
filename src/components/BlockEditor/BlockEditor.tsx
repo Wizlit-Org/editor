@@ -15,6 +15,7 @@ import { TableScrollIndicator } from '@/extensions/Table/components/TableScrollI
 import { TextMenu } from '@/components/menus/TextMenu'
 import { ContentItemMenu } from '@/components/menus/ContentItemMenu'
 import { LinkMenu } from '@/components/menus/LinkMenu'
+import { SmartPasteMenu } from '@/components/menus/SmartPasteMenu'
 import { TableOfContents } from '../TableOfContents'
 import { UploadListDialog, UploadListDialogProps, UploadListItem } from '../../extensions/ImageUpload/components/UploadListDialog.tsx'
 import { compareDocs, getStats } from '@/lib/utils/getStats'
@@ -275,6 +276,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
               <TableAddButtons editor={editor} />
               <ImageBlockMenu editor={editor} appendTo={menuContainerRef} />
               <YoutubeBlockMenu editor={editor} appendTo={menuContainerRef} />
+              <SmartPasteMenu editor={editor} />
             </>
           )}
         </div>

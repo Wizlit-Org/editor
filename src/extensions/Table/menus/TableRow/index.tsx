@@ -96,11 +96,12 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       editor={editor}
       pluginKey="tableRowMenu"
       updateDelay={0}
+      className="z-[1330]"
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={TABLE_ROW_MENU_OPTIONS}
       shouldShow={shouldShow}
     >
-      <div className="glass-menu min-w-[14rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-50 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
+      <div className="glass-menu min-w-[14rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-[1330] bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
         {isFirstRow && (
           <>
             <button type="button" onClick={onToggleHeaderRow} className={itemClass}>
