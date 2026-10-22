@@ -1,3 +1,5 @@
 export * from './LinkMenu'
 export * from './TextMenu'
 export * from './ContentItemMenu'
+export * from './PastePreviewDialog'
+export * from './SmartPasteMenu'

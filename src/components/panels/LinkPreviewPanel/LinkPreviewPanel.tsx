@@ -126,57 +126,60 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
   const hasImage = Boolean(meta?.image && !imageError)
 
   return (
-    <div className="w-[320px] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-black/10 dark:border-white/10 shadow-2xl rounded-xl text-zinc-800 dark:text-zinc-200 animate-in fade-in-0 zoom-in-95 duration-150 overflow-hidden flex flex-col">
+    <div className="w-[330px] bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-zinc-200/80 dark:border-zinc-800/80 shadow-[0_16px_36px_rgba(0,0,0,0.16)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.5)] rounded-2xl text-zinc-800 dark:text-zinc-200 animate-in fade-in-0 zoom-in-95 duration-150 overflow-hidden flex flex-col ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
       {/* Top Banner / OG Thumbnail Image */}
       {hasImage && (
         <a
           {...(!disableDefaultAction ? defaultProps : {})}
           onClick={handleLinkClick}
-          className="relative w-full h-32 bg-black/5 dark:bg-white/5 overflow-hidden block group cursor-pointer border-b border-black/5 dark:border-white/10"
+          className="relative w-full h-32 bg-zinc-100 dark:bg-zinc-800/40 overflow-hidden block group cursor-pointer border-b border-zinc-200/60 dark:border-zinc-800/60"
         >
           <img
             src={meta!.image!}
             alt={titleText}
             onError={() => setImageError(true)}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
           />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent pointer-events-none" />
         </a>
       )}
 
       {/* Main Content Area */}
-      <div className="p-3 flex flex-col gap-2">
+      <div className="p-3.5 flex flex-col gap-2.5">
         {/* Header: Favicon + Domain Badge + Actions */}
-        <div className="flex items-center justify-between gap-1">
+        <div className="flex items-center justify-between gap-1.5">
           <div className="flex items-center gap-1.5 min-w-0">
-            <div className="flex items-center justify-center w-4 h-4 rounded bg-black/[0.04] dark:bg-white/[0.06] overflow-hidden shrink-0">
-              {faviconUrl ? (
-                <img
-                  src={faviconUrl}
-                  alt=""
-                  className="w-3.5 h-3.5 object-contain"
-                  onError={e => {
-                    ;(e.currentTarget as HTMLElement).style.display = 'none'
-                  }}
-                />
-              ) : (
-                <Icon name="Globe" className="w-3.5 h-3.5 text-zinc-400" />
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-100/90 dark:bg-zinc-800/80 border border-zinc-200/70 dark:border-zinc-700/60 shadow-2xs">
+              <div className="flex items-center justify-center w-3.5 h-3.5 overflow-hidden shrink-0">
+                {faviconUrl ? (
+                  <img
+                    src={faviconUrl}
+                    alt=""
+                    className="w-3.5 h-3.5 object-contain"
+                    onError={e => {
+                      ;(e.currentTarget as HTMLElement).style.display = 'none'
+                    }}
+                  />
+                ) : (
+                  <Icon name="Globe" className="w-3.5 h-3.5 text-zinc-400" />
+                )}
+              </div>
+              {domain && (
+                <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-300 tracking-tight truncate max-w-[130px]">
+                  {domain}
+                </span>
               )}
             </div>
-            {domain && (
-              <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 truncate">
-                {domain}
-              </span>
-            )}
             {loading && (
-              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping shrink-0 ml-1" />
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse shrink-0 ml-0.5" />
             )}
           </div>
 
           {/* Quick Action Icons */}
-          <div className="flex items-center gap-0.5 shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             <a
               {...defaultProps}
-              className="p-1 rounded text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+              className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 transition-all cursor-pointer"
               title="새 창에서 열기"
             >
               <Icon name="ExternalLink" className="w-3.5 h-3.5" />
@@ -185,10 +188,10 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
             <button
               type="button"
               onClick={handleCopy}
-              className={`p-1 rounded transition-colors cursor-pointer ${
+              className={`w-6 h-6 rounded-md flex items-center justify-center transition-all cursor-pointer ${
                 copied
-                  ? 'text-emerald-500 bg-emerald-500/10'
-                  : 'text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
+                  ? 'text-emerald-500 bg-emerald-500/15 dark:bg-emerald-500/20 shadow-2xs'
+                  : 'text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/80'
               }`}
               title={copied ? '복사 완료' : '링크 복사'}
             >
@@ -200,7 +203,7 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
                 <button
                   type="button"
                   onClick={onEdit}
-                  className="p-1 rounded text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                  className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 transition-all cursor-pointer"
                   title="링크 편집"
                 >
                   <Icon name="Pen" className="w-3.5 h-3.5" />
@@ -209,7 +212,7 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
                 <button
                   type="button"
                   onClick={onClear}
-                  className="p-1 rounded text-zinc-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                  className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
                   title="링크 제거"
                 >
                   <Icon name="Unlink" className="w-3.5 h-3.5" />
@@ -224,20 +227,20 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
           <a
             {...(!disableDefaultAction ? defaultProps : {})}
             onClick={handleLinkClick}
-            className="text-xs font-semibold text-zinc-800 dark:text-zinc-100 line-clamp-1 hover:text-indigo-600 dark:hover:text-violet-400 cursor-pointer transition-colors"
+            className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1 leading-snug hover:text-indigo-600 dark:hover:text-violet-400 cursor-pointer transition-colors"
             title={titleText}
           >
             {titleText}
           </a>
 
           {descText && (
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-2 leading-relaxed">
+            <p className="text-[11.5px] text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-[1.45] font-normal">
               {descText}
             </p>
           )}
 
           {!descText && !loading && (
-            <span className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate font-mono">
+            <span className="text-[10.5px] text-zinc-400 dark:text-zinc-500 truncate font-mono">
               {url}
             </span>
           )}

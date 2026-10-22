@@ -123,6 +123,17 @@ export const TableCellMenu = React.memo(({ editor }: MenuProps): JSX.Element => 
     return () => window.removeEventListener('tiptap:close-menus', handleCloseMenus)
   }, [menuOpen])
 
+  // Auto-close cell menu on editor or window scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (menuOpen) {
+        setMenuOpen(false)
+      }
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true, capture: true })
+    return () => window.removeEventListener('scroll', handleScroll, { capture: true })
+  }, [menuOpen])
+
   useEffect(() => {
     updateSelectionRect()
     editor.on('selectionUpdate', updateSelectionRect)

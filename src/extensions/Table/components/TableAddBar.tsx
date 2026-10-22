@@ -40,13 +40,13 @@ export const TableAddBar: React.FC<TableAddBarProps> = ({
       {/* 1. Right Column Add Button: Sized to current row height */}
       {showRightBar && (
         <div
-          className="fixed z-[1400] flex items-center justify-center transition-all duration-150 rounded-full cursor-pointer group bg-zinc-500/10 hover:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:text-white dark:hover:text-white shadow-2xs"
+          className="fixed z-[1320] flex items-center justify-center transition-all duration-150 rounded-full cursor-pointer group bg-zinc-500/10 hover:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:text-white dark:hover:text-white shadow-2xs"
           style={{
             top: rightBarTop,
             left: tableRect.right + 4,
             height: rightBarHeight,
             width: 14,
-            zIndex: 1400,
+            zIndex: 1320,
           }}
           onClick={onAddColumn}
           onMouseEnter={onHoverKeepAlive}
@@ -60,13 +60,13 @@ export const TableAddBar: React.FC<TableAddBarProps> = ({
       {/* 2. Bottom Row Add Button: Sized to current column width */}
       {showBottomBar && (
         <div
-          className="fixed z-[1400] flex items-center justify-center transition-all duration-150 rounded-full cursor-pointer group bg-zinc-500/10 hover:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:text-white dark:hover:text-white shadow-2xs"
+          className="fixed z-[1320] flex items-center justify-center transition-all duration-150 rounded-full cursor-pointer group bg-zinc-500/10 hover:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:text-white dark:hover:text-white shadow-2xs"
           style={{
             top: tableRect.bottom + 4,
             left: bottomBarLeft,
             width: bottomBarWidth,
             height: 14,
-            zIndex: 1400,
+            zIndex: 1320,
           }}
           onClick={onAddRow}
           onMouseEnter={onHoverKeepAlive}

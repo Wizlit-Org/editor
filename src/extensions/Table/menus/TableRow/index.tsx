@@ -20,14 +20,29 @@ const TABLE_ROW_MENU_OPTIONS = {
 
 export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.Element => {
   const [, setTick] = useState(0)
+  const [isClosedByScroll, setIsClosedByScroll] = useState(false)
 
   useEffect(() => {
-    const handleUpdate = () => setTick(t => t + 1)
+    const handleUpdate = () => {
+      setIsClosedByScroll(false)
+      setTick(t => t + 1)
+    }
     editor.on('selectionUpdate', handleUpdate)
     return () => {
       editor.off('selectionUpdate', handleUpdate)
     }
   }, [editor])
+
+  // Auto-close menu when editor or window scrolls
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsClosedByScroll(true)
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true, capture: true })
+    return () => {
+      window.removeEventListener('scroll', handleScroll, { capture: true })
+    }
+  }, [])
 
   const getReferencedVirtualElement = useCallback(() => {
     return getRowAnchorVirtualElement(editor)
@@ -35,13 +50,13 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
 
   const shouldShow = useCallback(
     ({ view, state, from }: ShouldShowProps) => {
-      if (!state || typeof from !== 'number') {
+      if (isClosedByScroll || !state || typeof from !== 'number') {
         return false
       }
 
       return isRowGripSelected({ editor, view, state, from })
     },
-    [editor],
+    [editor, isClosedByScroll],
   )
 
   const onMoveRowUp = useCallback(() => {
