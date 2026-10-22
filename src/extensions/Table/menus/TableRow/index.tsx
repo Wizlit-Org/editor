@@ -10,9 +10,10 @@ import {
   clearRowContents,
   duplicateRow,
 } from './rowActions'
+import { getRowAnchorVirtualElement } from '../useTableMenuPosition'
 
 const TABLE_ROW_MENU_OPTIONS = {
-  offset: 15,
+  offset: 12,
   flip: true,
 }
 
@@ -30,22 +31,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
   }, [editor])
 
   const getReferencedVirtualElement = useCallback(() => {
-    const { view } = editor
-    const selectedCell = view.dom.querySelector('.selectedCell')
-
-    if (selectedCell) {
-      const row = selectedCell.closest('tr')
-      if (row) {
-        return {
-          getBoundingClientRect: () => row.getBoundingClientRect(),
-        }
-      }
-      return {
-        getBoundingClientRect: () => selectedCell.getBoundingClientRect(),
-      }
-    }
-
-    return null
+    return getRowAnchorVirtualElement(editor)
   }, [editor])
 
   const shouldShow = useCallback(
@@ -112,7 +98,6 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       editor={editor}
       pluginKey="tableRowMenu"
       updateDelay={0}
-      appendTo={appendTo?.current || undefined}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={TABLE_ROW_MENU_OPTIONS}
       shouldShow={shouldShow}

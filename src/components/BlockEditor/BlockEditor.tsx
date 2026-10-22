@@ -2,6 +2,7 @@ import '@/styles/globals.css'
 import '@/styles/index.css'
 
 import { useBlockEditor } from '@/hooks/useBlockEditor'
+import { useEditorEscGuard } from '@/hooks/useEditorEscGuard'
 
 import { EditorContent, useEditorState } from '@tiptap/react'
 import React, { useRef, useEffect, useCallback, useState } from 'react'
@@ -152,6 +153,9 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     key,
   })
 
+  // Global Escape guard for editor popovers & selections
+  useEditorEscGuard(editor)
+
   // Anchor jump smooth scroll on mount and hashchange
   useEffect(() => {
     if (typeof window === 'undefined' || !editor) return
@@ -245,7 +249,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
   return (
     <>
-      <div className={`relative flex min-h-full h-auto flex-[1_0_auto] overflow-x-hidden [container-type:inline-size] ${themeClass} ${className}`.trim()} ref={menuContainerRef}>
+      <div className={`relative flex min-h-full h-auto flex-[1_0_auto] overflow-x-clip [overflow-x:clip] [container-type:inline-size] ${themeClass} ${className}`.trim()} ref={menuContainerRef}>
         <div className="relative flex flex-col flex-[1_0_auto] h-auto min-h-full">
           {/* <EditorHeader
             editor={editor}
@@ -259,16 +263,15 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           <ContentItemMenu editor={editor} isEditable={!readOnly} />
           <LinkMenu
             editor={editor}
-            appendTo={menuContainerRef}
             disableDefaultAction={link?.disableDefaultAction}
             onLinkClick={link?.onClick}
           />
           {!readOnly && (
             <>
               <TextMenu editor={editor} />
-              <TableRowMenu editor={editor} appendTo={menuContainerRef} />
-              <TableColumnMenu editor={editor} appendTo={menuContainerRef} />
-              <TableCellMenu editor={editor} appendTo={menuContainerRef} />
+              <TableRowMenu editor={editor} />
+              <TableColumnMenu editor={editor} />
+              <TableCellMenu editor={editor} />
               <TableAddButtons editor={editor} />
               <ImageBlockMenu editor={editor} appendTo={menuContainerRef} />
               <YoutubeBlockMenu editor={editor} appendTo={menuContainerRef} />

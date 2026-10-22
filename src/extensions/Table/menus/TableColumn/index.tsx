@@ -12,9 +12,10 @@ import {
   duplicateColumn,
 } from './columnActions'
 import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
+import { getColumnAnchorVirtualElement } from '../useTableMenuPosition'
 
 const TABLE_COLUMN_MENU_OPTIONS = {
-  offset: 15,
+  offset: 12,
   flip: true,
 }
 
@@ -126,7 +127,7 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
       editor={editor}
       pluginKey="tableColumnMenu"
       updateDelay={0}
-      appendTo={appendTo?.current || undefined}
+      getReferencedVirtualElement={() => getColumnAnchorVirtualElement(editor)}
       options={TABLE_COLUMN_MENU_OPTIONS}
       shouldShow={shouldShow}
     >

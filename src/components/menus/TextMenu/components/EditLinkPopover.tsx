@@ -4,7 +4,7 @@ import { Toolbar } from '@/components/ui/Toolbar'
 import * as Popover from '@radix-ui/react-popover'
 
 export type EditLinkPopoverProps = {
-  onSetLink: (link: string, openInNewTab?: boolean) => void
+  onSetLink: (link: string, text?: string, openInNewTab?: boolean) => void
 }
 
 export const EditLinkPopover = ({ onSetLink }: EditLinkPopoverProps) => {

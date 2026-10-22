@@ -14,11 +14,25 @@ interface HeadingItem {
   pos: number
 }
 
+const getScrollParent = (node: HTMLElement | null): HTMLElement | Window => {
+  if (!node || typeof window === 'undefined') return window
+  let parent = node.parentElement
+  while (parent) {
+    const { overflowY } = window.getComputedStyle(parent)
+    if (overflowY === 'auto' || overflowY === 'scroll') {
+      return parent
+    }
+    parent = parent.parentElement
+  }
+  return window
+}
+
 export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, className = '' }) => {
   const inlineContainerRef = useRef<HTMLDivElement>(null)
   const [isInlineExpanded, setIsInlineExpanded] = useState(true)
   const [isScrolledOut, setIsScrolledOut] = useState(false)
   const [isStickyDropdownOpen, setIsStickyDropdownOpen] = useState(false)
+  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null)
 
   // Track doc changes to extract headings in real-time
   const headings = useEditorState({
@@ -43,15 +57,46 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
     },
   })
 
-  // Detect when the inline TOC is scrolled out of view
+  // Detect when the inline TOC is scrolled out of view and track active heading
   useEffect(() => {
     const checkScrolledOut = () => {
       if (!inlineContainerRef.current) return
       const rect = inlineContainerRef.current.getBoundingClientRect()
-      const isPast = rect.bottom < 60
+      const scrollParent = getScrollParent(inlineContainerRef.current)
+      const topOffset = scrollParent instanceof HTMLElement ? scrollParent.getBoundingClientRect().top : 0
+      
+      const isPast = rect.bottom <= topOffset + 16
       setIsScrolledOut(isPast)
       if (!isPast) {
         setIsStickyDropdownOpen(false)
+      }
+
+      // Track active heading
+      if (headings && headings.length > 0) {
+        let currentActive: string | null = null
+        for (const h of headings) {
+          let element: HTMLElement | null = null
+          if (h.id) {
+            element =
+              document.getElementById(h.id) ||
+              document.querySelector(`[data-id="${h.id}"], [data-toc-id="${h.id}"]`)
+          }
+          if (!element) {
+            try {
+              const dom =
+                (editor.view.nodeDOM(h.pos) as HTMLElement) ||
+                (editor.view.domAtPos(h.pos).node as HTMLElement)
+              element = dom && dom.nodeType === 1 ? dom : dom?.parentElement
+            } catch {}
+          }
+          if (element) {
+            const er = element.getBoundingClientRect()
+            if (er.top <= topOffset + 120) {
+              currentActive = h.id
+            }
+          }
+        }
+        setActiveHeadingId(currentActive || headings[0]?.id || null)
       }
     }
 
@@ -64,7 +109,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
       window.removeEventListener('scroll', checkScrolledOut, { capture: true })
       window.removeEventListener('resize', checkScrolledOut)
     }
-  }, [editor, headings?.length])
+  }, [editor, headings])
 
   const handleScrollToHeading = useCallback(
     (pos: number, id?: string) => {
@@ -146,12 +191,13 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
             {isInlineExpanded && (
               <div className="max-h-72 overflow-y-auto px-2 pb-2.5 pt-1 space-y-0.5 border-t border-black/5 dark:border-white/10">
                 {headings.map(item => {
+                  const isActive = item.id === activeHeadingId
                   const indentClass =
                     item.level === 1
-                      ? 'pl-2 font-medium text-zinc-800 dark:text-[#e3e3e3]'
+                      ? `pl-2 font-medium ${isActive ? 'text-indigo-600 dark:text-violet-300 font-semibold bg-indigo-50/70 dark:bg-violet-950/40' : 'text-zinc-800 dark:text-[#e3e3e3]'}`
                       : item.level === 2
-                      ? 'pl-5 text-zinc-600 dark:text-zinc-300'
-                      : 'pl-8 text-zinc-500 dark:text-zinc-400'
+                      ? `pl-5 ${isActive ? 'text-indigo-600 dark:text-violet-300 font-medium bg-indigo-50/70 dark:bg-violet-950/40' : 'text-zinc-600 dark:text-zinc-300'}`
+                      : `pl-8 ${isActive ? 'text-indigo-600 dark:text-violet-300 font-medium bg-indigo-50/70 dark:bg-violet-950/40' : 'text-zinc-500 dark:text-zinc-400'}`
 
                   return (
                     <button
@@ -160,7 +206,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
                       onClick={() => handleScrollToHeading(item.pos, item.id)}
                       className={`w-full text-left text-xs py-1.5 pr-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] transition-colors truncate flex items-center gap-1.5 ${indentClass}`}
                     >
-                      <span className="text-[10px] text-zinc-400 dark:text-zinc-500 shrink-0 font-mono">
+                      <span className={`text-[10px] shrink-0 font-mono ${isActive ? 'text-indigo-500 dark:text-violet-400 font-bold' : 'text-zinc-400 dark:text-zinc-500'}`}>
                         H{item.level}
                       </span>
                       <span className="truncate">{item.text}</span>
@@ -208,12 +254,13 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
               <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
               <div className="space-y-0.5">
                 {headings.map(item => {
+                  const isActive = item.id === activeHeadingId
                   const indentClass =
                     item.level === 1
-                      ? 'pl-2 font-medium text-zinc-800 dark:text-[#e3e3e3]'
+                      ? `pl-2 font-medium ${isActive ? 'text-indigo-600 dark:text-violet-300 font-semibold bg-indigo-50/70 dark:bg-violet-950/40' : 'text-zinc-800 dark:text-[#e3e3e3]'}`
                       : item.level === 2
-                      ? 'pl-5 text-zinc-600 dark:text-zinc-300'
-                      : 'pl-8 text-zinc-500 dark:text-zinc-400'
+                      ? `pl-5 ${isActive ? 'text-indigo-600 dark:text-violet-300 font-medium bg-indigo-50/70 dark:bg-violet-950/40' : 'text-zinc-600 dark:text-zinc-300'}`
+                      : `pl-8 ${isActive ? 'text-indigo-600 dark:text-violet-300 font-medium bg-indigo-50/70 dark:bg-violet-950/40' : 'text-zinc-500 dark:text-zinc-400'}`
 
                   return (
                     <button
@@ -222,7 +269,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
                       onClick={() => handleScrollToHeading(item.pos, item.id)}
                       className={`w-full text-left text-xs py-1.5 pr-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] transition-colors truncate flex items-center gap-1.5 ${indentClass}`}
                     >
-                      <span className="text-[10px] text-zinc-400 dark:text-zinc-500 shrink-0 font-mono">
+                      <span className={`text-[10px] shrink-0 font-mono ${isActive ? 'text-indigo-500 dark:text-violet-400 font-bold' : 'text-zinc-400 dark:text-zinc-500'}`}>
                         H{item.level}
                       </span>
                       <span className="truncate">{item.text}</span>
