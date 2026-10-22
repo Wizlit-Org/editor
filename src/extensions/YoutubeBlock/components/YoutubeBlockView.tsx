@@ -39,11 +39,11 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
   const captionInputRef = useRef<HTMLInputElement>(null)
 
   const videoId = useMemo(() => getYoutubeVideoId(src), [src])
-  const thumbnailUrl = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null
+  const thumbnailUrl = videoId ? `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg` : null
 
   // Real-time preview for empty state input
   const previewVideoId = useMemo(() => getYoutubeVideoId(emptyUrlInput), [emptyUrlInput])
-  const previewThumbUrl = previewVideoId ? `https://i.ytimg.com/vi/${previewVideoId}/hqdefault.jpg` : null
+  const previewThumbUrl = previewVideoId ? `https://i.ytimg.com/vi/${previewVideoId}/mqdefault.jpg` : null
 
   const handleApplyEmptyUrl = useCallback(() => {
     const trimmed = emptyUrlInput.trim()
@@ -156,8 +156,8 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
 
           {/* Real-time Video Thumbnail Preview if valid URL typed */}
           {previewThumbUrl && (
-            <div className="w-full max-w-sm aspect-video rounded-xl overflow-hidden border border-black/10 dark:border-white/10 relative shadow-md animate-in fade-in-0 zoom-in-95 duration-150">
-              <img src={previewThumbUrl} alt="Preview" className="w-full h-full object-cover" />
+            <div className="w-full max-w-sm aspect-video rounded-xl overflow-hidden border border-black/10 dark:border-white/10 relative shadow-md flex items-center justify-center bg-black/5 dark:bg-white/5 animate-in fade-in-0 zoom-in-95 duration-150">
+              <img src={previewThumbUrl} alt="Preview" className="block w-full h-full object-cover object-center" />
               <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                 <div className="w-10 h-10 rounded-full bg-white/85 text-red-600 flex items-center justify-center shadow-lg">
                   <Icon name="Play" className="w-5 h-5 ml-0.5 fill-current" />

@@ -45,6 +45,20 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
     }
   }, [editor, menuOpen])
 
+  // Close menu immediately on any scroll (window, document, or scrollable container)
+  useEffect(() => {
+    if (!menuOpen) return
+
+    const handleScroll = () => {
+      setMenuOpen(false)
+    }
+
+    window.addEventListener('scroll', handleScroll, { capture: true, passive: true })
+    return () => {
+      window.removeEventListener('scroll', handleScroll, { capture: true })
+    }
+  }, [menuOpen])
+
   const copyAnchorLink = useCallback(() => {
     if (typeof window !== 'undefined') {
       const node = data.currentNode
@@ -336,92 +350,95 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               <Icon name="GripVertical" className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
             </button>
           </Popover.Trigger>
-          <Popover.Content
-            side="bottom"
-            align="start"
-            sideOffset={6}
-            className="z-50 outline-none animate-in fade-in-0 zoom-in-95 duration-150"
-          >
-            <div className="glass-menu p-1.5 flex flex-col min-w-[15rem] max-h-[24rem] overflow-y-auto bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200 shadow-xl rounded-xl transition-all duration-150">
-              {menuView === 'main' && (
-                <div className="flex flex-col gap-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setMenuView('turnInto')}
-                    className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium text-zinc-700 dark:text-[#e3e3e3] hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] rounded border border-transparent transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon name="RefreshCw" className="w-4 h-4 text-zinc-400 dark:text-[#9b9b9b]" />
-                      <span>Turn into</span>
-                    </div>
-                    <Icon name="ChevronRight" className="w-3.5 h-3.5 text-zinc-400 dark:text-[#9b9b9b]" />
-                  </button>
+          <Popover.Portal>
+            <Popover.Content
+              side="bottom"
+              align="start"
+              sideOffset={6}
+              className="z-[9999] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
+              style={{ zIndex: 9999 }}
+            >
+              <div className="glass-menu p-1.5 flex flex-col min-w-[15rem] max-h-[24rem] overflow-y-auto bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200 shadow-xl rounded-xl transition-all duration-150">
+                {menuView === 'main' && (
+                  <div className="flex flex-col gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setMenuView('turnInto')}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium text-zinc-700 dark:text-[#e3e3e3] hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] rounded border border-transparent transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon name="RefreshCw" className="w-4 h-4 text-zinc-400 dark:text-[#9b9b9b]" />
+                        <span>Turn into</span>
+                      </div>
+                      <Icon name="ChevronRight" className="w-3.5 h-3.5 text-zinc-400 dark:text-[#9b9b9b]" />
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      actions.duplicateNode()
-                      setMenuOpen(false)
-                    }}
-                    className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium text-zinc-700 dark:text-[#e3e3e3] hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] rounded border border-transparent transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon name="Copy" className="w-4 h-4 text-zinc-400 dark:text-[#9b9b9b]" />
-                      <span>Duplicate</span>
-                    </div>
-                    <span className="text-[10px] text-zinc-400 dark:text-[#787774]">Ctrl+D</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        actions.duplicateNode()
+                        setMenuOpen(false)
+                      }}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium text-zinc-700 dark:text-[#e3e3e3] hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] rounded border border-transparent transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon name="Copy" className="w-4 h-4 text-zinc-400 dark:text-[#9b9b9b]" />
+                        <span>Duplicate</span>
+                      </div>
+                      <span className="text-[10px] text-zinc-400 dark:text-[#787774]">Ctrl+D</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={copyAnchorLink}
-                    className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-zinc-700 dark:text-[#e3e3e3] hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] rounded border border-transparent transition-colors text-left"
-                  >
-                    <Icon name="Link" className="w-4 h-4 text-zinc-400 dark:text-[#9b9b9b]" />
-                    <span>Copy anchor link</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={copyAnchorLink}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-zinc-700 dark:text-[#e3e3e3] hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] rounded border border-transparent transition-colors text-left"
+                    >
+                      <Icon name="Link" className="w-4 h-4 text-zinc-400 dark:text-[#9b9b9b]" />
+                      <span>Copy anchor link</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      actions.copyNodeToClipboard()
-                      setMenuOpen(false)
-                    }}
-                    className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-zinc-700 dark:text-[#e3e3e3] hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] rounded border border-transparent transition-colors text-left"
-                  >
-                    <Icon name="Clipboard" className="w-4 h-4 text-zinc-400 dark:text-[#9b9b9b]" />
-                    <span>Copy to clipboard</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        actions.copyNodeToClipboard()
+                        setMenuOpen(false)
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-zinc-700 dark:text-[#e3e3e3] hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/[0.06] active:bg-black/10 dark:active:bg-white/[0.1] rounded border border-transparent transition-colors text-left"
+                    >
+                      <Icon name="Clipboard" className="w-4 h-4 text-zinc-400 dark:text-[#9b9b9b]" />
+                      <span>Copy to clipboard</span>
+                    </button>
 
-                  <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1 w-full" />
+                    <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1 w-full" />
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      actions.deleteNode()
-                      setMenuOpen(false)
-                    }}
-                    className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-500/10 active:bg-red-500/20 rounded border border-transparent transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon name="Trash2" className="w-4 h-4 text-red-500 dark:text-red-400" />
-                      <span>Delete</span>
-                    </div>
-                    <span className="text-[10px] text-red-400/80">Del</span>
-                  </button>
-                </div>
-              )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        actions.deleteNode()
+                        setMenuOpen(false)
+                      }}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-500/10 active:bg-red-500/20 rounded border border-transparent transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon name="Trash2" className="w-4 h-4 text-red-500 dark:text-red-400" />
+                        <span>Delete</span>
+                      </div>
+                      <span className="text-[10px] text-red-400/80">Del</span>
+                    </button>
+                  </div>
+                )}
 
-              {menuView === 'turnInto' && (
-                <TurnIntoSubmenu
-                  editor={editor}
-                  currentNodePos={data.currentNodePos}
-                  onBack={() => setMenuView('main')}
-                  onClose={() => setMenuOpen(false)}
-                />
-              )}
-            </div>
-          </Popover.Content>
+                {menuView === 'turnInto' && (
+                  <TurnIntoSubmenu
+                    editor={editor}
+                    currentNodePos={data.currentNodePos}
+                    onBack={() => setMenuView('main')}
+                    onClose={() => setMenuOpen(false)}
+                  />
+                )}
+              </div>
+            </Popover.Content>
+          </Popover.Portal>
         </Popover.Root>
       </div>
     </DragHandle>
