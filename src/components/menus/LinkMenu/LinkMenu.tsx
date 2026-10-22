@@ -152,7 +152,7 @@ export const LinkMenu = ({
       pluginKey="linkMenu"
       shouldShow={shouldShow}
       updateDelay={0}
-      className="z-[1330]"
+      className="z-[1350]"
       appendTo={appendTo?.current || undefined}
       options={menuOptions}
     >

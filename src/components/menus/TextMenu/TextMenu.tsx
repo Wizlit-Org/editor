@@ -23,9 +23,31 @@ export type TextMenuProps = {
 
 export const TextMenu = ({ editor }: TextMenuProps) => {
   const [selecting, setSelecting] = useState(false)
+  const [isClosedByScroll, setIsClosedByScroll] = useState(false)
   const commands = useTextmenuCommands(editor)
   const states = useTextmenuStates(editor)
   const blockOptions = useTextmenuContentTypes(editor)
+
+  useEffect(() => {
+    const handleClose = () => {
+      setIsClosedByScroll(true)
+    }
+    const handleReset = () => {
+      setIsClosedByScroll(false)
+    }
+
+    window.addEventListener('tiptap:close-menus', handleClose)
+    editor.on('selectionUpdate', handleReset)
+    editor.on('transaction', handleReset)
+    editor.on('focus', handleReset)
+
+    return () => {
+      window.removeEventListener('tiptap:close-menus', handleClose)
+      editor.off('selectionUpdate', handleReset)
+      editor.off('transaction', handleReset)
+      editor.off('focus', handleReset)
+    }
+  }, [editor])
 
   useEffect(() => {
     let selectionTimeout: number
@@ -60,14 +82,21 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
 
   return (
     <BubbleMenu
-      className={selecting ? 'opacity-0 pointer-events-none z-[1330]' : 'opacity-100 transition-opacity duration-150 z-[1330]'}
+      className={
+        selecting || isClosedByScroll
+          ? 'opacity-0 pointer-events-none z-[1350] !hidden'
+          : 'opacity-100 transition-opacity duration-150 z-[1350]'
+      }
       options={MENU_OPTIONS}
       editor={editor}
       pluginKey="textMenu"
-      shouldShow={states.shouldShow}
+      shouldShow={props => !isClosedByScroll && states.shouldShow(props)}
       updateDelay={0}
     >
-      <div className="inline-flex h-full leading-none gap-0.5 p-1 rounded-xl items-center z-[1330] bg-white/90 dark:bg-[#202020]/95 backdrop-blur-xl border border-black/[0.08] dark:border-white/[0.1] shadow-2xl ring-1 ring-white/40 dark:ring-white/5 text-zinc-800 dark:text-zinc-200">
+      <div
+        style={{ display: isClosedByScroll ? 'none' : undefined }}
+        className="inline-flex h-full leading-none gap-0.5 p-1 rounded-xl items-center z-[1350] bg-white/90 dark:bg-[#202020]/95 backdrop-blur-xl border border-black/[0.08] dark:border-white/[0.1] shadow-2xl ring-1 ring-white/40 dark:ring-white/5 text-zinc-800 dark:text-zinc-200"
+      >
         <MemoContentTypePicker options={blockOptions} />
         <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />
         <MemoButton

@@ -59,8 +59,17 @@ export function useEditorEscGuard(editor: Editor | null) {
     // Attach to capture phase so this runs BEFORE any bubble listeners on window or document
     window.addEventListener('keydown', handleKeyDownCapture, { capture: true })
 
+    // Global Scroll Listener: instantly close all editor menus on editor or window scroll
+    const handleScrollCapture = () => {
+      window.dispatchEvent(
+        new CustomEvent('tiptap:close-menus', { detail: 'scroll' })
+      )
+    }
+    window.addEventListener('scroll', handleScrollCapture, { capture: true, passive: true })
+
     return () => {
       window.removeEventListener('keydown', handleKeyDownCapture, { capture: true })
+      window.removeEventListener('scroll', handleScrollCapture, { capture: true })
     }
   }, [editor])
 }

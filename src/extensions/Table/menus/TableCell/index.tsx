@@ -168,7 +168,7 @@ export const TableCellMenu = React.memo(({ editor }: MenuProps): JSX.Element => 
 
       const handlePointerMove = (moveEvent: PointerEvent) => {
         const dist = Math.hypot(moveEvent.clientX - e.clientX, moveEvent.clientY - e.clientY)
-        if (dist > 3) {
+        if (dist > 6) {
           hasMoved = true
         }
         if (!hasMoved) return
@@ -297,10 +297,14 @@ export const TableCellMenu = React.memo(({ editor }: MenuProps): JSX.Element => 
                   setMenuOpen(open)
                 }}
               >
-                <Popover.Trigger asChild>
+                <Popover.Anchor asChild>
                   <button
                     type="button"
                     onPointerDown={handlePointerDown}
+                    onClick={e => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
                     onMouseEnter={() => setIsBtnHovered(true)}
                     onMouseLeave={() => setIsBtnHovered(false)}
                     className={`rounded-full bg-indigo-600 dark:bg-violet-500 text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-30 select-none ${
@@ -321,14 +325,14 @@ export const TableCellMenu = React.memo(({ editor }: MenuProps): JSX.Element => 
                       <circle cx="11" cy="11" r="1.5" />
                     </svg>
                   </button>
-                </Popover.Trigger>
+                </Popover.Anchor>
                 <Popover.Portal>
                   <Popover.Content
                     side="right"
                     align="center"
                     sideOffset={10}
                     collisionPadding={16}
-                    className="z-[1340] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
+                    className="z-[1350] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
                   >
                     <div className="glass-menu min-w-[12rem] p-1.5 shadow-2xl rounded-xl flex flex-col gap-0.5 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
                       {/* 1. One-click Segmented Alignment Toolbar */}

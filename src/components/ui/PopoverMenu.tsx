@@ -43,16 +43,16 @@ export const Menu = ({
       )}
       {withPortal ? (
         // @ts-ignore
-        <Popover.Portal className="z-[1340]">
+        <Popover.Portal className="z-[1350]">
           <Popover.Content asChild sideOffset={8}>
-            <Surface className="min-w-[15rem] p-2 flex flex-col gap-0.5 max-h-80 overflow-auto z-[1340]">
+            <Surface className="min-w-[15rem] p-2 flex flex-col gap-0.5 max-h-80 overflow-auto z-[1350]">
               {children}
             </Surface>
           </Popover.Content>
         </Popover.Portal>
       ) : (
         <Popover.Content asChild sideOffset={8}>
-          <Surface className="min-w-[15rem] p-2 flex flex-col gap-0.5 max-h-80 overflow-auto z-[1340]">
+          <Surface className="min-w-[15rem] p-2 flex flex-col gap-0.5 max-h-80 overflow-auto z-[1350]">
             {children}
           </Surface>
         </Popover.Content>
