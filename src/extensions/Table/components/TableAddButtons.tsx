@@ -256,9 +256,11 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
         </button>
       )}
 
-      {/* 3. Full-length Right Column & Bottom Row Add Bars */}
+      {/* 3. Right Column & Bottom Row Add Buttons: Sized to hovered row/col */}
       <TableAddBar
         tableRect={tableRect}
+        activeRowRect={activeRowGrip ? { top: activeRowGrip.top, height: activeRowGrip.height } : null}
+        activeColRect={activeColGrip ? { left: activeColGrip.left, width: activeColGrip.width } : null}
         showRightBar={showRightAddBar || isLastColHovered}
         showBottomBar={showBottomAddBar || isLastRowHovered}
         onAddColumn={onAddColumnAtEnd}

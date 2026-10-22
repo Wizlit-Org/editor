@@ -124,8 +124,8 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
     !isResizing && 'transition-all duration-200',
   )
 
-  // Show hover UI purely when hovered or resizing (0ms dismiss on mouseleave)
-  const isInteracting = isHovered || isResizing
+  // Show hover UI purely when editable and hovered/resizing (0ms dismiss on mouseleave)
+  const isInteracting = editorEditable && (isHovered || isResizing)
 
   const PILL_HANDLE_CLASS =
     'w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150 bg-white/60 dark:bg-white/45 backdrop-blur-md border border-white/90 dark:border-white/70 shadow-[0_2px_12px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.95)] hover:bg-white/85 dark:hover:bg-white/75 hover:scale-y-105'
@@ -145,7 +145,9 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
           position: 'relative',
         }}
         data-drag-handle
-        onMouseEnter={() => setIsHovered(true)}
+        onMouseEnter={() => {
+          if (editorEditable) setIsHovered(true)
+        }}
         onMouseLeave={() => setIsHovered(false)}
       >
         {/* Main video outer container: overflow-visible so the -inset-[10px] ring is not clipped */}

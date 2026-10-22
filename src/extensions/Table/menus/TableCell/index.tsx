@@ -76,6 +76,13 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         if (r.left < minLeft) minLeft = r.left
       })
 
+      // Check if target cells are still visible in viewport
+      if (maxBottom < 0 || minTop > window.innerHeight || maxRight < 0 || minLeft > window.innerWidth) {
+        setSelectionRect(null)
+        setMenuOpen(false)
+        return
+      }
+
       setSelectionRect({
         top: minTop,
         left: minLeft,
@@ -86,6 +93,16 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
       setSelectionRect(null)
     }
   }, [getActiveCells])
+
+  useEffect(() => {
+    const handleCloseMenus = (e: any) => {
+      if (e.detail !== 'tableCell' && menuOpen) {
+        setMenuOpen(false)
+      }
+    }
+    window.addEventListener('tiptap:close-menus', handleCloseMenus)
+    return () => window.removeEventListener('tiptap:close-menus', handleCloseMenus)
+  }, [menuOpen])
 
   useEffect(() => {
     updateSelectionRect()
@@ -238,6 +255,13 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
     setMenuOpen(false)
   }, [editor])
 
+  const onAlign = useCallback(
+    (alignment: 'left' | 'center' | 'right') => () => {
+      editor.chain().focus().setTextAlign(alignment).run()
+    },
+    [editor],
+  )
+
   const canMerge = editor.can().mergeCells()
   const canSplit = editor.can().splitCell()
 
@@ -277,7 +301,15 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         shouldShow={shouldShow}
       >
         <div className="relative flex items-center">
-          <Popover.Root open={menuOpen} onOpenChange={setMenuOpen}>
+          <Popover.Root
+            open={menuOpen}
+            onOpenChange={(open) => {
+              if (open) {
+                window.dispatchEvent(new CustomEvent('tiptap:close-menus', { detail: 'tableCell' }))
+              }
+              setMenuOpen(open)
+            }}
+          >
             <Popover.Trigger asChild>
               <button
                 type="button"
@@ -315,6 +347,36 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
               className="z-[1400] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
             >
               <div className="glass-menu min-w-[12rem] p-1.5 shadow-2xl rounded-xl flex flex-col gap-0.5 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
+                {/* 1. Alignment Row */}
+                <div className="flex items-center gap-1 p-0.5 bg-black/5 dark:bg-white/5 rounded-md mb-0.5">
+                  <button
+                    type="button"
+                    onClick={onAlign('left')}
+                    className="flex-1 py-1 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200 transition-colors"
+                    title="Align left"
+                  >
+                    <Icon name="AlignLeft" className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onAlign('center')}
+                    className="flex-1 py-1 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200 transition-colors"
+                    title="Align center"
+                  >
+                    <Icon name="AlignCenter" className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onAlign('right')}
+                    className="flex-1 py-1 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200 transition-colors"
+                    title="Align right"
+                  >
+                    <Icon name="AlignRight" className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="h-[1px] bg-black/5 dark:bg-white/10 my-0.5" />
+
                 {canMerge && (
                   <button type="button" onClick={onMergeCells} className={itemClass}>
                     <Icon name="Columns2" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />

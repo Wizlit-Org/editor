@@ -87,6 +87,9 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
     editor.chain().focus().deleteTable().run()
   }, [editor])
 
+  const selectedRowIdx = getSelectedRowIndex(editor)
+  const isFirstRow = selectedRowIdx === 0
+
   const itemClass =
     'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none'
   const dangerClass =
@@ -103,12 +106,15 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       shouldShow={shouldShow}
     >
       <div className="glass-menu min-w-[14rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-50 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
-        <button type="button" onClick={onToggleHeaderRow} className={itemClass}>
-          <Icon name="Table" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-          <span>Header row</span>
-        </button>
-
-        <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
+        {isFirstRow && (
+          <>
+            <button type="button" onClick={onToggleHeaderRow} className={itemClass}>
+              <Icon name="Table" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+              <span>Header row</span>
+            </button>
+            <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
+          </>
+        )}
 
         <button type="button" onClick={onMoveRowUp} className={itemClass}>
           <Icon name="ArrowUp" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />

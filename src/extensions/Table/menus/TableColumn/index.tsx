@@ -79,6 +79,16 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
     editor.chain().focus().deleteTable().run()
   }, [editor])
 
+  const onAlign = useCallback(
+    (alignment: 'left' | 'center' | 'right') => () => {
+      editor.chain().focus().setTextAlign(alignment).run()
+    },
+    [editor],
+  )
+
+  const selectedColIdx = getSelectedColumnIndex(editor)
+  const isFirstCol = selectedColIdx === 0
+
   const itemClass =
     'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none'
   const dangerClass =
@@ -94,12 +104,45 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
       shouldShow={shouldShow}
     >
       <div className="glass-menu min-w-[14rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-50 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
-        <button type="button" onClick={onToggleHeaderColumn} className={itemClass}>
-          <Icon name="Table" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-          <span>Header column</span>
-        </button>
+        {/* Alignment Row */}
+        <div className="flex items-center gap-1 p-0.5 bg-black/5 dark:bg-white/5 rounded-md mb-0.5">
+          <button
+            type="button"
+            onClick={onAlign('left')}
+            className="flex-1 py-1 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200 transition-colors"
+            title="Align left"
+          >
+            <Icon name="AlignLeft" className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onAlign('center')}
+            className="flex-1 py-1 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200 transition-colors"
+            title="Align center"
+          >
+            <Icon name="AlignCenter" className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onAlign('right')}
+            className="flex-1 py-1 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200 transition-colors"
+            title="Align right"
+          >
+            <Icon name="AlignRight" className="w-3.5 h-3.5" />
+          </button>
+        </div>
 
-        <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
+        <div className="h-[1px] bg-black/5 dark:bg-white/10 my-0.5" />
+
+        {isFirstCol && (
+          <>
+            <button type="button" onClick={onToggleHeaderColumn} className={itemClass}>
+              <Icon name="Table" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+              <span>Header column</span>
+            </button>
+            <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
+          </>
+        )}
 
         <button type="button" onClick={onMoveColumnLeft} className={itemClass}>
           <Icon name="ArrowLeft" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />

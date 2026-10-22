@@ -10,6 +10,8 @@ interface TableAddBarProps {
     width: number
     height: number
   }
+  activeRowRect?: { top: number; height: number } | null
+  activeColRect?: { left: number; width: number } | null
   showRightBar?: boolean
   showBottomBar?: boolean
   onAddColumn: (e: React.MouseEvent) => void
@@ -19,23 +21,31 @@ interface TableAddBarProps {
 
 export const TableAddBar: React.FC<TableAddBarProps> = ({
   tableRect,
+  activeRowRect,
+  activeColRect,
   showRightBar = true,
   showBottomBar = true,
   onAddColumn,
   onAddRow,
   onHoverKeepAlive,
 }) => {
+  const rightBarTop = activeRowRect ? activeRowRect.top : tableRect.top
+  const rightBarHeight = activeRowRect ? Math.max(activeRowRect.height, 24) : 28
+
+  const bottomBarLeft = activeColRect ? activeColRect.left : tableRect.left
+  const bottomBarWidth = activeColRect ? Math.max(activeColRect.width, 24) : 28
+
   return (
     <>
-      {/* 1. Right Column Add Bar: Full table height 12px glass pill */}
+      {/* 1. Right Column Add Button: Sized to current row height */}
       {showRightBar && (
         <div
           className="fixed z-[1400] flex items-center justify-center transition-all duration-150 rounded-full cursor-pointer group bg-zinc-500/10 hover:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:text-white dark:hover:text-white shadow-2xs"
           style={{
-            top: tableRect.top,
+            top: rightBarTop,
             left: tableRect.right + 4,
-            height: tableRect.height,
-            width: 12,
+            height: rightBarHeight,
+            width: 14,
             zIndex: 1400,
           }}
           onClick={onAddColumn}
@@ -47,15 +57,15 @@ export const TableAddBar: React.FC<TableAddBarProps> = ({
         </div>
       )}
 
-      {/* 2. Bottom Row Add Bar: Full table width 12px glass pill */}
+      {/* 2. Bottom Row Add Button: Sized to current column width */}
       {showBottomBar && (
         <div
           className="fixed z-[1400] flex items-center justify-center transition-all duration-150 rounded-full cursor-pointer group bg-zinc-500/10 hover:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:text-white dark:hover:text-white shadow-2xs"
           style={{
             top: tableRect.bottom + 4,
-            left: tableRect.left,
-            width: tableRect.width,
-            height: 12,
+            left: bottomBarLeft,
+            width: bottomBarWidth,
+            height: 14,
             zIndex: 1400,
           }}
           onClick={onAddRow}

@@ -111,6 +111,16 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
     }
   }, [shouldHideHandle, menuOpen])
 
+  useEffect(() => {
+    const handleCloseMenus = (e: any) => {
+      if (e.detail !== 'contentItem' && menuOpen) {
+        setMenuOpen(false)
+      }
+    }
+    window.addEventListener('tiptap:close-menus', handleCloseMenus)
+    return () => window.removeEventListener('tiptap:close-menus', handleCloseMenus)
+  }, [menuOpen])
+
   // Mousemove guard: whenever cursor enters a table cell/header/row, hide DragHandle immediately
   // Nested configuration with blockStructureGuard:
   // Excludes table cells/rows so the entire table gets a stationary handle at top-left.
@@ -291,7 +301,15 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
           <Icon name="Plus" className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
         </button>
 
-        <Popover.Root open={menuOpen} onOpenChange={setMenuOpen}>
+        <Popover.Root
+          open={menuOpen}
+          onOpenChange={(open) => {
+            if (open) {
+              window.dispatchEvent(new CustomEvent('tiptap:close-menus', { detail: 'contentItem' }))
+            }
+            setMenuOpen(open)
+          }}
+        >
           <Popover.Trigger asChild>
             <button
               type="button"
