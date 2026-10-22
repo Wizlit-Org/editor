@@ -129,12 +129,24 @@ export const useBlockEditor = ({
               return true
             }
 
-            // 3-c) If user has a text selection, apply as Link mark!
+            // 3-c) General Web URL: Convert to Hyperlink!
+            event.preventDefault()
             if (editor && !editor.state.selection.empty) {
-              event.preventDefault()
+              // Selection exists: wrap selected text with link mark
               editor.chain().focus().setLink({ href: text }).run()
-              return true
+            } else if (editor) {
+              // Cursor only: insert hyperlinked text
+              editor
+                .chain()
+                .focus()
+                .insertContent({
+                  type: 'text',
+                  text,
+                  marks: [{ type: 'link', attrs: { href: text } }],
+                })
+                .run()
             }
+            return true
           }
 
           // Default: let standard TipTap paste handlers run

@@ -58,12 +58,12 @@ export const YoutubeBlock = Youtube.extend<YoutubeBlockOptions>({
   addAttributes() {
     return {
       src: {
-        default: null,
+        default: '',
         parseHTML: element => {
           return (
             element.getAttribute('src') ||
             element.querySelector('iframe')?.getAttribute('src') ||
-            null
+            ''
           )
         },
       },
@@ -141,37 +141,38 @@ export const YoutubeBlock = Youtube.extend<YoutubeBlockOptions>({
       setYoutubeVideo:
         options =>
         ({ commands }) => {
-          if (!options.src) {
-            return false
+          const rawSrc = options?.src || ''
+          let finalUrl = ''
+
+          if (rawSrc) {
+            const embedUrl = getEmbedUrlFromYoutubeUrl({
+              url: rawSrc,
+              allowFullscreen: this.options.allowFullscreen ?? true,
+              autoplay: this.options.autoplay ?? false,
+              ccLanguage: this.options.ccLanguage,
+              ccLoadPolicy: this.options.ccLoadPolicy,
+              disableKBcontrols: this.options.disableKBcontrols,
+              enableIFrameApi: this.options.enableIFrameApi,
+              endTime: this.options.endTime,
+              interfaceLanguage: this.options.interfaceLanguage,
+              ivLoadPolicy: this.options.ivLoadPolicy ?? 3,
+              loop: this.options.loop,
+              modestBranding: this.options.modestBranding ?? true,
+              nocookie: this.options.nocookie ?? true,
+              origin: this.options.origin,
+              playlist: this.options.playlist,
+              progressBarColor: this.options.progressBarColor,
+              startAt: options?.start || 0,
+            })
+
+            finalUrl = formatYoutubeEmbedUrl(embedUrl || rawSrc)
           }
-
-          const embedUrl = getEmbedUrlFromYoutubeUrl({
-            url: options.src,
-            allowFullscreen: this.options.allowFullscreen ?? true,
-            autoplay: this.options.autoplay ?? false,
-            ccLanguage: this.options.ccLanguage,
-            ccLoadPolicy: this.options.ccLoadPolicy,
-            disableKBcontrols: this.options.disableKBcontrols,
-            enableIFrameApi: this.options.enableIFrameApi,
-            endTime: this.options.endTime,
-            interfaceLanguage: this.options.interfaceLanguage,
-            ivLoadPolicy: this.options.ivLoadPolicy ?? 3,
-            loop: this.options.loop,
-            modestBranding: this.options.modestBranding ?? true,
-            nocookie: this.options.nocookie ?? true,
-            origin: this.options.origin,
-            playlist: this.options.playlist,
-            progressBarColor: this.options.progressBarColor,
-            startAt: options.start || 0,
-          })
-
-          const finalUrl = formatYoutubeEmbedUrl(embedUrl || options.src)
 
           return commands.insertContent({
             type: this.name,
             attrs: {
               src: finalUrl,
-              width: options.width || '100%',
+              width: options?.width || '100%',
             },
           })
         },

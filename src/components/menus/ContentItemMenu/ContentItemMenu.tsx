@@ -18,6 +18,7 @@ type MenuView = 'main' | 'turnInto'
 export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuProps) => {
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuView, setMenuView] = useState<MenuView>('main')
+  const isDraggingRef = useRef(false)
   const data = useData()
   const actions = useContentItemActions(editor, data.currentNode, data.currentNodePos)
 
@@ -302,6 +303,7 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
         </button>
 
         <Popover.Root
+          modal={false}
           open={menuOpen}
           onOpenChange={(open) => {
             if (open) {
@@ -313,6 +315,20 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
           <Popover.Trigger asChild>
             <button
               type="button"
+              onDragStart={() => {
+                isDraggingRef.current = true
+              }}
+              onDragEnd={() => {
+                setTimeout(() => {
+                  isDraggingRef.current = false
+                }, 100)
+              }}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                if (isDraggingRef.current) return
+                setMenuOpen((prev) => !prev)
+              }}
               className="w-[24px] h-[32px] rounded-[10px] p-0 flex items-center justify-center transition-colors duration-150 hover:bg-black/[0.06] dark:hover:bg-white/[0.08] hover:backdrop-blur-sm cursor-grab active:cursor-grabbing outline-none"
               title="Drag to move, click for options"
               aria-label="Drag handle and block menu"
