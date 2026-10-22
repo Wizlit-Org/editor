@@ -10,6 +10,7 @@ import ImageBlockMenu from '@/extensions/ImageBlock/components/ImageBlockMenu'
 import YoutubeBlockMenu from '@/extensions/YoutubeBlock/components/YoutubeBlockMenu'
 import { TableColumnMenu, TableRowMenu, TableCellMenu } from '@/extensions/Table/menus'
 import { TableAddButtons } from '@/extensions/Table/components/TableAddButtons'
+import { TableScrollIndicator } from '@/extensions/Table/components/TableScrollIndicator'
 import { TextMenu } from '@/components/menus/TextMenu'
 import { ContentItemMenu } from '@/components/menus/ContentItemMenu'
 import { LinkMenu } from '@/components/menus/LinkMenu'
@@ -251,8 +252,9 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
             // collabState={collabState}
             // users={users}
           /> */}
-          {/* Sticky Table of Contents (Client-only, works in both Edit and Read-only modes) */}
+          {/* Sticky Table of Contents & Table Scroll Indicators (Client-only, works in both Edit and Read-only modes) */}
           <TableOfContents editor={editor} />
+          <TableScrollIndicator editor={editor} />
           <EditorContent editor={editor} className="flex-1 focus:outline-none" />
           <ContentItemMenu editor={editor} isEditable={!readOnly} />
           <LinkMenu

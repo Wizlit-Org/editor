@@ -16,7 +16,6 @@ const YOUTUBE_BLOCK_MENU_OPTIONS = {
 }
 
 export const YoutubeBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => {
-  const menuRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [isEditingUrl, setIsEditingUrl] = useState(false)
   const [urlInput, setUrlInput] = useState('')
@@ -101,8 +100,8 @@ export const YoutubeBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element =
   })
 
   const BTN_CLASS =
-    'h-7 w-7 p-0 flex items-center justify-center text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/5 dark:active:bg-white/10 rounded-md border border-transparent transition-colors duration-150'
-  const ACTIVE_CLASS = 'bg-black/10 text-zinc-900 dark:bg-white/15 dark:text-white'
+    'h-7 w-7 p-0 flex items-center justify-center text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/5 dark:active:bg-white/10 rounded-md border border-transparent transition-colors'
+  const ACTIVE_CLASS = 'bg-black/10 text-zinc-900 dark:bg-white/15 dark:text-white font-semibold'
 
   return (
     <BaseBubbleMenu
@@ -110,37 +109,38 @@ export const YoutubeBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element =
       pluginKey="youtubeBlockMenu"
       shouldShow={shouldShow}
       updateDelay={0}
-      options={YOUTUBE_BLOCK_MENU_OPTIONS}
       appendTo={appendTo?.current || undefined}
       getReferencedVirtualElement={getReferencedVirtualElement}
+      options={YOUTUBE_BLOCK_MENU_OPTIONS}
     >
-      <div
-        ref={menuRef}
-        className="glass-toolbar flex items-center gap-0.5 p-1 rounded-xl shadow-2xl bg-white/85 dark:bg-[#202020]/90 backdrop-blur-xl border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200"
-      >
+      <div className="flex items-center gap-1 p-1 rounded-xl bg-white/95 dark:bg-[#202020]/95 backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl ring-1 ring-white/40 dark:ring-white/5 text-zinc-800 dark:text-zinc-200">
         {isEditingUrl ? (
-          <div className="flex items-center gap-1 px-1">
+          <div className="flex items-center gap-1.5 px-1 py-0.5">
+            <div className="flex items-center justify-center w-5 h-5 rounded bg-red-600/10 text-red-600 shrink-0">
+              <Icon name="Video" className="w-3.5 h-3.5" />
+            </div>
             <input
               ref={inputRef}
               type="text"
               value={urlInput}
               onChange={e => setUrlInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="YouTube URL 입력..."
-              className="h-7 w-56 px-2 text-xs rounded-md bg-black/5 dark:bg-white/10 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 outline-none border border-black/10 dark:border-white/15 focus:border-indigo-500 dark:focus:border-violet-400"
+              placeholder="YouTube 영상 URL 입력..."
+              className="h-7 w-60 px-2.5 text-xs rounded-lg bg-black/5 dark:bg-white/10 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 outline-none border border-black/10 dark:border-white/15 focus:border-indigo-500 dark:focus:border-violet-400 focus:ring-1 focus:ring-indigo-500/30 transition-all"
             />
             <button
               type="button"
               onClick={onApplyUrl}
-              className="h-7 px-2 flex items-center justify-center rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium cursor-pointer transition-colors"
+              className="h-7 px-3 flex items-center justify-center gap-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium cursor-pointer shadow-xs transition-all active:scale-95"
               title="적용"
             >
               <Icon name="Check" className="w-3.5 h-3.5" />
+              <span>적용</span>
             </button>
             <button
               type="button"
               onClick={onCancelEditUrl}
-              className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 cursor-pointer transition-colors"
+              className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 cursor-pointer transition-colors"
               title="취소"
             >
               <Icon name="X" className="w-3.5 h-3.5" />

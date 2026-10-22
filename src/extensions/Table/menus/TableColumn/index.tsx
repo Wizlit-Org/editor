@@ -42,6 +42,27 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
     [editor],
   )
 
+  const onAlign = useCallback(
+    (alignment: 'left' | 'center' | 'right') => (e: React.MouseEvent) => {
+      e.stopPropagation()
+      try {
+        editor.chain().focus().setCellAttribute('textAlign', alignment).setTextAlign(alignment).run()
+      } catch {
+        editor.chain().focus().setCellAttribute('textAlign', alignment).run()
+      }
+    },
+    [editor],
+  )
+
+  const activeAlign =
+    editor.getAttributes('tableCell').textAlign ||
+    editor.getAttributes('tableHeader').textAlign ||
+    (editor.isActive({ textAlign: 'center' })
+      ? 'center'
+      : editor.isActive({ textAlign: 'right' })
+      ? 'right'
+      : 'left')
+
   const onMoveColumnLeft = useCallback(() => {
     const idx = getSelectedColumnIndex(editor)
     moveColumnLeft(editor, idx)
@@ -96,9 +117,9 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
   const isFirstCol = selectedColIdx === 0
 
   const itemClass =
-    'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none'
+    'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none cursor-pointer'
   const dangerClass =
-    'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-red-600 dark:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 select-none'
+    'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-red-600 dark:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 select-none cursor-pointer'
 
   return (
     <BaseBubbleMenu
@@ -110,7 +131,47 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
       shouldShow={shouldShow}
     >
       <div className="glass-menu min-w-[14rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-50 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
-        {/* Alignment Submenu */}
+        {/* 1. One-click Segmented Alignment Toolbar */}
+        <div className="flex items-center gap-1 p-0.5 bg-black/5 dark:bg-white/5 rounded-md mb-0.5">
+          <button
+            type="button"
+            onClick={onAlign('left')}
+            className={`flex-1 py-1 flex items-center justify-center rounded text-xs transition-colors ${
+              activeAlign === 'left'
+                ? 'bg-white dark:bg-white/20 text-indigo-600 dark:text-violet-300 shadow-xs font-semibold'
+                : 'hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200'
+            }`}
+            title="Align left"
+          >
+            <Icon name="AlignLeft" className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onAlign('center')}
+            className={`flex-1 py-1 flex items-center justify-center rounded text-xs transition-colors ${
+              activeAlign === 'center'
+                ? 'bg-white dark:bg-white/20 text-indigo-600 dark:text-violet-300 shadow-xs font-semibold'
+                : 'hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200'
+            }`}
+            title="Align center"
+          >
+            <Icon name="AlignCenter" className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onAlign('right')}
+            className={`flex-1 py-1 flex items-center justify-center rounded text-xs transition-colors ${
+              activeAlign === 'right'
+                ? 'bg-white dark:bg-white/20 text-indigo-600 dark:text-violet-300 shadow-xs font-semibold'
+                : 'hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200'
+            }`}
+            title="Align right"
+          >
+            <Icon name="AlignRight" className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* 2. Submenu for detailed Vertical Alignment */}
         <TableAlignmentSubmenu editor={editor} />
 
         <div className="h-[1px] bg-black/5 dark:bg-white/10 my-0.5" />

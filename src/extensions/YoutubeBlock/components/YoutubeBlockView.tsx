@@ -29,6 +29,7 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
   const { src, align = 'center', width = '100%', caption = '' } = node.attrs
   const editorEditable = editor.isEditable
 
+  const [emptyUrlInput, setEmptyUrlInput] = useState('')
   const [isResizing, setIsResizing] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [isEditingCaption, setIsEditingCaption] = useState(false)
@@ -39,6 +40,13 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
 
   const videoId = useMemo(() => getYoutubeVideoId(src), [src])
   const thumbnailUrl = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null
+
+  const handleApplyEmptyUrl = useCallback(() => {
+    const trimmed = emptyUrlInput.trim()
+    if (trimmed) {
+      updateAttributes({ src: trimmed })
+    }
+  }, [emptyUrlInput, updateAttributes])
 
   const onSelectBlock = useCallback(
     (event: React.MouseEvent) => {
@@ -112,7 +120,55 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
     [],
   )
 
-  if (!src) return null
+  // Empty URL state: Render premium glassmorphism embed card
+  if (!src || !src.trim()) {
+    if (!editorEditable) return <></>
+
+    return (
+      <NodeViewWrapper className="w-full my-4">
+        <div
+          ref={containerRef}
+          className="mx-auto w-full max-w-xl p-6 rounded-2xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-[#1e1e20]/80 backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-4 text-center select-none"
+        >
+          <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-red-600 text-white shadow-lg shadow-red-600/30">
+            <Icon name="Play" className="w-6 h-6 ml-0.5 fill-current" />
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">YouTube 동영상 임베드</h4>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+              동영상 링크를 붙여넣어 에디터에서 바로 시청하세요
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 w-full max-w-md bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-2.5 py-1.5 focus-within:border-indigo-500 dark:focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+            <Icon name="Video" className="w-4 h-4 text-zinc-400 shrink-0" />
+            <input
+              type="text"
+              value={emptyUrlInput}
+              onChange={e => setEmptyUrlInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleApplyEmptyUrl()
+                }
+              }}
+              placeholder="YouTube 영상 URL 입력..."
+              className="flex-1 bg-transparent text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 outline-none"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={handleApplyEmptyUrl}
+              className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs shadow-md transition-all active:scale-95 whitespace-nowrap cursor-pointer"
+            >
+              임베드
+            </button>
+          </div>
+        </div>
+      </NodeViewWrapper>
+    )
+  }
 
   const showCaption = Boolean(caption || isEditingCaption)
 
