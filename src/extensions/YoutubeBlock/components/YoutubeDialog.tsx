@@ -40,16 +40,10 @@ export const YoutubeDialog: React.FC<YoutubeDialogProps> = ({ editor, appendTo }
       setOpen(true)
     }
 
-    const handleCloseEvent = () => {
-      setOpen(false)
-    }
-
     window.addEventListener('tiptap:open-youtube-dialog', handleOpen as EventListener)
-    window.addEventListener('tiptap:close-menus', handleCloseEvent)
 
     return () => {
       window.removeEventListener('tiptap:open-youtube-dialog', handleOpen as EventListener)
-      window.removeEventListener('tiptap:close-menus', handleCloseEvent)
     }
   }, [])
 
@@ -82,13 +76,12 @@ export const YoutubeDialog: React.FC<YoutubeDialogProps> = ({ editor, appendTo }
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      e.stopPropagation()
       if (e.key === 'Escape') {
         e.preventDefault()
-        e.stopPropagation()
         handleClose()
       } else if (e.key === 'Enter') {
         e.preventDefault()
-        e.stopPropagation()
         if (isValid) {
           handleConfirm()
         }
@@ -104,10 +97,12 @@ export const YoutubeDialog: React.FC<YoutubeDialogProps> = ({ editor, appendTo }
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-0 duration-150"
       onClick={handleClose}
       onKeyDown={handleKeyDown}
+      onPaste={e => e.stopPropagation()}
     >
       <div
         className="w-full max-w-md rounded-2xl bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl p-5 flex flex-col gap-4 text-zinc-800 dark:text-zinc-100 animate-in zoom-in-95 duration-150"
         onClick={e => e.stopPropagation()}
+        onPaste={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between pb-1 border-b border-black/5 dark:border-white/10">
@@ -143,6 +138,8 @@ export const YoutubeDialog: React.FC<YoutubeDialogProps> = ({ editor, appendTo }
               type="text"
               value={url}
               onChange={e => setUrl(e.target.value)}
+              onPaste={e => e.stopPropagation()}
+              onKeyDown={handleKeyDown}
               placeholder="https://www.youtube.com/watch?v=..."
               className="flex-1 bg-transparent text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 outline-none"
             />

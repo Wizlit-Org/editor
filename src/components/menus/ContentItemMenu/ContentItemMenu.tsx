@@ -36,11 +36,16 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
 
   const handleNodeChange = useCallback(
     (info: any) => {
+      if (info?.pos !== currentNodePosRef.current) {
+        setMenuOpen(false)
+        setMenuView('main')
+        setDragHandleLocked(false)
+      }
       currentNodeRef.current = info?.node
       currentNodePosRef.current = info?.pos
       data.handleNodeChange(info)
     },
-    [data],
+    [data, setDragHandleLocked],
   )
 
   const setDragHandleLocked = useCallback(
@@ -70,9 +75,8 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
   // Close menu immediately on any scroll (window, document, or scrollable container)
   useEffect(() => {
     const handleScroll = () => {
-      if (menuOpen) {
-        setMenuOpen(false)
-      }
+      setMenuOpen(false)
+      setMenuView('main')
       setDragHandleLocked(false)
     }
 
@@ -80,7 +84,7 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
     return () => {
       window.removeEventListener('scroll', handleScroll, { capture: true })
     }
-  }, [menuOpen, setDragHandleLocked])
+  }, [setDragHandleLocked])
 
   const copyAnchorLink = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -152,13 +156,14 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
   useEffect(() => {
     const handleCloseMenus = (e: any) => {
       if (e.detail !== 'contentItem') {
-        if (menuOpen) {
-          setMenuOpen(false)
-        }
+        setMenuOpen(false)
+        setMenuView('main')
         setDragHandleLocked(false)
       }
     }
     const handleResetScrollLock = () => {
+      setMenuOpen(false)
+      setMenuView('main')
       setDragHandleLocked(false)
     }
     window.addEventListener('tiptap:close-menus', handleCloseMenus)
@@ -167,7 +172,7 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
       window.removeEventListener('tiptap:close-menus', handleCloseMenus)
       window.removeEventListener('tiptap:reset-scroll-lock', handleResetScrollLock)
     }
-  }, [menuOpen, setDragHandleLocked])
+  }, [setDragHandleLocked])
 
   // Mousemove guard: whenever cursor enters a table cell/header/row, hide DragHandle immediately
   // Nested configuration with blockStructureGuard:
