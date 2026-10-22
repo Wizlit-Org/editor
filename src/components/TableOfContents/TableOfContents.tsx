@@ -55,10 +55,24 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
       })
       return list
     },
+    equalityFn: (prev, next) => {
+      if (!prev && !next) return true
+      if (!prev || !next) return false
+      if (prev.length !== next.length) return false
+      return prev.every(
+        (item, i) =>
+          item.id === next[i]?.id &&
+          item.level === next[i]?.level &&
+          item.text === next[i]?.text &&
+          item.pos === next[i]?.pos,
+      )
+    },
   })
 
   // Detect when the inline TOC is scrolled out of view and track active heading
   useEffect(() => {
+    let rafId: number | null = null
+
     const checkScrolledOut = () => {
       if (!inlineContainerRef.current) return
       const rect = inlineContainerRef.current.getBoundingClientRect()
@@ -66,9 +80,9 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
       const topOffset = scrollParent instanceof HTMLElement ? scrollParent.getBoundingClientRect().top : 0
       
       const isPast = rect.bottom <= topOffset + 16
-      setIsScrolledOut(isPast)
+      setIsScrolledOut(prev => (prev === isPast ? prev : isPast))
       if (!isPast) {
-        setIsStickyDropdownOpen(false)
+        setIsStickyDropdownOpen(prev => (prev ? false : prev))
       }
 
       // Track active heading
@@ -96,18 +110,30 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
             }
           }
         }
-        setActiveHeadingId(currentActive || headings[0]?.id || null)
+        const nextActiveId = currentActive || headings[0]?.id || null
+        setActiveHeadingId(prev => (prev === nextActiveId ? prev : nextActiveId))
       }
+    }
+
+    const scheduledCheck = () => {
+      if (rafId !== null) return
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null
+        checkScrolledOut()
+      })
     }
 
     checkScrolledOut()
 
-    window.addEventListener('scroll', checkScrolledOut, { passive: true, capture: true })
-    window.addEventListener('resize', checkScrolledOut, { passive: true })
+    window.addEventListener('scroll', scheduledCheck, { passive: true, capture: true })
+    window.addEventListener('resize', scheduledCheck, { passive: true })
 
     return () => {
-      window.removeEventListener('scroll', checkScrolledOut, { capture: true })
-      window.removeEventListener('resize', checkScrolledOut)
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId)
+      }
+      window.removeEventListener('scroll', scheduledCheck, { capture: true })
+      window.removeEventListener('resize', scheduledCheck)
     }
   }, [editor, headings])
 

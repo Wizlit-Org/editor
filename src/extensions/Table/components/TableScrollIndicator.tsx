@@ -15,12 +15,30 @@ interface TableShadowState {
   showRight: boolean
 }
 
+const isSameTables = (prev: TableShadowState[], next: TableShadowState[]): boolean => {
+  if (prev.length !== next.length) return false
+  return prev.every((p, i) => {
+    const n = next[i]
+    if (!n) return false
+    return (
+      p.id === n.id &&
+      p.wrapper === n.wrapper &&
+      p.showLeft === n.showLeft &&
+      p.showRight === n.showRight &&
+      Math.abs(p.rect.top - n.rect.top) < 0.5 &&
+      Math.abs(p.rect.left - n.rect.left) < 0.5 &&
+      Math.abs(p.rect.width - n.rect.width) < 0.5 &&
+      Math.abs(p.rect.height - n.rect.height) < 0.5
+    )
+  })
+}
+
 export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ editor }) => {
   const [tables, setTables] = useState<TableShadowState[]>([])
 
   const updateTableScrollStates = useCallback(() => {
     if (!editor.view?.dom) {
-      setTables([])
+      setTables(prev => (prev.length === 0 ? prev : []))
       return
     }
 
@@ -29,7 +47,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
     ) as HTMLElement[]
 
     if (wrappers.length === 0) {
-      setTables([])
+      setTables(prev => (prev.length === 0 ? prev : []))
       return
     }
 
@@ -66,30 +84,42 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       })
     })
 
-    setTables(nextStates)
+    setTables(prev => (isSameTables(prev, nextStates) ? prev : nextStates))
   }, [editor])
 
   useEffect(() => {
+    let rafId: number | null = null
+
+    const scheduledUpdate = () => {
+      if (rafId !== null) return
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null
+        updateTableScrollStates()
+      })
+    }
+
     updateTableScrollStates()
 
     const wrappers = Array.from(
       editor.view?.dom?.querySelectorAll('.tableWrapper') || [],
     ) as HTMLElement[]
 
-    const onWrapperScroll = () => updateTableScrollStates()
-    wrappers.forEach(w => w.addEventListener('scroll', onWrapperScroll, { passive: true }))
+    wrappers.forEach(w => w.addEventListener('scroll', scheduledUpdate, { passive: true }))
 
-    editor.on('selectionUpdate', updateTableScrollStates)
-    editor.on('transaction', updateTableScrollStates)
-    window.addEventListener('scroll', updateTableScrollStates, { passive: true, capture: true })
-    window.addEventListener('resize', updateTableScrollStates, { passive: true })
+    editor.on('selectionUpdate', scheduledUpdate)
+    editor.on('transaction', scheduledUpdate)
+    window.addEventListener('scroll', scheduledUpdate, { passive: true, capture: true })
+    window.addEventListener('resize', scheduledUpdate, { passive: true })
 
     return () => {
-      wrappers.forEach(w => w.removeEventListener('scroll', onWrapperScroll))
-      editor.off('selectionUpdate', updateTableScrollStates)
-      editor.off('transaction', updateTableScrollStates)
-      window.removeEventListener('scroll', updateTableScrollStates, { capture: true })
-      window.removeEventListener('resize', updateTableScrollStates)
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId)
+      }
+      wrappers.forEach(w => w.removeEventListener('scroll', scheduledUpdate))
+      editor.off('selectionUpdate', scheduledUpdate)
+      editor.off('transaction', scheduledUpdate)
+      window.removeEventListener('scroll', scheduledUpdate, { capture: true })
+      window.removeEventListener('resize', scheduledUpdate)
     }
   }, [editor, updateTableScrollStates])
 
