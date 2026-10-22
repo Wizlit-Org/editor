@@ -234,27 +234,18 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
               </div>
             )}
 
-            {/* Uploading Server Image Overlay */}
+            {/* Minimal Uploading Spinner Badge on optimistic image */}
             {isUploading && (
-              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/45 dark:bg-black/65 backdrop-blur-md rounded-xl text-white transition-all pointer-events-none gap-2 border border-dashed border-indigo-400/60 shadow-lg">
-                <Icon name="RefreshCw" className="w-8 h-8 animate-spin text-indigo-400 dark:text-violet-300" />
-                <span className="text-xs font-semibold tracking-wide">이미지 업로드 중...</span>
+              <div className="absolute bottom-3 right-3 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 dark:bg-black/70 backdrop-blur-md text-white text-[11px] font-medium shadow-md pointer-events-none border border-white/10">
+                <Icon name="RefreshCw" className="w-3 h-3 animate-spin text-indigo-400 dark:text-violet-300" />
+                <span>업로드 중...</span>
               </div>
             )}
-            {/* Notion-style Sophisticated Loading / Uploading Skeleton */}
-            {(isLoading || isUploading) && !hasError && (
-              <div className="w-full aspect-video min-h-[160px] max-h-[320px] rounded-xl bg-gradient-to-br from-zinc-100/90 via-zinc-200/40 to-zinc-100/90 dark:from-zinc-900/80 dark:via-zinc-800/40 dark:to-zinc-900/80 backdrop-blur-md animate-pulse flex flex-col items-center justify-center gap-3 border border-dashed border-zinc-300/80 dark:border-zinc-700/80 shadow-inner">
-                <div className="w-11 h-11 rounded-xl bg-white/90 dark:bg-zinc-800/90 shadow-xs flex items-center justify-center border border-black/5 dark:border-white/10">
-                  <Icon name="Image" className="w-5 h-5 text-indigo-500 dark:text-violet-400 animate-pulse" />
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-200 tracking-tight">
-                    {isUploading ? '이미지 업로드 중...' : '이미지 불러오는 중...'}
-                  </span>
-                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
-                    잠시만 기다려주세요
-                  </span>
-                </div>
+
+            {/* Skeleton fallback only when NO src exists yet */}
+            {isLoading && !src && !hasError && (
+              <div className="w-full aspect-video min-h-[160px] max-h-[320px] rounded-xl bg-zinc-100 dark:bg-zinc-800/50 animate-pulse flex items-center justify-center border border-dashed border-zinc-300 dark:border-zinc-700">
+                <Icon name="Image" className="w-6 h-6 text-zinc-400 animate-pulse" />
               </div>
             )}
 
@@ -274,7 +265,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
                 style={{ margin: 0, padding: 0, display: 'block', width: '100%', height: 'auto' }}
                 className={cn(
                   'block w-full min-w-full h-auto rounded-lg object-contain !m-0 !p-0 transition-all duration-200',
-                  isLoading ? 'opacity-0 h-0 overflow-hidden absolute pointer-events-none' : 'opacity-100',
+                  isLoading && !src ? 'opacity-0 h-0 overflow-hidden absolute pointer-events-none' : 'opacity-100',
                   !editorEditable ? 'cursor-pointer' : '',
                 )}
                 draggable={editorEditable}

@@ -29,6 +29,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
     (colIdx: number) => (e: React.MouseEvent) => {
       e.preventDefault()
       e.stopPropagation()
+      window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
       if (!tableRect || tableRect.pos < 0) return
 
       try {
@@ -54,6 +55,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
     (rowIdx: number) => (e: React.MouseEvent) => {
       e.preventDefault()
       e.stopPropagation()
+      window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
       if (!tableRect || tableRect.pos < 0) return
 
       try {
@@ -79,6 +81,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
     (type: 'col' | 'row', index: number) => (e: React.MouseEvent) => {
       e.preventDefault()
       e.stopPropagation()
+      window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
       if (!tableRect || tableRect.pos < 0) return
 
       const startX = e.clientX

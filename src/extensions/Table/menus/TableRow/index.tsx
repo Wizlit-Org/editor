@@ -29,8 +29,14 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       setTick(t => t + 1)
     }
     editor.on('selectionUpdate', handleUpdate)
+    editor.on('transaction', handleUpdate)
+    editor.on('focus', handleUpdate)
+    window.addEventListener('tiptap:reset-scroll-lock', handleUpdate)
     return () => {
       editor.off('selectionUpdate', handleUpdate)
+      editor.off('transaction', handleUpdate)
+      editor.off('focus', handleUpdate)
+      window.removeEventListener('tiptap:reset-scroll-lock', handleUpdate)
     }
   }, [editor])
 

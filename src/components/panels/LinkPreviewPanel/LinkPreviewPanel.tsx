@@ -132,24 +132,24 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
       {/* 1. Top Notion-style Inline Action Toolbar */}
       <div className="h-9 px-2.5 flex items-center justify-between gap-1.5 border-b border-zinc-200/60 dark:border-zinc-800/80 bg-zinc-50/70 dark:bg-zinc-800/30">
         {/* Left: Favicon + Clickable Link / Domain */}
-        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <div className="w-4 h-4 rounded aspect-square overflow-hidden shrink-0 flex items-center justify-center bg-black/[0.04] dark:bg-white/[0.06]">
+        <div className="inline-flex items-center gap-1.5 min-w-0 flex-1">
+          <span className="w-3.5 h-3.5 shrink-0 flex items-center justify-center">
             {faviconUrl && !faviconError ? (
               <img
                 src={faviconUrl}
                 alt=""
-                className="w-full h-full object-contain aspect-square"
+                className="w-3.5 h-3.5 object-contain"
                 onError={() => setFaviconError(true)}
               />
             ) : (
               <Icon name="Globe" className="w-3.5 h-3.5 text-zinc-400" />
             )}
-          </div>
+          </span>
 
           <a
             {...(!disableDefaultAction ? defaultProps : {})}
             onClick={handleLinkClick}
-            className="text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-violet-400 hover:underline truncate transition-colors cursor-pointer"
+            className="text-xs leading-none font-medium text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-violet-400 hover:underline truncate transition-colors cursor-pointer"
             title={url}
           >
             {domain || url}

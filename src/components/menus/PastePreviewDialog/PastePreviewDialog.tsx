@@ -30,7 +30,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
   const [imgError, setImgError] = useState(false)
   const [ogMeta, setOgMeta] = useState<{ title?: string; image?: string; domain?: string } | null>(null)
 
-  // Pure cancel/close (without inserting anything)
+  // Pure cancel/close (without modifying editor content)
   const handleClose = useCallback(() => {
     setData(null)
     setSelectedId('')
@@ -42,29 +42,30 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
   const options = useMemo<PasteOptionItem[]>(() => {
     if (!data) return []
 
-    const plainTextOpt: PasteOptionItem = {
-      id: 'plain-text',
-      label: '일반 텍스트',
-      icon: 'Type',
-      insert: () => insertPlainText(editor, data.text),
-    }
+    const plainTextOpt: PasteOptionItem = { id: 'plain-text', label: '일반 텍스트', icon: 'Type', insert: () => insertPlainText(editor, data.text) }
 
     switch (data.type) {
       case 'image_url':
         return [
           plainTextOpt,
+          { id: 'link', label: '하이퍼링크', icon: 'Link', insert: () => insertHyperlink(editor, data.text) },
+          { id: 'image-external', label: '외부 이미지 연동', icon: 'ExternalLink', insert: () => insertImage(editor, data.text) },
           {
-            id: 'link',
-            label: '하이퍼링크',
-            icon: 'Link',
-            insert: () => insertHyperlink(editor, data.text),
-          },
-          {
-            id: 'image-block',
-            label: '이미지 삽입',
-            icon: 'Image',
+            id: 'image-upload',
+            label: '서버에 이미지 업로드',
+            icon: 'Upload',
             isPrimary: true,
-            insert: () => insertImage(editor, data.text),
+            insert: () => {
+              const uploadCmd = (editor.commands as any).uploadImageByUrl
+              if (typeof uploadCmd === 'function') {
+                const handled = uploadCmd({ url: data.text })
+                if (!handled) {
+                  insertImage(editor, data.text)
+                }
+              } else {
+                insertImage(editor, data.text)
+              }
+            },
           },
         ]
 
@@ -72,12 +73,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
         const videoId = data.meta?.videoId || ''
         return [
           plainTextOpt,
-          {
-            id: 'link',
-            label: '하이퍼링크',
-            icon: 'Link',
-            insert: () => insertHyperlink(editor, data.text),
-          },
+          { id: 'link', label: '하이퍼링크', icon: 'Link', insert: () => insertHyperlink(editor, data.text) },
           {
             id: 'youtube-video',
             label: 'YouTube 임베드',
@@ -97,37 +93,19 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
       case 'web_url':
         return [
           plainTextOpt,
-          {
-            id: 'link',
-            label: '하이퍼링크',
-            icon: 'Link',
-            isPrimary: true,
-            insert: () => insertHyperlink(editor, data.text),
-          },
+          { id: 'link', label: '하이퍼링크', icon: 'Link', isPrimary: true, insert: () => insertHyperlink(editor, data.text) },
         ]
 
       case 'code':
         return [
           plainTextOpt,
-          {
-            id: 'code-block',
-            label: '코드 블록',
-            icon: 'Code',
-            isPrimary: true,
-            insert: () => insertCodeBlock(editor, data.text),
-          },
+          { id: 'code-block', label: '코드 블록', icon: 'Code', isPrimary: true, insert: () => insertCodeBlock(editor, data.text) },
         ]
 
       case 'list':
         return [
           plainTextOpt,
-          {
-            id: 'list-items',
-            label: '리스트',
-            icon: 'List',
-            isPrimary: true,
-            insert: () => insertMarkdownList(editor, data.text),
-          },
+          { id: 'list-items', label: '리스트', icon: 'List', isPrimary: true, insert: () => insertMarkdownList(editor, data.text) },
         ]
 
       default:
@@ -238,88 +216,96 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     return null
   }
 
-  const headerInfo = ({
-    image_url: { title: '이미지 URL 감지됨', icon: 'Image' },
-    youtube_url: { title: 'YouTube 동영상 감지됨', icon: 'Youtube' },
-    web_url: { title: '웹 링크 감지됨', icon: 'Globe' },
-    code: { title: '코드 스니펫 감지됨', icon: 'Code' },
-    list: { title: '마크다운 리스트 감지됨', icon: 'List' },
-  } as Record<string, { title: string; icon: string }>)[data.type] || { title: '붙여넣기 옵션', icon: 'Type' }
+  // Header icon and title metadata
+  const headerInfo = (() => {
+    switch (data.type) {
+      case 'image_url':
+        return { title: '이미지 URL 감지됨', icon: 'Image' }
+      case 'youtube_url':
+        return { title: 'YouTube 동영상 감지됨', icon: 'Youtube' }
+      case 'web_url':
+        return { title: '웹 링크 감지됨', icon: 'Globe' }
+      case 'code':
+        return { title: '코드 스니펫 감지됨', icon: 'Code' }
+      case 'list':
+        return { title: '마크다운 리스트 감지됨', icon: 'List' }
+      default:
+        return { title: '스마트 붙여넣기', icon: 'Type' }
+    }
+  })()
 
-  // Render Dynamic Visual Preview Box depending on selectedId
+  // Dynamic preview rendering inside fixed-height box (h-[180px])
   const renderVisualPreview = () => {
-    // 1. Plain text preview mode
+    // 1. Plain text preview
     if (selectedId === 'plain-text') {
       return (
-        <div className="p-3 bg-zinc-100 dark:bg-zinc-800/40 rounded-xl border border-zinc-200/70 dark:border-zinc-700/60 max-h-44 overflow-y-auto">
-          <p className="text-xs font-mono text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap break-all leading-relaxed">
+        <div className="w-full h-full p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/80 overflow-y-auto">
+          <p className="text-xs font-mono text-zinc-300 whitespace-pre-wrap break-all leading-relaxed">
             {data.text}
           </p>
         </div>
       )
     }
 
-    // 2. Hyperlink preview mode
+    // 2. Hyperlink preview
     if (selectedId === 'link') {
       return (
-        <div className="p-3.5 bg-zinc-100 dark:bg-zinc-800/40 rounded-xl border border-zinc-200/70 dark:border-zinc-700/60 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-violet-950/50 flex items-center justify-center shrink-0 text-indigo-600 dark:text-violet-400">
-            <Icon name="Link" className="w-4 h-4" />
+        <div className="w-full p-4 bg-zinc-950/60 rounded-xl border border-zinc-800/80 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0 text-indigo-400">
+            <Icon name="Link" className="w-5 h-5" />
           </div>
           <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-xs font-medium text-indigo-600 dark:text-violet-400 underline underline-offset-2 truncate">
+            <span className="text-xs font-medium text-indigo-400 underline underline-offset-2 truncate">
               {data.text}
             </span>
-            <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
-              클릭 가능한 하이퍼링크 서식으로 삽입됩니다.
+            <span className="text-[11px] text-zinc-400 mt-0.5">
+              클릭 시 웹페이지로 이동하는 하이퍼링크로 본문에 삽입합니다.
             </span>
           </div>
         </div>
       )
     }
 
-    // 3. Rich format previews
-    switch (data.type) {
-      case 'image_url':
-        return (
-          <div className="flex flex-col items-center gap-2 p-3 bg-zinc-100 dark:bg-zinc-800/40 rounded-xl border border-zinc-200/70 dark:border-zinc-700/60 overflow-hidden">
-            {!imgError ? (
-              <img
-                src={data.text}
-                alt="Image Preview"
-                onError={() => setImgError(true)}
-                className="max-h-48 w-auto object-contain rounded-lg shadow-xs"
-              />
-            ) : (
-              <div className="h-28 flex flex-col items-center justify-center text-zinc-400 gap-1">
-                <Icon name="Image" className="w-8 h-8 opacity-50" />
-                <span className="text-xs">이미지 미리보기를 불러올 수 없음</span>
-              </div>
-            )}
-            <span className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 truncate max-w-full">
-              {data.text}
-            </span>
+    // 3. Image URL options (External vs Upload)
+    if (selectedId === 'image-external' || selectedId === 'image-upload') {
+      return (
+        <div className="w-full h-full flex flex-col items-center justify-center p-2 rounded-xl bg-zinc-950/60 border border-zinc-800/80 overflow-hidden relative">
+          <div className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded text-[10px] font-medium bg-black/60 backdrop-blur-xs text-zinc-300 border border-white/10 flex items-center gap-1">
+            <Icon name={selectedId === 'image-upload' ? 'Upload' : 'ExternalLink'} className="w-3 h-3 text-indigo-400" />
+            <span>{selectedId === 'image-upload' ? '서버 최적화 업로드' : '외부 원본 링크 직접 연결'}</span>
           </div>
-        )
+          {!imgError ? (
+            <img
+              src={data.text}
+              alt="Preview"
+              onError={() => setImgError(true)}
+              className="max-h-[135px] max-w-full object-contain rounded shadow-xs"
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center text-zinc-500 gap-1">
+              <Icon name="Image" className="w-8 h-8 opacity-40" />
+              <span className="text-xs">미리보기 로드 실패 (삽입 시 정상 작동)</span>
+            </div>
+          )}
+        </div>
+      )
+    }
 
+    // 4. Other rich format previews
+    switch (data.type) {
       case 'youtube_url': {
         const videoId = data.meta?.videoId
         const thumbUrl = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null
         return (
-          <div className="flex flex-col gap-2 p-3 bg-zinc-100 dark:bg-zinc-800/40 rounded-xl border border-zinc-200/70 dark:border-zinc-700/60 overflow-hidden">
-            <div className="relative w-full h-44 bg-zinc-900 rounded-lg overflow-hidden flex items-center justify-center group shadow-xs">
-              {thumbUrl ? (
-                <img src={thumbUrl} alt="YouTube Preview" className="w-full h-full object-cover" />
-              ) : null}
-              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                <div className="w-12 h-8 bg-red-600 rounded-lg flex items-center justify-center shadow-md">
-                  <div className="w-0 h-0 border-y-4 border-y-transparent border-l-8 border-l-white ml-0.5" />
-                </div>
+          <div className="w-full h-full rounded-xl bg-zinc-950/60 border border-zinc-800/80 overflow-hidden relative flex items-center justify-center">
+            {thumbUrl ? (
+              <img src={thumbUrl} alt="YouTube Preview" className="w-full h-full object-cover opacity-75" />
+            ) : null}
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+              <div className="w-12 h-8 bg-red-600 rounded-lg flex items-center justify-center shadow-lg">
+                <div className="w-0 h-0 border-y-4 border-y-transparent border-l-8 border-l-white ml-0.5" />
               </div>
             </div>
-            <span className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 truncate max-w-full">
-              {data.text}
-            </span>
           </div>
         )
       }
@@ -327,16 +313,16 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
       case 'web_url': {
         const domain = ogMeta?.domain || data.text
         return (
-          <div className="flex flex-col gap-2 p-3 bg-zinc-100 dark:bg-zinc-800/40 rounded-xl border border-zinc-200/70 dark:border-zinc-700/60">
-            <div className="flex items-center gap-2 p-3 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 shadow-2xs">
-              <div className="w-8 h-8 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
-                <Icon name="Globe" className="w-4 h-4 text-indigo-500 dark:text-violet-400" />
+          <div className="w-full h-full p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/80 flex flex-col justify-center">
+            <div className="flex items-center gap-3 p-3 bg-zinc-900/90 rounded-lg border border-zinc-800 shadow-xs">
+              <div className="w-9 h-9 rounded-md bg-zinc-800 flex items-center justify-center shrink-0">
+                <Icon name="Globe" className="w-5 h-5 text-indigo-400" />
               </div>
               <div className="flex flex-col min-w-0 flex-1">
-                <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+                <span className="text-xs font-semibold text-zinc-200 truncate">
                   {ogMeta?.title || domain}
                 </span>
-                <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono truncate">
+                <span className="text-[11px] text-zinc-400 font-mono truncate">
                   {data.text}
                 </span>
               </div>
@@ -347,20 +333,20 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
 
       case 'code': {
         const lines = data.text.split('\n')
-        const displayLines = lines.slice(0, 10)
+        const displayLines = lines.slice(0, 8)
         return (
-          <div className="rounded-xl overflow-hidden border border-zinc-300/80 dark:border-zinc-700/80 shadow-xs bg-zinc-950 text-zinc-200">
-            <div className="flex items-center justify-between px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
+          <div className="w-full h-full rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 flex flex-col">
+            <div className="flex items-center justify-between px-3 py-1 bg-zinc-900/90 border-b border-zinc-800">
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-                <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
-                <span className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+                <span className="w-2 h-2 rounded-full bg-red-500/80" />
+                <span className="w-2 h-2 rounded-full bg-yellow-500/80" />
+                <span className="w-2 h-2 rounded-full bg-green-500/80" />
               </div>
-              <span className="text-[10px] font-mono text-zinc-400">Code Block Preview</span>
+              <span className="text-[10px] font-mono text-zinc-400">Code Snippet</span>
             </div>
-            <pre className="p-3 text-xs font-mono leading-relaxed overflow-x-auto max-h-40 text-emerald-400/90 dark:text-emerald-300/90">
+            <pre className="p-2.5 text-xs font-mono leading-relaxed overflow-auto flex-1 text-emerald-400/90">
               {displayLines.join('\n')}
-              {lines.length > 10 ? `\n... (+${lines.length - 10} lines)` : ''}
+              {lines.length > 8 ? `\n... (+${lines.length - 8} lines)` : ''}
             </pre>
           </div>
         )
@@ -368,18 +354,18 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
 
       case 'list': {
         const lines = data.text.split('\n').filter(Boolean)
-        const displayLines = lines.slice(0, 6)
+        const displayLines = lines.slice(0, 5)
         return (
-          <div className="p-3 bg-zinc-100 dark:bg-zinc-800/40 rounded-xl border border-zinc-200/70 dark:border-zinc-700/60 max-h-44 overflow-y-auto">
-            <ul className="flex flex-col gap-1.5 text-xs text-zinc-700 dark:text-zinc-200">
+          <div className="w-full h-full p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/80 overflow-y-auto">
+            <ul className="flex flex-col gap-1 text-xs text-zinc-200">
               {displayLines.map((line, idx) => (
                 <li key={idx} className="flex items-start gap-2">
-                  <span className="text-indigo-500 dark:text-violet-400 select-none">•</span>
+                  <span className="text-indigo-400 select-none">•</span>
                   <span className="flex-1 truncate">{line.replace(/^[-*+]\s+/, '').replace(/^\d+\.\s+/, '')}</span>
                 </li>
               ))}
-              {lines.length > 6 && (
-                <li className="text-[11px] text-zinc-400 italic">...외 {lines.length - 6}개 항목</li>
+              {lines.length > 5 && (
+                <li className="text-[11px] text-zinc-500 italic">...외 {lines.length - 5}개 항목</li>
               )}
             </ul>
           </div>
@@ -393,20 +379,20 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[1450] bg-black/45 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
+      className="fixed inset-0 z-[1450] bg-black/40 backdrop-blur-xs flex items-end justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150"
       onClick={handleClose}
     >
       <div
-        className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150 select-none"
+        className="w-[92%] max-w-2xl bg-zinc-900/90 backdrop-blur-xl border border-zinc-700/60 shadow-2xl rounded-2xl overflow-hidden flex flex-col text-zinc-100 select-none animate-in slide-in-from-bottom-4 duration-200"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-zinc-800/80">
+        {/* 1. Header Bar */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800/80 bg-zinc-950/40">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-indigo-50 dark:bg-violet-950/40 flex items-center justify-center text-indigo-600 dark:text-violet-400">
+            <div className="w-5 h-5 rounded-md bg-indigo-500/20 flex items-center justify-center text-indigo-400">
               <Icon name={headerInfo.icon as any} className="w-3.5 h-3.5" />
             </div>
-            <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">
+            <span className="text-xs font-semibold text-zinc-200">
               {headerInfo.title}
             </span>
           </div>
@@ -414,27 +400,22 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
           <button
             type="button"
             onClick={handleClose}
-            className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            className="w-5 h-5 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-white/10 transition-colors cursor-pointer"
             title="닫기 (Esc)"
           >
-            <Icon name="X" className="w-4 h-4" />
+            <Icon name="X" className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Visual Preview Area */}
-        <div className="p-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
-            <span>미리보기</span>
-            <span className="text-[10px] text-zinc-400">하단 포맷을 클릭하여 결과 확인</span>
-          </div>
-
+        {/* 2. Fixed-Height Visual Preview Box (h-[180px] - Zero Layout Shaking) */}
+        <div className="h-[180px] w-full p-3 flex items-center justify-center bg-black/25 overflow-hidden">
           {renderVisualPreview()}
         </div>
 
-        {/* Action Controls Bar */}
-        <div className="p-3 bg-zinc-50 dark:bg-zinc-900/60 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between gap-2">
+        {/* 3. Fixed Bottom Action Bar */}
+        <div className="px-3.5 py-2.5 bg-zinc-950/60 border-t border-zinc-800/80 flex items-center justify-between gap-3">
           {/* Left: Mode Selection Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto">
+          <div className="flex items-center gap-1.5 overflow-x-auto min-w-0 flex-1">
             {options.map(opt => {
               const isSelected = opt.id === selectedId
               return (
@@ -442,32 +423,32 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
                   key={opt.id}
                   type="button"
                   onClick={() => setSelectedId(opt.id)}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 cursor-pointer ${
                     isSelected
-                      ? 'bg-indigo-600 text-white dark:bg-violet-600 shadow-xs'
-                      : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-750'
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'bg-white/5 text-zinc-300 border border-white/5 hover:bg-white/10 hover:text-white'
                   }`}
                 >
-                  <Icon name={opt.icon as any} className="w-3 h-3" />
+                  <Icon name={opt.icon as any} className="w-3.5 h-3.5" />
                   <span>{opt.label}</span>
                 </button>
               )
             })}
           </div>
 
-          {/* Right: Cancel & Final Confirm Button */}
-          <div className="flex items-center gap-1.5 shrink-0">
+          {/* Right: Cancel & Final Confirm Primary Button */}
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={handleClose}
-              className="px-2.5 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+              className="px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
             >
               취소
             </button>
             <button
               type="button"
               onClick={handleConfirm}
-              className="px-3.5 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 dark:bg-violet-600 dark:hover:bg-violet-700 text-white rounded-lg shadow-sm transition-all cursor-pointer flex items-center gap-1"
+              className="px-4 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-lg shadow-md transition-all cursor-pointer flex items-center gap-1.5"
             >
               <span>삽입</span>
               <span className="text-[10px] opacity-75 font-mono">↵</span>
