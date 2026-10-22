@@ -43,32 +43,44 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
     [data],
   )
 
+  const setDragHandleLocked = useCallback(
+    (locked: boolean) => {
+      try {
+        if (editor?.view) {
+          editor.view.dispatch(editor.state.tr.setMeta('lockDragHandle', locked))
+        }
+      } catch {}
+    },
+    [editor],
+  )
+
   useEffect(() => {
     if (!mounted) return
     if (prevMenuOpenRef.current === menuOpen) return
     prevMenuOpenRef.current = menuOpen
 
     if (menuOpen) {
-      editor.commands.setMeta('lockDragHandle', true)
+      setDragHandleLocked(true)
     } else {
-      editor.commands.setMeta('lockDragHandle', false)
+      setDragHandleLocked(false)
       setMenuView('main')
     }
-  }, [editor, menuOpen, mounted])
+  }, [menuOpen, mounted, setDragHandleLocked])
 
   // Close menu immediately on any scroll (window, document, or scrollable container)
   useEffect(() => {
-    if (!menuOpen) return
-
     const handleScroll = () => {
-      setMenuOpen(false)
+      if (menuOpen) {
+        setMenuOpen(false)
+      }
+      setDragHandleLocked(false)
     }
 
     window.addEventListener('scroll', handleScroll, { capture: true, passive: true })
     return () => {
       window.removeEventListener('scroll', handleScroll, { capture: true })
     }
-  }, [menuOpen])
+  }, [menuOpen, setDragHandleLocked])
 
   const copyAnchorLink = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -139,13 +151,23 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
 
   useEffect(() => {
     const handleCloseMenus = (e: any) => {
-      if (e.detail !== 'contentItem' && menuOpen) {
-        setMenuOpen(false)
+      if (e.detail !== 'contentItem') {
+        if (menuOpen) {
+          setMenuOpen(false)
+        }
+        setDragHandleLocked(false)
       }
     }
+    const handleResetScrollLock = () => {
+      setDragHandleLocked(false)
+    }
     window.addEventListener('tiptap:close-menus', handleCloseMenus)
-    return () => window.removeEventListener('tiptap:close-menus', handleCloseMenus)
-  }, [menuOpen])
+    window.addEventListener('tiptap:reset-scroll-lock', handleResetScrollLock)
+    return () => {
+      window.removeEventListener('tiptap:close-menus', handleCloseMenus)
+      window.removeEventListener('tiptap:reset-scroll-lock', handleResetScrollLock)
+    }
+  }, [menuOpen, setDragHandleLocked])
 
   // Mousemove guard: whenever cursor enters a table cell/header/row, hide DragHandle immediately
   // Nested configuration with blockStructureGuard:
@@ -352,6 +374,7 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
                 e.preventDefault()
                 e.stopPropagation()
                 if (isDraggingRef.current) return
+                setDragHandleLocked(false)
                 setMenuOpen((prev) => !prev)
               }}
               className="w-[24px] h-[32px] rounded-[10px] p-0 flex items-center justify-center transition-colors duration-150 hover:bg-black/[0.06] dark:hover:bg-white/[0.08] hover:backdrop-blur-sm cursor-grab active:cursor-grabbing outline-none"

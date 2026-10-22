@@ -52,7 +52,12 @@ export const YoutubeBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element =
   }, [editor])
 
   const onStartEditUrl = useCallback(() => {
-    editor.chain().focus(undefined, { scrollIntoView: false }).updateAttributes('youtube', { isEditing: true }).run()
+    const currentSrc = editor.getAttributes('youtube')?.src || ''
+    window.dispatchEvent(
+      new CustomEvent('tiptap:open-youtube-dialog', {
+        detail: { mode: 'edit', src: currentSrc },
+      }),
+    )
   }, [editor])
 
   const { isCenter, isLeft, isRight } = useEditorState({

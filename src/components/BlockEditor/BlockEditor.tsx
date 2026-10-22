@@ -9,6 +9,7 @@ import React, { useRef, useEffect, useCallback, useState } from 'react'
 
 import ImageBlockMenu from '@/extensions/ImageBlock/components/ImageBlockMenu'
 import YoutubeBlockMenu from '@/extensions/YoutubeBlock/components/YoutubeBlockMenu'
+import YoutubeDialog from '@/extensions/YoutubeBlock/components/YoutubeDialog'
 import { TableColumnMenu, TableRowMenu, TableCellMenu } from '@/extensions/Table/menus'
 import { TableAddButtons } from '@/extensions/Table/components/TableAddButtons'
 import { TableScrollIndicator } from '@/extensions/Table/components/TableScrollIndicator'
@@ -277,6 +278,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
               <TableAddButtons editor={editor} appendTo={menuContainerRef} />
               <ImageBlockMenu editor={editor} appendTo={menuContainerRef} />
               <YoutubeBlockMenu editor={editor} appendTo={menuContainerRef} />
+              <YoutubeDialog editor={editor} appendTo={menuContainerRef} />
               <PastePreviewDialog editor={editor} />
             </>
           )}
