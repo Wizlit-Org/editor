@@ -154,7 +154,7 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
       pluginKey="tableColumnMenu"
       updateDelay={0}
       className="z-50"
-      appendTo={appendTo?.current || (typeof document !== 'undefined' ? document.body : undefined)}
+      appendTo={typeof document !== 'undefined' ? document.body : undefined}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={TABLE_COLUMN_MENU_OPTIONS}
       shouldShow={shouldShow}

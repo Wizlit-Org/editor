@@ -20,6 +20,16 @@ function getYoutubeVideoId(url: string): string | null {
   return match && match[1]?.length === 11 ? match[1] : null
 }
 
+function getYoutubePlaylistId(url: string): string | null {
+  if (!url) return null
+  try {
+    return new URL(url).searchParams.get('list')
+  } catch {
+    const match = url.match(/[?&]list=([a-zA-Z0-9_-]+)/)
+    return match ? match[1] : null
+  }
+}
+
 export const YoutubeDialog: React.FC<YoutubeDialogProps> = ({ editor, appendTo }) => {
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<'insert' | 'edit'>('insert')
@@ -58,7 +68,8 @@ export const YoutubeDialog: React.FC<YoutubeDialogProps> = ({ editor, appendTo }
   }, [open])
 
   const videoId = useMemo(() => getYoutubeVideoId(url.trim()), [url])
-  const isValid = Boolean(videoId)
+  const playlistId = useMemo(() => getYoutubePlaylistId(url.trim()), [url])
+  const isValid = Boolean(videoId || playlistId)
   const isDirty = url.trim().length > 0
   const thumbnailUrl = videoId ? `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg` : null
 

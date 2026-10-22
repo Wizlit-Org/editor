@@ -240,10 +240,27 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
   const PILL_HANDLE_CLASS =
     'w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150 bg-white/60 dark:bg-white/45 backdrop-blur-md border border-white/90 dark:border-white/70 shadow-[0_2px_12px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.95)] hover:bg-white/85 dark:hover:bg-white/75 hover:scale-y-105'
 
+  const listId = useMemo(() => {
+    if (!src) return null
+    try {
+      return new URL(src).searchParams.get('list')
+    } catch {
+      const match = src.match(/[?&]list=([a-zA-Z0-9_-]+)/)
+      return match ? match[1] : null
+    }
+  }, [src])
+
   // Embed URL for playback (in read mode with standard controls)
-  const activeEmbedUrl = videoId
-    ? `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&rel=0&modestbranding=1`
-    : formatYoutubeEmbedUrl(src)
+  const activeEmbedUrl = useMemo(() => {
+    if (videoId) {
+      const base = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&rel=0&modestbranding=1`
+      return listId ? `${base}&list=${listId}` : base
+    }
+    if (listId) {
+      return `https://www.youtube.com/embed/videoseries?list=${listId}&autoplay=1&controls=1&rel=0&modestbranding=1`
+    }
+    return formatYoutubeEmbedUrl(src)
+  }, [videoId, listId, src])
 
   return (
     <NodeViewWrapper className="w-full my-4">

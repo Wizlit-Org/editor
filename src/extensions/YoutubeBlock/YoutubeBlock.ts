@@ -1,17 +1,44 @@
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import { mergeAttributes, Range } from '@tiptap/core'
-import { Youtube, getEmbedUrlFromYoutubeUrl } from '@tiptap/extension-youtube'
+import { Youtube } from '@tiptap/extension-youtube'
 import { YoutubeBlockView } from './components/YoutubeBlockView'
 
 export function formatYoutubeEmbedUrl(rawUrl: string): string {
   if (!rawUrl) return ''
   try {
-    const url = new URL(rawUrl)
-    url.searchParams.set('controls', '0')
-    url.searchParams.set('modestbranding', '1')
-    url.searchParams.set('rel', '0')
-    url.searchParams.set('iv_load_policy', '3')
-    return url.toString()
+    const parsed = new URL(rawUrl)
+    const listId = parsed.searchParams.get('list')
+
+    if (parsed.pathname.includes('/embed/')) {
+      parsed.searchParams.set('controls', '0')
+      parsed.searchParams.set('modestbranding', '1')
+      parsed.searchParams.set('rel', '0')
+      parsed.searchParams.set('iv_load_policy', '3')
+      return parsed.toString()
+    }
+
+    const regExp = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?.*v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+    const match = rawUrl.match(regExp)
+    const videoId = match && match[1]?.length === 11 ? match[1] : null
+
+    let embedBase = ''
+    if (videoId) {
+      embedBase = `https://www.youtube.com/embed/${videoId}`
+    } else if (listId) {
+      embedBase = `https://www.youtube.com/embed/videoseries`
+    } else {
+      return rawUrl
+    }
+
+    const embedUrl = new URL(embedBase)
+    if (listId) {
+      embedUrl.searchParams.set('list', listId)
+    }
+    embedUrl.searchParams.set('controls', '0')
+    embedUrl.searchParams.set('modestbranding', '1')
+    embedUrl.searchParams.set('rel', '0')
+    embedUrl.searchParams.set('iv_load_policy', '3')
+    return embedUrl.toString()
   } catch {
     const joiner = rawUrl.includes('?') ? '&' : '?'
     return `${rawUrl}${joiner}controls=0&modestbranding=1&rel=0&iv_load_policy=3`
@@ -146,36 +173,11 @@ export const YoutubeBlock = Youtube.extend<YoutubeBlockOptions>({
         options =>
         ({ commands }) => {
           const rawSrc = options?.src || ''
-          let finalUrl = ''
-
-          if (rawSrc) {
-            const embedUrl = getEmbedUrlFromYoutubeUrl({
-              url: rawSrc,
-              allowFullscreen: this.options.allowFullscreen ?? true,
-              autoplay: this.options.autoplay ?? false,
-              ccLanguage: this.options.ccLanguage,
-              ccLoadPolicy: this.options.ccLoadPolicy,
-              disableKBcontrols: this.options.disableKBcontrols,
-              enableIFrameApi: this.options.enableIFrameApi,
-              endTime: this.options.endTime,
-              interfaceLanguage: this.options.interfaceLanguage,
-              ivLoadPolicy: this.options.ivLoadPolicy ?? 3,
-              loop: this.options.loop,
-              modestBranding: this.options.modestBranding ?? true,
-              nocookie: this.options.nocookie ?? true,
-              origin: this.options.origin,
-              playlist: this.options.playlist,
-              progressBarColor: this.options.progressBarColor,
-              startAt: options?.start || 0,
-            })
-
-            finalUrl = formatYoutubeEmbedUrl(embedUrl || rawSrc)
-          }
 
           return commands.insertContent({
             type: this.name,
             attrs: {
-              src: finalUrl,
+              src: rawSrc,
               width: options?.width || '100%',
             },
           })
@@ -199,16 +201,7 @@ export const YoutubeBlock = Youtube.extend<YoutubeBlockOptions>({
       updateYoutubeUrl:
         url =>
         ({ commands }) => {
-          const embedUrl = getEmbedUrlFromYoutubeUrl({
-            url,
-            allowFullscreen: this.options.allowFullscreen ?? true,
-            autoplay: this.options.autoplay ?? false,
-            nocookie: this.options.nocookie ?? true,
-            ivLoadPolicy: 3,
-            modestBranding: true,
-          })
-          const finalUrl = formatYoutubeEmbedUrl(embedUrl || url)
-          return commands.updateAttributes(this.name, { src: finalUrl })
+          return commands.updateAttributes(this.name, { src: url })
         },
     }
   },

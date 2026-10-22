@@ -389,11 +389,12 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
               <Icon name="GripVertical" className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
             </button>
           </Popover.Trigger>
-          <Popover.Portal container={appendTo?.current || undefined}>
+          <Popover.Portal container={typeof document !== 'undefined' ? document.body : undefined}>
             <Popover.Content
               side="bottom"
               align="start"
               sideOffset={6}
+              collisionPadding={16}
               className="z-50 outline-none animate-in fade-in-0 zoom-in-95 duration-150"
               style={{ zIndex: 50 }}
             >
