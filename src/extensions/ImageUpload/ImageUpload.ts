@@ -40,16 +40,23 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
       uploadImageByUrl: ({ url, pos }) => ({ editor }) => {
         if (!url || url.length === 0) return false;
         
-        // URL 형식 검증
-        try { new URL(url) } catch { return false }
+        // URL 형식 및 이미지 확장자 검증
+        try {
+          const parsed = new URL(url.trim())
+          const isImageExt = /\.(png|jpe?g|gif|webp|svg|bmp|avif|ico)(\?.*)?$/i.test(parsed.pathname)
+          if (!isImageExt) {
+            return false
+          }
+        } catch {
+          return false
+        }
 
-        const img = document.createElement('img');
-        img.crossOrigin = 'anonymous';  
-        img.src = url;
+        const img = document.createElement('img')
+        img.crossOrigin = 'anonymous'  
+        img.src = url
 
         const onError = (e: Error | string | Event | unknown) => {
-          console.error('onerror', e)
-          // If image fails to load, let Tiptap handle the paste
+          // If image fails to load, gracefully fallback to text insertion without runtime error overlay
           if (pos !== undefined) {
             editor.commands.setTextSelection(pos);
           }
@@ -199,7 +206,16 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
               return true;
             }
 
-            if (this.editor.commands.uploadImageByUrl({ url: text })) {
+            const isImageUrl = (u: string) => {
+              try {
+                const parsed = new URL(u.trim())
+                return /\.(png|jpe?g|gif|webp|svg|bmp|avif|ico)(\?.*)?$/i.test(parsed.pathname)
+              } catch {
+                return false
+              }
+            }
+
+            if (isImageUrl(text) && this.editor.commands.uploadImageByUrl({ url: text })) {
               return true;
             }
 
@@ -228,7 +244,7 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
                 return true;
               }
 
-              if (this.editor.commands.uploadImageByUrl({ url: text, pos: coords.pos })) {
+              if (isImageUrl(text) && this.editor.commands.uploadImageByUrl({ url: text, pos: coords.pos })) {
                 return true;
               }
             }

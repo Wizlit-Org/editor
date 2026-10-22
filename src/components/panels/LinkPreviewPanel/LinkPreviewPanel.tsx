@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Icon } from '@/components/ui/Icon'
 
 export type LinkPreviewPanelProps = {
@@ -10,6 +10,18 @@ export type LinkPreviewPanelProps = {
   disableDefaultAction?: boolean | ((url: string) => boolean)
 }
 
+interface LinkMetadata {
+  title: string
+  description: string
+  image: string | null
+  favicon: string | null
+  domain: string
+  url: string
+}
+
+// Memory cache for fetched link previews to eliminate redundant fetches
+const previewCache = new Map<string, LinkMetadata>()
+
 export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
   onClear,
   onEdit,
@@ -19,6 +31,10 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
   disableDefaultAction,
 }) => {
   const [copied, setCopied] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [imageError, setImageError] = useState(false)
+  const [meta, setMeta] = useState<LinkMetadata | null>(() => previewCache.get(url) || null)
+
   const sanitizedLink = url?.startsWith('javascript:') ? '' : url
 
   const domain = useMemo(() => {
@@ -33,10 +49,47 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
     }
   }, [url])
 
+  // Fetch OpenGraph metadata from /api/link-preview
+  useEffect(() => {
+    if (!url) return
+    if (previewCache.has(url)) {
+      setMeta(previewCache.get(url)!)
+      setLoading(false)
+      return
+    }
+
+    let isMounted = true
+    setLoading(true)
+    setImageError(false)
+
+    const fetchMeta = async () => {
+      try {
+        const res = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`)
+        if (res.ok) {
+          const data: LinkMetadata = await res.json()
+          if (isMounted) {
+            previewCache.set(url, data)
+            setMeta(data)
+          }
+        }
+      } catch {
+        // Fallback handled gracefully
+      } finally {
+        if (isMounted) setLoading(false)
+      }
+    }
+
+    fetchMeta()
+    return () => {
+      isMounted = false
+    }
+  }, [url])
+
   const faviconUrl =
-    domain && domain.includes('.')
+    meta?.favicon ||
+    (domain && domain.includes('.')
       ? `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
-      : null
+      : null)
 
   const handleCopy = useCallback(
     (e: React.MouseEvent) => {
@@ -68,93 +121,127 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
     onOpen(sanitizedLink || '')
   }
 
+  const titleText = meta?.title || domain || url
+  const descText = meta?.description || ''
+  const hasImage = Boolean(meta?.image && !imageError)
+
   return (
-    <div className="flex items-center gap-2 p-2 px-3 bg-white/90 dark:bg-zinc-900/95 backdrop-blur-md border border-black/10 dark:border-white/10 shadow-2xl rounded-xl text-zinc-800 dark:text-zinc-200 animate-in fade-in-0 zoom-in-95 duration-150">
-      {/* Favicon & Domain Badge */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        <div className="flex items-center justify-center w-5 h-5 rounded-md bg-black/[0.04] dark:bg-white/[0.06] overflow-hidden border border-black/[0.06] dark:border-white/[0.08]">
-          {faviconUrl ? (
-            <img
-              src={faviconUrl}
-              alt=""
-              className="w-3.5 h-3.5 object-contain"
-              onError={e => {
-                ;(e.currentTarget as HTMLElement).style.display = 'none'
-              }}
-            />
-          ) : (
-            <Icon name="Globe" className="w-3.5 h-3.5 text-zinc-400" />
+    <div className="w-[320px] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-black/10 dark:border-white/10 shadow-2xl rounded-xl text-zinc-800 dark:text-zinc-200 animate-in fade-in-0 zoom-in-95 duration-150 overflow-hidden flex flex-col">
+      {/* Top Banner / OG Thumbnail Image */}
+      {hasImage && (
+        <a
+          {...(!disableDefaultAction ? defaultProps : {})}
+          onClick={handleLinkClick}
+          className="relative w-full h-32 bg-black/5 dark:bg-white/5 overflow-hidden block group cursor-pointer border-b border-black/5 dark:border-white/10"
+        >
+          <img
+            src={meta!.image!}
+            alt={titleText}
+            onError={() => setImageError(true)}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        </a>
+      )}
+
+      {/* Main Content Area */}
+      <div className="p-3 flex flex-col gap-2">
+        {/* Header: Favicon + Domain Badge + Actions */}
+        <div className="flex items-center justify-between gap-1">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex items-center justify-center w-4 h-4 rounded bg-black/[0.04] dark:bg-white/[0.06] overflow-hidden shrink-0">
+              {faviconUrl ? (
+                <img
+                  src={faviconUrl}
+                  alt=""
+                  className="w-3.5 h-3.5 object-contain"
+                  onError={e => {
+                    ;(e.currentTarget as HTMLElement).style.display = 'none'
+                  }}
+                />
+              ) : (
+                <Icon name="Globe" className="w-3.5 h-3.5 text-zinc-400" />
+              )}
+            </div>
+            {domain && (
+              <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 truncate">
+                {domain}
+              </span>
+            )}
+            {loading && (
+              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping shrink-0 ml-1" />
+            )}
+          </div>
+
+          {/* Quick Action Icons */}
+          <div className="flex items-center gap-0.5 shrink-0">
+            <a
+              {...defaultProps}
+              className="p-1 rounded text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+              title="새 창에서 열기"
+            >
+              <Icon name="ExternalLink" className="w-3.5 h-3.5" />
+            </a>
+
+            <button
+              type="button"
+              onClick={handleCopy}
+              className={`p-1 rounded transition-colors cursor-pointer ${
+                copied
+                  ? 'text-emerald-500 bg-emerald-500/10'
+                  : 'text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
+              }`}
+              title={copied ? '복사 완료' : '링크 복사'}
+            >
+              <Icon name={copied ? 'Check' : 'Copy'} className="w-3.5 h-3.5" />
+            </button>
+
+            {editable && (
+              <>
+                <button
+                  type="button"
+                  onClick={onEdit}
+                  className="p-1 rounded text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                  title="링크 편집"
+                >
+                  <Icon name="Pen" className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onClear}
+                  className="p-1 rounded text-zinc-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                  title="링크 제거"
+                >
+                  <Icon name="Unlink" className="w-3.5 h-3.5" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Title & 2-line Description */}
+        <div className="flex flex-col gap-1">
+          <a
+            {...(!disableDefaultAction ? defaultProps : {})}
+            onClick={handleLinkClick}
+            className="text-xs font-semibold text-zinc-800 dark:text-zinc-100 line-clamp-1 hover:text-indigo-600 dark:hover:text-violet-400 cursor-pointer transition-colors"
+            title={titleText}
+          >
+            {titleText}
+          </a>
+
+          {descText && (
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-2 leading-relaxed">
+              {descText}
+            </p>
+          )}
+
+          {!descText && !loading && (
+            <span className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate font-mono">
+              {url}
+            </span>
           )}
         </div>
-        {domain && (
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide uppercase bg-indigo-500/10 text-indigo-600 dark:bg-violet-500/20 dark:text-violet-300 border border-indigo-500/20 dark:border-violet-500/30">
-            {domain}
-          </span>
-        )}
-      </div>
-
-      {/* Main URL Text (clickable preview) */}
-      <a
-        {...(!disableDefaultAction ? defaultProps : {})}
-        onClick={handleLinkClick}
-        className="text-xs font-normal text-zinc-600 hover:text-indigo-600 dark:text-zinc-300 dark:hover:text-violet-400 transition-colors max-w-[200px] truncate cursor-pointer underline-offset-2 hover:underline"
-        title={url}
-      >
-        {url}
-      </a>
-
-      {/* Divider */}
-      <div className="h-4 w-[1px] bg-black/10 dark:bg-white/15 mx-0.5 shrink-0" />
-
-      {/* Action Buttons Group */}
-      <div className="flex items-center gap-0.5 shrink-0">
-        {/* Open in New Tab */}
-        <a
-          {...defaultProps}
-          className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all"
-          title="새 창에서 열기"
-        >
-          <Icon name="ExternalLink" className="w-3.5 h-3.5" />
-        </a>
-
-        {/* Copy URL */}
-        <button
-          type="button"
-          onClick={handleCopy}
-          className={`p-1.5 rounded-md transition-all active:scale-95 cursor-pointer flex items-center gap-1 ${
-            copied
-              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-medium'
-              : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
-          }`}
-          title={copied ? '클립보드 복사 완료!' : '링크 복사'}
-        >
-          <Icon name={copied ? 'Check' : 'Copy'} className="w-3.5 h-3.5" />
-          {copied && <span className="text-[10px] pr-0.5 animate-in fade-in-0 duration-150">복사됨</span>}
-        </button>
-
-        {editable && (
-          <>
-            {/* Minimal Edit Button */}
-            <button
-              type="button"
-              onClick={onEdit}
-              className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
-              title="링크 및 텍스트 편집"
-            >
-              <Icon name="Pen" className="w-3.5 h-3.5" />
-            </button>
-
-            {/* Remove Link Button */}
-            <button
-              type="button"
-              onClick={onClear}
-              className="p-1.5 rounded-md text-zinc-500 hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400 hover:bg-red-500/10 active:scale-95 transition-all cursor-pointer"
-              title="링크 제거"
-            >
-              <Icon name="Unlink" className="w-3.5 h-3.5" />
-            </button>
-          </>
-        )}
       </div>
     </div>
   )
