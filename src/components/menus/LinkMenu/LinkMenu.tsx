@@ -21,12 +21,12 @@ export const LinkMenu = ({
     },
   })
 
-  // Close edit panel when selection moves away from link
+  // Close edit panel when selection moves away from link (only when not in active edit mode)
   useEffect(() => {
-    if (!editor.isActive('link')) {
+    if (!showEdit && !editor.isActive('link')) {
       setShowEdit(false)
     }
-  }, [editor, editor.state.selection])
+  }, [editor, editor.state.selection, showEdit])
 
   // Close edit panel on tiptap:close-menus (e.g. Esc key)
   useEffect(() => {
@@ -152,7 +152,7 @@ export const LinkMenu = ({
       pluginKey="linkMenu"
       shouldShow={shouldShow}
       updateDelay={0}
-      className="z-[1350]"
+      className="z-50"
       appendTo={appendTo?.current || undefined}
       options={menuOptions}
     >

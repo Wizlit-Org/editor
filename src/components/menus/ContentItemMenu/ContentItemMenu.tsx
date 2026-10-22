@@ -11,11 +11,12 @@ import TurnIntoSubmenu from './components/TurnIntoSubmenu'
 export type ContentItemMenuProps = {
   editor: Editor
   isEditable?: boolean
+  appendTo?: React.RefObject<any>
 }
 
 type MenuView = 'main' | 'turnInto'
 
-export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuProps) => {
+export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: ContentItemMenuProps) => {
   const [mounted, setMounted] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuView, setMenuView] = useState<MenuView>('main')
@@ -360,13 +361,13 @@ export const ContentItemMenu = ({ editor, isEditable = true }: ContentItemMenuPr
               <Icon name="GripVertical" className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
             </button>
           </Popover.Trigger>
-          <Popover.Portal>
+          <Popover.Portal container={appendTo?.current || undefined}>
             <Popover.Content
               side="bottom"
               align="start"
               sideOffset={6}
-              className="z-[1350] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
-              style={{ zIndex: 1350 }}
+              className="z-50 outline-none animate-in fade-in-0 zoom-in-95 duration-150"
+              style={{ zIndex: 50 }}
             >
               <div className="glass-menu p-1.5 flex flex-col min-w-[15rem] max-h-[24rem] overflow-y-auto bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200 shadow-xl rounded-xl transition-all duration-150">
                 {menuView === 'main' && (

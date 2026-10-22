@@ -113,14 +113,28 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
   }
 
   const handleLinkClick = (e: React.MouseEvent) => {
+    let preventDefault = false
     if (disableDefaultAction && typeof disableDefaultAction === 'function') {
       if (disableDefaultAction(sanitizedLink || '')) {
-        e.preventDefault()
+        preventDefault = true
       }
     } else if (disableDefaultAction) {
-      e.preventDefault()
+      preventDefault = true
     }
-    onOpen(sanitizedLink || '')
+
+    if (onOpen) {
+      const handled = onOpen(sanitizedLink || '')
+      if (handled) {
+        preventDefault = true
+      }
+    }
+
+    if (preventDefault) {
+      e.preventDefault()
+    } else if (typeof window !== 'undefined' && (sanitizedLink || url)) {
+      e.preventDefault()
+      window.open(sanitizedLink || url, '_blank', 'noopener,noreferrer')
+    }
   }
 
   const titleText = meta?.title || domain || url
@@ -128,7 +142,10 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
   const hasImage = Boolean(meta?.image && !imageError)
 
   return (
-    <div className="w-[320px] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200/80 dark:border-zinc-800/80 shadow-[0_12px_32px_rgba(0,0,0,0.18)] dark:shadow-[0_16px_36px_rgba(0,0,0,0.45)] rounded-xl text-zinc-800 dark:text-zinc-200 animate-in fade-in-0 zoom-in-95 duration-150 overflow-hidden flex flex-col select-none">
+    <div
+      data-ignore-external-label="true"
+      className="link-preview-panel w-[320px] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200/80 dark:border-zinc-800/80 shadow-[0_12px_32px_rgba(0,0,0,0.18)] dark:shadow-[0_16px_36px_rgba(0,0,0,0.45)] rounded-xl text-zinc-800 dark:text-zinc-200 animate-in fade-in-0 zoom-in-95 duration-150 overflow-hidden flex flex-col select-none"
+    >
       {/* 1. Top Notion-style Inline Action Toolbar */}
       <div className="h-9 px-2.5 flex items-center justify-between gap-1.5 border-b border-zinc-200/60 dark:border-zinc-800/80 bg-zinc-50/70 dark:bg-zinc-800/30">
         {/* Left: Favicon + Clickable Link / Domain */}

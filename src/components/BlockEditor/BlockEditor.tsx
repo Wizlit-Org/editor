@@ -261,18 +261,19 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           <TableOfContents editor={editor} />
           <TableScrollIndicator editor={editor} />
           <EditorContent editor={editor} className="flex-1 focus:outline-none" />
-          <ContentItemMenu editor={editor} isEditable={!readOnly} />
+          <ContentItemMenu editor={editor} isEditable={!readOnly} appendTo={menuContainerRef} />
           <LinkMenu
             editor={editor}
+            appendTo={menuContainerRef}
             disableDefaultAction={link?.disableDefaultAction}
             onLinkClick={link?.onClick}
           />
           {!readOnly && (
             <>
-              <TextMenu editor={editor} />
-              <TableRowMenu editor={editor} />
-              <TableColumnMenu editor={editor} />
-              <TableCellMenu editor={editor} />
+              <TextMenu editor={editor} appendTo={menuContainerRef} />
+              <TableRowMenu editor={editor} appendTo={menuContainerRef} />
+              <TableColumnMenu editor={editor} appendTo={menuContainerRef} />
+              <TableCellMenu editor={editor} appendTo={menuContainerRef} />
               <TableAddButtons editor={editor} />
               <ImageBlockMenu editor={editor} appendTo={menuContainerRef} />
               <YoutubeBlockMenu editor={editor} appendTo={menuContainerRef} />

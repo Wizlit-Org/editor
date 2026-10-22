@@ -38,8 +38,8 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
   addCommands() {
     return {
       uploadImageByUrl: ({ url, pos }) => ({ editor }) => {
-        if (!url || url.length === 0) return false;
-        
+        if (!url || url.length === 0) return false
+
         // URL 형식 및 이미지 확장자 검증
         try {
           const parsed = new URL(url.trim())
@@ -51,48 +51,57 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
           return false
         }
 
-        const img = document.createElement('img')
-        img.crossOrigin = 'anonymous'  
-        img.src = url
-
-        const onError = (e: Error | string | Event | unknown) => {
-          // If image fails to load, gracefully fallback to text insertion without runtime error overlay
+        const fallbackToImageBlock = () => {
           if (pos !== undefined) {
-            editor.commands.setTextSelection(pos);
+            editor.commands.setTextSelection(pos)
           }
-          editor.commands.insertContent(url);
+          editor.chain().focus().setImageBlock({ src: url }).run()
         }
-        
-        img.onload = async () => {
-          try {
-            const canvas = document.createElement('canvas');
-            canvas.width  = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-              onError('Canvas 2D 컨텍스트를 가져올 수 없습니다.')
-              return;
-            }
-            ctx.drawImage(img, 0, 0);
-        
-            // 3) 캔버스를 Blob으로 변환
-            canvas.toBlob((blob) => {
-              if (!blob) {
-                onError('Blob 생성 실패')
-                return;
+
+        // 1) Direct fetch with Blob conversion
+        fetch(url, { mode: 'cors' })
+          .then(async res => {
+            if (!res.ok) throw new Error('Fetch failed')
+            const blob = await res.blob()
+            const mimeType = blob.type || 'image/png'
+            const ext = mimeType.split('/')[1] || 'png'
+            const file = new File([blob], `pasted.${ext}`, { type: mimeType })
+            editor.commands.uploadImages({ files: [file], pos })
+          })
+          .catch(() => {
+            // 2) Fallback to Canvas drawImage
+            const img = document.createElement('img')
+            img.crossOrigin = 'anonymous'
+            img.src = url
+
+            img.onload = () => {
+              try {
+                const canvas = document.createElement('canvas')
+                canvas.width = img.naturalWidth
+                canvas.height = img.naturalHeight
+                const ctx = canvas.getContext('2d')
+                if (!ctx) throw new Error('No 2D context')
+                ctx.drawImage(img, 0, 0)
+                canvas.toBlob(blob => {
+                  if (!blob) {
+                    fallbackToImageBlock()
+                    return
+                  }
+                  const file = new File([blob], 'pasted.png', { type: blob.type })
+                  editor.commands.uploadImages({ files: [file], pos })
+                }, 'image/png')
+              } catch {
+                fallbackToImageBlock()
               }
-              // 4) File 객체로 래핑 및 업로드 명령 실행
-              const file = new File([blob], 'pasted.png', { type: blob.type });
-              editor.commands.uploadImages({ files: [file], pos });
-            }, 'image/png'); 
-          } catch (e) {
-            onError(e)
-          }
-        };
-        img.onerror = (e) => {
-          onError(e)
-        };
-        return true;
+            }
+
+            img.onerror = () => {
+              // 3) Never fallback to plain text: insert as ImageBlock!
+              fallbackToImageBlock()
+            }
+          })
+
+        return true
       },
       uploadImageByBase64: ({ base64, pos }) => ({ editor }) => {
         if (!base64 || base64.length === 0) return false;

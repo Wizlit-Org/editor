@@ -19,7 +19,6 @@ import { cn } from '@/lib/utils'
 const TABLE_COLUMN_MENU_OPTIONS = {
   offset: 12,
   flip: true,
-  appendTo: () => (typeof document !== 'undefined' ? document.body : 'parent'),
 }
 
 export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.Element => {
@@ -154,8 +153,8 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
       editor={editor}
       pluginKey="tableColumnMenu"
       updateDelay={0}
-      className="z-[1350]"
-      appendTo={typeof document !== 'undefined' ? document.body : undefined}
+      className="z-50"
+      appendTo={appendTo?.current || (typeof document !== 'undefined' ? document.body : undefined)}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={TABLE_COLUMN_MENU_OPTIONS}
       shouldShow={shouldShow}
@@ -163,7 +162,7 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
       <div
         style={{ display: isClosedByScroll ? 'none' : undefined }}
         className={cn(
-          'glass-menu min-w-[14rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-[1350] bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200',
+          'glass-menu min-w-[14rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-50 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200',
           isClosedByScroll && '!hidden',
         )}
       >

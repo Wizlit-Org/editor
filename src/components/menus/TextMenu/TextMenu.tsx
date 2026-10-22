@@ -19,9 +19,10 @@ const MENU_OPTIONS = {
 
 export type TextMenuProps = {
   editor: Editor
+  appendTo?: React.RefObject<any>
 }
 
-export const TextMenu = ({ editor }: TextMenuProps) => {
+export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
   const [selecting, setSelecting] = useState(false)
   const [isClosedByScroll, setIsClosedByScroll] = useState(false)
   const commands = useTextmenuCommands(editor)
@@ -84,18 +85,19 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
     <BubbleMenu
       className={
         selecting || isClosedByScroll
-          ? 'opacity-0 pointer-events-none z-[1350] !hidden'
-          : 'opacity-100 transition-opacity duration-150 z-[1350]'
+          ? 'opacity-0 pointer-events-none z-50 !hidden'
+          : 'opacity-100 transition-opacity duration-150 z-50'
       }
       options={MENU_OPTIONS}
       editor={editor}
       pluginKey="textMenu"
+      appendTo={appendTo?.current || undefined}
       shouldShow={states.shouldShow}
       updateDelay={0}
     >
       <div
         style={{ display: isClosedByScroll ? 'none' : undefined }}
-        className="inline-flex h-full leading-none gap-0.5 p-1 rounded-xl items-center z-[1350] bg-white/90 dark:bg-[#202020]/95 backdrop-blur-xl border border-black/[0.08] dark:border-white/[0.1] shadow-2xl ring-1 ring-white/40 dark:ring-white/5 text-zinc-800 dark:text-zinc-200"
+        className="inline-flex h-full leading-none gap-0.5 p-1 rounded-xl items-center z-50 bg-white/90 dark:bg-[#202020]/95 backdrop-blur-xl border border-black/[0.08] dark:border-white/[0.1] shadow-2xl ring-1 ring-white/40 dark:ring-white/5 text-zinc-800 dark:text-zinc-200"
       >
         <MemoContentTypePicker options={blockOptions} />
         <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />
