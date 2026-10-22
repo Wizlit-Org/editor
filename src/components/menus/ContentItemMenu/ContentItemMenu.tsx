@@ -34,6 +34,17 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
   currentNodeRef.current = data.currentNode
   currentNodePosRef.current = data.currentNodePos
 
+  const setDragHandleLocked = useCallback(
+    (locked: boolean) => {
+      try {
+        if (editor?.view) {
+          editor.view.dispatch(editor.state.tr.setMeta('lockDragHandle', locked))
+        }
+      } catch {}
+    },
+    [editor],
+  )
+
   const handleNodeChange = useCallback(
     (info: any) => {
       if (info?.pos !== currentNodePosRef.current) {
@@ -46,17 +57,6 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
       data.handleNodeChange(info)
     },
     [data, setDragHandleLocked],
-  )
-
-  const setDragHandleLocked = useCallback(
-    (locked: boolean) => {
-      try {
-        if (editor?.view) {
-          editor.view.dispatch(editor.state.tr.setMeta('lockDragHandle', locked))
-        }
-      } catch {}
-    },
-    [editor],
   )
 
   useEffect(() => {
