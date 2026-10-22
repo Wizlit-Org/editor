@@ -15,9 +15,9 @@ interface YoutubeBlockViewProps extends NodeViewProps {
 
 function getYoutubeVideoId(url: string): string | null {
   if (!url) return null
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+  const regExp = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?.*v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
   const match = url.match(regExp)
-  return match && match[2].length === 11 ? match[2] : null
+  return match && match[1]?.length === 11 ? match[1] : null
 }
 
 export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
@@ -41,12 +41,24 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
   const videoId = useMemo(() => getYoutubeVideoId(src), [src])
   const thumbnailUrl = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null
 
+  // Real-time preview for empty state input
+  const previewVideoId = useMemo(() => getYoutubeVideoId(emptyUrlInput), [emptyUrlInput])
+  const previewThumbUrl = previewVideoId ? `https://i.ytimg.com/vi/${previewVideoId}/hqdefault.jpg` : null
+
   const handleApplyEmptyUrl = useCallback(() => {
     const trimmed = emptyUrlInput.trim()
     if (trimmed) {
       updateAttributes({ src: trimmed })
     }
   }, [emptyUrlInput, updateAttributes])
+
+  const handleCancelEmptyBlock = useCallback(() => {
+    try {
+      editor.commands.deleteSelection()
+    } catch {
+      updateAttributes({ src: '' })
+    }
+  }, [editor, updateAttributes])
 
   const onSelectBlock = useCallback(
     (event: React.MouseEvent) => {
@@ -128,20 +140,34 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
       <NodeViewWrapper className="w-full my-4">
         <div
           ref={containerRef}
-          className="mx-auto w-full max-w-xl p-6 rounded-2xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-[#1e1e20]/80 backdrop-blur-xl shadow-xl flex flex-col items-center justify-center gap-4 text-center select-none"
+          className="mx-auto w-full max-w-lg p-6 rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-[#18181b]/85 backdrop-blur-2xl shadow-2xl flex flex-col items-center justify-center gap-4 text-center select-none transition-all"
         >
-          <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-red-600 text-white shadow-lg shadow-red-600/30">
+          {/* YouTube Official Gradient Badge */}
+          <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25">
             <Icon name="Play" className="w-6 h-6 ml-0.5 fill-current" />
           </div>
 
           <div>
             <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">YouTube 동영상 임베드</h4>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
               동영상 링크를 붙여넣어 에디터에서 바로 시청하세요
             </p>
           </div>
 
-          <div className="flex items-center gap-2 w-full max-w-md bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-2.5 py-1.5 focus-within:border-indigo-500 dark:focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+          {/* Real-time Video Thumbnail Preview if valid URL typed */}
+          {previewThumbUrl && (
+            <div className="w-full max-w-sm aspect-video rounded-xl overflow-hidden border border-black/10 dark:border-white/10 relative shadow-md animate-in fade-in-0 zoom-in-95 duration-150">
+              <img src={previewThumbUrl} alt="Preview" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-white/85 text-red-600 flex items-center justify-center shadow-lg">
+                  <Icon name="Play" className="w-5 h-5 ml-0.5 fill-current" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modern Round Glass Input Bar */}
+          <div className="flex items-center gap-2 w-full max-w-md bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-3 py-1.5 focus-within:border-red-500/60 dark:focus-within:border-red-400/60 focus-within:ring-2 focus-within:ring-red-500/20 transition-all">
             <Icon name="Video" className="w-4 h-4 text-zinc-400 shrink-0" />
             <input
               type="text"
@@ -151,18 +177,29 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
                 if (e.key === 'Enter') {
                   e.preventDefault()
                   handleApplyEmptyUrl()
+                } else if (e.key === 'Escape') {
+                  e.preventDefault()
+                  handleCancelEmptyBlock()
                 }
               }}
-              placeholder="YouTube 영상 URL 입력..."
+              placeholder="YouTube 영상 링크를 붙여넣으세요..."
               className="flex-1 bg-transparent text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 outline-none"
               autoFocus
             />
             <button
               type="button"
               onClick={handleApplyEmptyUrl}
-              className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs shadow-md transition-all active:scale-95 whitespace-nowrap cursor-pointer"
+              className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium text-xs shadow-md shadow-red-600/20 transition-all active:scale-95 whitespace-nowrap cursor-pointer"
             >
-              임베드
+              동영상 임베드
+            </button>
+            <button
+              type="button"
+              onClick={handleCancelEmptyBlock}
+              className="p-1 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+              title="취소 (Esc)"
+            >
+              <Icon name="X" className="w-4 h-4" />
             </button>
           </div>
         </div>

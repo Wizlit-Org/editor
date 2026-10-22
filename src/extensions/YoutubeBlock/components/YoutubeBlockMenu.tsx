@@ -113,10 +113,10 @@ export const YoutubeBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element =
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={YOUTUBE_BLOCK_MENU_OPTIONS}
     >
-      <div className="flex items-center gap-1 p-1 rounded-xl bg-white/95 dark:bg-[#202020]/95 backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl ring-1 ring-white/40 dark:ring-white/5 text-zinc-800 dark:text-zinc-200">
+      <div className="flex items-center gap-1 p-1 rounded-xl bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl ring-1 ring-white/40 dark:ring-white/5 text-zinc-800 dark:text-zinc-200">
         {isEditingUrl ? (
-          <div className="flex items-center gap-1.5 px-1 py-0.5">
-            <div className="flex items-center justify-center w-5 h-5 rounded bg-red-600/10 text-red-600 shrink-0">
+          <div className="flex items-center gap-1.5 px-1 py-0.5 animate-in fade-in-0 zoom-in-95 duration-100">
+            <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-red-600/10 text-red-600 shrink-0">
               <Icon name="Video" className="w-3.5 h-3.5" />
             </div>
             <input
@@ -125,23 +125,23 @@ export const YoutubeBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element =
               value={urlInput}
               onChange={e => setUrlInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="YouTube 영상 URL 입력..."
-              className="h-7 w-60 px-2.5 text-xs rounded-lg bg-black/5 dark:bg-white/10 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 outline-none border border-black/10 dark:border-white/15 focus:border-indigo-500 dark:focus:border-violet-400 focus:ring-1 focus:ring-indigo-500/30 transition-all"
+              placeholder="새 YouTube 영상 URL 입력..."
+              className="h-7 w-64 px-2.5 text-xs rounded-lg bg-black/5 dark:bg-white/10 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 outline-none border border-black/10 dark:border-white/15 focus:border-red-500/60 dark:focus:border-red-400/60 focus:ring-1 focus:ring-red-500/30 transition-all"
             />
             <button
               type="button"
               onClick={onApplyUrl}
-              className="h-7 px-3 flex items-center justify-center gap-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium cursor-pointer shadow-xs transition-all active:scale-95"
-              title="적용"
+              className="h-7 px-3 flex items-center justify-center gap-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-medium cursor-pointer shadow-xs transition-all active:scale-95 whitespace-nowrap"
+              title="링크 교체 적용"
             >
               <Icon name="Check" className="w-3.5 h-3.5" />
-              <span>적용</span>
+              <span>교체</span>
             </button>
             <button
               type="button"
               onClick={onCancelEditUrl}
-              className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 cursor-pointer transition-colors"
-              title="취소"
+              className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer transition-colors"
+              title="취소 (Esc)"
             >
               <Icon name="X" className="w-3.5 h-3.5" />
             </button>

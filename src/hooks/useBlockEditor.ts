@@ -7,8 +7,7 @@ import type { Editor, EditorOptions } from '@tiptap/core'
 
 import { ExtensionKit } from '@/extensions/extension-kit'
 import { UploadQueue } from '@/extensions/ImageUpload/ImageUploadQueue'
-import { useEffect, useMemo } from 'react'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { UploadListDialogProps, UploadListItem } from '@/extensions/ImageUpload/components/UploadListDialog.tsx'
 import { ConvertSrc, OnImageClick } from '@/extensions/ImageBlock/components/ImageBlockView'
 // import { userColors, userNames } from '../lib/constants'
@@ -59,20 +58,6 @@ export const useBlockEditor = ({
       immediatelyRender: false,
       shouldRerenderOnTransaction: false,
       autofocus: true,
-      // onCreate: ctx => {
-      //   if (provider && !provider.isSynced) {
-      //     provider.on('synced', () => {
-      //       setTimeout(() => {
-      //         if (ctx.editor.isEmpty) {
-      //           ctx.editor.commands.setContent(initialContent)
-      //         }
-      //       }, 0)
-      //     })
-      //   } else if (ctx.editor.isEmpty) {
-      //     ctx.editor.commands.setContent(initialContent)
-      //     ctx.editor.commands.focus('start', { scrollIntoView: true })
-      //   }
-      // },
       extensions: ExtensionKit({ 
         limit: maxCharacters,
         onUploadImage,
@@ -89,43 +74,79 @@ export const useBlockEditor = ({
           class: `min-h-full ${className}`,
         },
         handlePaste: (_view, event) => {
-          const clipboard = (event as ClipboardEvent).clipboardData;
-          if (!clipboard) return false;
-          console.log('handlePaste', clipboard);
-          
-          const text = clipboard.getData('text');
-          
-          // 1) Handle YouTube URLs
+          const clipboard = (event as ClipboardEvent).clipboardData
+          if (!clipboard) return false
+
+          // 1) Clipboard Image Files (e.g. screenshot or copied image files)
+          const files = Array.from(clipboard.files || []).filter(f => f.type.startsWith('image/'))
+          if (files.length > 0) {
+            event.preventDefault()
+            editor?.commands.uploadImages({ files })
+            return true
+          }
+
+          const rawText = clipboard.getData('text/plain')
+          const text = rawText ? rawText.trim() : ''
+          if (!text) return false
+
+          // 2) Base64 Data URL detection
+          if (text.startsWith('data:image/') && text.includes(';base64,')) {
+            event.preventDefault()
+            editor?.chain().focus().setImageBlock({ src: text }).run()
+            return true
+          }
+
+          // 3) URL detection
           const url = (() => {
-            try { return new URL(text); }
-            catch { return null; }
-          })();
+            try {
+              if (text.startsWith('http://') || text.startsWith('https://')) {
+                return new URL(text)
+              }
+              return null
+            } catch {
+              return null
+            }
+          })()
+
           if (url) {
-            event.preventDefault();
-
-            const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-            const isYoutube = text.match(youtubeRegex);
-
-            if (isYoutube) {
-              const videoId = isYoutube[1];
-              editor?.commands.setYoutubeVideo({
+            // 3-a) YouTube URL detection (watch, embed, shorts, youtu.be)
+            const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?.*v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+            const ytMatch = text.match(youtubeRegex)
+            if (ytMatch) {
+              event.preventDefault()
+              const videoId = ytMatch[1]
+              editor?.chain().focus().setYoutubeVideo({
                 src: `https://www.youtube.com/embed/${videoId}`,
-              });
-              return true;
+              }).run()
+              return true
+            }
+
+            // 3-b) Image URL detection (.png, .jpg, .jpeg, .gif, .webp, .svg)
+            const isImageUrl = /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(url.pathname)
+            if (isImageUrl) {
+              event.preventDefault()
+              editor?.chain().focus().setImageBlock({ src: text }).run()
+              return true
+            }
+
+            // 3-c) If user has a text selection, apply as Link mark!
+            if (editor && !editor.state.selection.empty) {
+              event.preventDefault()
+              editor.chain().focus().setLink({ href: text }).run()
+              return true
             }
           }
-        
-          // 4) Default: let Tiptap handle the paste normally
-          return false;
+
+          // Default: let standard TipTap paste handlers run
+          return false
         },
       },
       content,
     },
     [maxSize, maxEmbeddings],
-    // [ydoc, provider],
   )
 
-  const [uploadItems, setUploadItems] = useState<UploadListItem[]>([]);
+  const [uploadItems, setUploadItems] = useState<UploadListItem[]>([])
   
   const uploadDialog = useMemo<UploadListDialogProps>(
     () => ({
@@ -133,23 +154,23 @@ export const useBlockEditor = ({
       onRetry: (id: string) => uploadImageQueue.retry(id),
       onRemove: (id: string) => uploadImageQueue.remove(id),
     }),
-    [uploadItems]
-  );
+    [uploadItems],
+  )
 
   useEffect(() => {
     uploadImageQueue.onStatusChange(items => {
-      setUploadItems(items);
-    });
-  }, []);
+      setUploadItems(items)
+    })
+  }, [])
 
   useEffect(() => {
-    uploadImageQueue.clear();
-  }, [key, editable]);
+    uploadImageQueue.clear()
+  }, [key, editable])
 
   // Only set window.editor if editor is initialized
   if (editor) {
-    window.editor = editor;
+    window.editor = editor
   }
   
-  return {editor, uploadDialog}
+  return { editor, uploadDialog }
 }
