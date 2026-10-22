@@ -247,20 +247,28 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
       )
     }
 
-    // 2. Hyperlink preview
+    // 2. Hyperlink preview (1:1 editor inline link rendering)
     if (selectedId === 'link') {
       return (
-        <div className="w-full p-4 bg-zinc-950/60 rounded-xl border border-zinc-800/80 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0 text-indigo-400">
-            <Icon name="Link" className="w-5 h-5" />
+        <div className="w-full h-full p-4 bg-zinc-950/70 rounded-xl border border-zinc-800/80 flex flex-col justify-center gap-2">
+          <div className="flex items-center justify-between text-[11px] text-zinc-400 font-mono px-1">
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+              <span>본문 렌더링 미리보기</span>
+            </span>
+            <span className="text-zinc-500 text-[10px]">인라인 하이퍼링크</span>
           </div>
-          <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-xs font-medium text-indigo-400 underline underline-offset-2 truncate">
+          <div className="p-3.5 bg-black/40 rounded-lg border border-white/10 text-sm leading-relaxed text-zinc-200 select-text font-normal">
+            <span className="text-zinc-400 mr-1.5 select-none font-sans">본문 삽입 결과:</span>
+            <a
+              href={data.text}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.preventDefault()}
+              className="text-indigo-600 dark:text-indigo-400 underline underline-offset-2 font-medium hover:underline cursor-pointer break-all"
+            >
               {data.text}
-            </span>
-            <span className="text-[11px] text-zinc-400 mt-0.5">
-              클릭 시 웹페이지로 이동하는 하이퍼링크로 본문에 삽입합니다.
-            </span>
+            </a>
           </div>
         </div>
       )

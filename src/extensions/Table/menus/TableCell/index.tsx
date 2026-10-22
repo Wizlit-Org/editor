@@ -147,9 +147,9 @@ export const TableCellMenu = React.memo(({ editor }: MenuProps): JSX.Element => 
     }
   }, [editor, updateSelectionRect])
 
-  // Drag-to-select cell interaction
-  const handleButtonMouseDown = useCallback(
-    (e: React.MouseEvent) => {
+  // Drag-to-select cell interaction via unified PointerEvents
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
       if (e.button !== 0) return
       e.preventDefault()
       e.stopPropagation()
@@ -166,8 +166,13 @@ export const TableCellMenu = React.memo(({ editor }: MenuProps): JSX.Element => 
 
       let hasMoved = false
 
-      const handleMouseMove = (moveEvent: MouseEvent) => {
-        hasMoved = true
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        const dist = Math.hypot(moveEvent.clientX - e.clientX, moveEvent.clientY - e.clientY)
+        if (dist > 3) {
+          hasMoved = true
+        }
+        if (!hasMoved) return
+
         const targetEl = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)
         if (!targetEl) return
 
@@ -188,18 +193,18 @@ export const TableCellMenu = React.memo(({ editor }: MenuProps): JSX.Element => 
         }
       }
 
-      const handleMouseUp = () => {
+      const handlePointerUp = () => {
         isDraggingHandleRef.current = false
-        window.removeEventListener('mousemove', handleMouseMove)
-        window.removeEventListener('mouseup', handleMouseUp)
+        window.removeEventListener('pointermove', handlePointerMove)
+        window.removeEventListener('pointerup', handlePointerUp)
 
         if (!hasMoved) {
           setMenuOpen(prev => !prev)
         }
       }
 
-      window.addEventListener('mousemove', handleMouseMove)
-      window.addEventListener('mouseup', handleMouseUp)
+      window.addEventListener('pointermove', handlePointerMove)
+      window.addEventListener('pointerup', handlePointerUp)
     },
     [editor, getActiveCells],
   )
@@ -295,11 +300,7 @@ export const TableCellMenu = React.memo(({ editor }: MenuProps): JSX.Element => 
                 <Popover.Trigger asChild>
                   <button
                     type="button"
-                    onPointerDown={e => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                    }}
-                    onMouseDown={handleButtonMouseDown}
+                    onPointerDown={handlePointerDown}
                     onMouseEnter={() => setIsBtnHovered(true)}
                     onMouseLeave={() => setIsBtnHovered(false)}
                     className={`rounded-full bg-indigo-600 dark:bg-violet-500 text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-30 select-none ${

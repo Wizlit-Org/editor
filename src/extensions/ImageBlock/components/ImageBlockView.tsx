@@ -234,6 +234,19 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
               </div>
             )}
 
+            {/* External Image Indicator Badge (Top-Right) */}
+            {Boolean(
+              src &&
+                typeof src === 'string' &&
+                (src.startsWith('http://') || src.startsWith('https://')) &&
+                !src.includes('/file/') &&
+                !src.includes('wizlit'),
+            ) && (
+              <div className="absolute top-3 right-3 z-20 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 dark:bg-black/70 backdrop-blur-md text-white/90 text-[10px] font-medium border border-white/10 pointer-events-none shadow-xs">
+                <span>외부 이미지</span>
+              </div>
+            )}
+
             {/* Minimal Uploading Spinner Badge on optimistic image */}
             {isUploading && (
               <div className="absolute bottom-3 right-3 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 dark:bg-black/70 backdrop-blur-md text-white text-[11px] font-medium shadow-md pointer-events-none border border-white/10">
