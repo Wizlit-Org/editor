@@ -1,5 +1,5 @@
 import { BubbleMenu as BaseBubbleMenu } from '@tiptap/react/menus'
-import React, { useCallback, JSX } from 'react'
+import React, { useCallback, useState, useEffect, JSX } from 'react'
 import { isRowGripSelected } from './utils'
 import { Icon } from '@/components/ui/Icon'
 import { MenuProps, ShouldShowProps } from '@/components/menus/types'
@@ -17,6 +17,18 @@ const TABLE_ROW_MENU_OPTIONS = {
 }
 
 export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.Element => {
+  const [, setTick] = useState(0)
+
+  useEffect(() => {
+    const handleUpdate = () => setTick(t => t + 1)
+    editor.on('selectionUpdate', handleUpdate)
+    editor.on('transaction', handleUpdate)
+    return () => {
+      editor.off('selectionUpdate', handleUpdate)
+      editor.off('transaction', handleUpdate)
+    }
+  }, [editor])
+
   const getReferencedVirtualElement = useCallback(() => {
     const { view } = editor
     const selectedCell = view.dom.querySelector('.selectedCell')
@@ -142,7 +154,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
 
         <button type="button" onClick={onClearRow} className={itemClass}>
           <Icon name="Eraser" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-          <span>Clear row contents</span>
+          <span>Clear contents</span>
         </button>
 
         <button type="button" onClick={onDuplicate} className={itemClass}>

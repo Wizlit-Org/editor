@@ -29,7 +29,7 @@ import {
   TableCell,
   TableHeader,
   TableRow,
-  // TextAlign,
+  TextAlign,
   // TextStyle,
   TrailingNode,
   Typography,
@@ -124,14 +124,14 @@ export const ExtensionKit = ({
   //   onDrop: (currentEditor, files, pos) => {
   //     files.forEach(async file => {
   //       const url = await API.uploadImage(file)
-
+  //
   //       currentEditor.chain().setImageBlockAt({ pos, src: url }).focus().run()
   //     })
   //   },
   //   onPaste: (currentEditor, files) => {
   //     files.forEach(async file => {
   //       const url = await API.uploadImage(file)
-
+  //
   //       return currentEditor
   //         .chain()
   //         .setImageBlockAt({ pos: currentEditor.state.selection.anchor, src: url })
@@ -144,13 +144,13 @@ export const ExtensionKit = ({
   //   enableEmoticons: true,
   //   suggestion: emojiSuggestion,
   // }),
-  // TextAlign.extend({
-  //   addKeyboardShortcuts() {
-  //     return {}
-  //   },
-  // }).configure({
-  //   types: ['heading', 'paragraph'],
-  // }),
+  TextAlign.extend({
+    addKeyboardShortcuts() {
+      return {}
+    },
+  }).configure({
+    types: ['heading', 'paragraph'],
+  }),
   Subscript,
   Superscript,
   Table,

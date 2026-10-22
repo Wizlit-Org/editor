@@ -1,5 +1,5 @@
 import { BubbleMenu as BaseBubbleMenu } from '@tiptap/react/menus'
-import React, { useCallback, JSX } from 'react'
+import React, { useCallback, useState, useEffect, JSX } from 'react'
 import { isColumnGripSelected } from './utils'
 import { Icon } from '@/components/ui/Icon'
 import { MenuProps, ShouldShowProps } from '@/components/menus/types'
@@ -11,6 +11,7 @@ import {
   sortColumn,
   duplicateColumn,
 } from './columnActions'
+import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
 
 const TABLE_COLUMN_MENU_OPTIONS = {
   offset: 15,
@@ -18,6 +19,18 @@ const TABLE_COLUMN_MENU_OPTIONS = {
 }
 
 export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.Element => {
+  const [, setTick] = useState(0)
+
+  useEffect(() => {
+    const handleUpdate = () => setTick(t => t + 1)
+    editor.on('selectionUpdate', handleUpdate)
+    editor.on('transaction', handleUpdate)
+    return () => {
+      editor.off('selectionUpdate', handleUpdate)
+      editor.off('transaction', handleUpdate)
+    }
+  }, [editor])
+
   const shouldShow = useCallback(
     ({ view, state, from }: ShouldShowProps) => {
       if (!state) {
@@ -79,13 +92,6 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
     editor.chain().focus().deleteTable().run()
   }, [editor])
 
-  const onAlign = useCallback(
-    (alignment: 'left' | 'center' | 'right') => () => {
-      editor.chain().focus().setTextAlign(alignment).run()
-    },
-    [editor],
-  )
-
   const selectedColIdx = getSelectedColumnIndex(editor)
   const isFirstCol = selectedColIdx === 0
 
@@ -104,33 +110,8 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
       shouldShow={shouldShow}
     >
       <div className="glass-menu min-w-[14rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-50 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
-        {/* Alignment Row */}
-        <div className="flex items-center gap-1 p-0.5 bg-black/5 dark:bg-white/5 rounded-md mb-0.5">
-          <button
-            type="button"
-            onClick={onAlign('left')}
-            className="flex-1 py-1 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200 transition-colors"
-            title="Align left"
-          >
-            <Icon name="AlignLeft" className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={onAlign('center')}
-            className="flex-1 py-1 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200 transition-colors"
-            title="Align center"
-          >
-            <Icon name="AlignCenter" className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={onAlign('right')}
-            className="flex-1 py-1 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200 transition-colors"
-            title="Align right"
-          >
-            <Icon name="AlignRight" className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        {/* Alignment Submenu */}
+        <TableAlignmentSubmenu editor={editor} />
 
         <div className="h-[1px] bg-black/5 dark:bg-white/10 my-0.5" />
 

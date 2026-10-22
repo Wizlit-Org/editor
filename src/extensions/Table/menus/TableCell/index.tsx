@@ -1,22 +1,11 @@
-import { BubbleMenu as BaseBubbleMenu } from '@tiptap/react/menus'
 import React, { useCallback, useState, useEffect, useRef, JSX } from 'react'
 import { createPortal } from 'react-dom'
 import * as Popover from '@radix-ui/react-popover'
 import { CellSelection } from '@tiptap/pm/tables'
 import { isCellSelection } from '../../utils'
 import { Icon } from '@/components/ui/Icon'
-import { MenuProps, ShouldShowProps } from '@/components/menus/types'
-
-const TABLE_CELL_MENU_OPTIONS = {
-  placement: 'right' as const,
-  offset: 0,
-  flip: false,
-  tippyOptions: {
-    interactive: true,
-    interactiveBorder: 30,
-    delay: [0, 300],
-  },
-}
+import { MenuProps } from '@/components/menus/types'
+import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
 
 const getCellPosFromDOM = (view: any, cellEl: HTMLElement): number | null => {
   try {
@@ -32,10 +21,11 @@ const getCellPosFromDOM = (view: any, cellEl: HTMLElement): number | null => {
   return null
 }
 
-export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.Element => {
+export const TableCellMenu = React.memo(({ editor }: MenuProps): JSX.Element => {
   const [menuOpen, setMenuOpen] = useState(false)
   const [isBtnHovered, setIsBtnHovered] = useState(false)
   const [selectionRect, setSelectionRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
+  const [isButtonVisible, setIsButtonVisible] = useState(false)
   const isDraggingHandleRef = useRef(false)
 
   const isCellSelected = isCellSelection(editor.state?.selection)
@@ -79,6 +69,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
       // Check if target cells are still visible in viewport
       if (maxBottom < 0 || minTop > window.innerHeight || maxRight < 0 || minLeft > window.innerWidth) {
         setSelectionRect(null)
+        setIsButtonVisible(false)
         setMenuOpen(false)
         return
       }
@@ -89,8 +80,21 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         width: maxRight - minLeft,
         height: maxBottom - minTop,
       })
+
+      // Check horizontal visibility inside tableWrapper
+      const tableWrapper = cells[0].closest('.tableWrapper') as HTMLElement | null
+      if (tableWrapper) {
+        const wrapperRect = tableWrapper.getBoundingClientRect()
+        // If selection right edge is within visible horizontal bounds of tableWrapper
+        const isHorizontallyVisible = maxRight >= wrapperRect.left && maxRight <= wrapperRect.right + 10
+        const isVerticallyVisible = minTop < window.innerHeight && maxBottom > 0
+        setIsButtonVisible(isHorizontallyVisible && isVerticallyVisible)
+      } else {
+        setIsButtonVisible(true)
+      }
     } else {
       setSelectionRect(null)
+      setIsButtonVisible(false)
     }
   }, [getActiveCells])
 
@@ -119,125 +123,61 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
     }
   }, [editor, updateSelectionRect])
 
-  const shouldShow = useCallback(
-    ({ state }: ShouldShowProps) => {
-      if (menuOpen) return true
-      if (!state) return false
-      if (editor.view?.dragging || (typeof document !== 'undefined' && document.querySelector('[data-dragging="true"]'))) {
-        return false
-      }
-      if (typeof document !== 'undefined' && document.querySelector('a.grip-column.selected, a.grip-row.selected')) {
-        return false
-      }
-
-      if (isCellSelection(state.selection)) return true
-      return editor.isActive('tableCell') || editor.isActive('tableHeader')
-    },
-    [editor, menuOpen],
-  )
-
-  const getReferencedVirtualElement = useCallback(() => {
-    const cells = getActiveCells()
-    if (cells.length > 0) {
-      let minTop = Infinity
-      let maxBottom = -Infinity
-      let maxRight = -Infinity
-
-      cells.forEach(cell => {
-        const r = cell.getBoundingClientRect()
-        if (r.top < minTop) minTop = r.top
-        if (r.bottom > maxBottom) maxBottom = r.bottom
-        if (r.right > maxRight) maxRight = r.right
-      })
-
-      const centerY = (minTop + maxBottom) / 2
-      return {
-        getBoundingClientRect: () => ({
-          top: centerY,
-          bottom: centerY,
-          left: maxRight,
-          right: maxRight,
-          width: 0,
-          height: 0,
-          x: maxRight,
-          y: centerY,
-          toJSON: () => {},
-        }),
-      }
-    }
-
-    return null
-  }, [getActiveCells])
-
-  // Drag selection adjustment handler with 6px deadzone to prevent accidental close on click
+  // Drag-to-select cell interaction
   const handleButtonMouseDown = useCallback(
     (e: React.MouseEvent) => {
+      if (e.button !== 0) return
       e.preventDefault()
       e.stopPropagation()
 
-      const startX = e.clientX
-      const startY = e.clientY
-      let isDrag = false
+      isDraggingHandleRef.current = true
+      const { view } = editor
+      if (!view) return
 
-      const { view, state } = editor
-      let anchorCellPos = -1
+      const startCells = getActiveCells()
+      if (startCells.length === 0) return
+      const startCell = startCells[0]
+      const startPos = getCellPosFromDOM(view, startCell)
+      if (startPos === null) return
 
-      if (isCellSelection(state.selection)) {
-        anchorCellPos = (state.selection as any).$anchorCell.pos
-      } else {
+      let hasMoved = false
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        hasMoved = true
+        const targetEl = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)
+        if (!targetEl) return
+
+        const cellEl = targetEl.closest('td, th') as HTMLElement | null
+        if (!cellEl) return
+
+        const endPos = getCellPosFromDOM(view, cellEl)
+        if (endPos === null) return
+
         try {
-          const domAt = view.domAtPos(state.selection.from)
-          const cellEl = (domAt.node instanceof HTMLElement ? domAt.node : domAt.node.parentElement)?.closest('td, th') as HTMLElement | null
-          if (cellEl) {
-            anchorCellPos = getCellPosFromDOM(view, cellEl) ?? -1
-          }
+          const $anchor = view.state.doc.resolve(startPos)
+          const $head = view.state.doc.resolve(endPos)
+          const cellSelection = new CellSelection($anchor, $head)
+          const tr = view.state.tr.setSelection(cellSelection)
+          view.dispatch(tr)
         } catch {
-          anchorCellPos = -1
+          // Fallback if cell selection creation fails
         }
       }
 
-      const onMouseMove = (moveEvent: MouseEvent) => {
-        const dist = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY)
-        if (dist >= 6) {
-          isDrag = true
-          isDraggingHandleRef.current = true
-          setMenuOpen(false)
-          document.body.style.cursor = 'crosshair'
+      const handleMouseUp = () => {
+        isDraggingHandleRef.current = false
+        window.removeEventListener('mousemove', handleMouseMove)
+        window.removeEventListener('mouseup', handleMouseUp)
 
-          const targetEl = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)?.closest('td, th') as HTMLElement | null
-          if (targetEl && anchorCellPos >= 0) {
-            try {
-              const headCellPos = getCellPosFromDOM(view, targetEl)
-              if (headCellPos !== null && headCellPos >= 0) {
-                const $anchor = state.doc.resolve(anchorCellPos)
-                const $head = state.doc.resolve(headCellPos)
-                const newSelection = new CellSelection($anchor, $head)
-                view.dispatch(state.tr.setSelection(newSelection))
-              }
-            } catch {
-              // ignore
-            }
-          }
-        }
-      }
-
-      const onMouseUp = () => {
-        window.removeEventListener('mousemove', onMouseMove)
-        window.removeEventListener('mouseup', onMouseUp)
-        document.body.style.cursor = ''
-        setTimeout(() => {
-          isDraggingHandleRef.current = false
-        }, 50)
-
-        if (!isDrag) {
+        if (!hasMoved) {
           setMenuOpen(prev => !prev)
         }
       }
 
-      window.addEventListener('mousemove', onMouseMove)
-      window.addEventListener('mouseup', onMouseUp)
+      window.addEventListener('mousemove', handleMouseMove)
+      window.addEventListener('mouseup', handleMouseUp)
     },
-    [editor],
+    [editor, getActiveCells],
   )
 
   const onMergeCells = useCallback(() => {
@@ -255,29 +195,29 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
     setMenuOpen(false)
   }, [editor])
 
-  const onAlign = useCallback(
-    (alignment: 'left' | 'center' | 'right') => () => {
-      editor.chain().focus().setTextAlign(alignment).run()
-    },
-    [editor],
-  )
-
   const canMerge = editor.can().mergeCells()
   const canSplit = editor.can().splitCell()
 
   const itemClass =
-    'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none'
+    'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none cursor-pointer'
 
   const isExpanded = isBtnHovered || menuOpen
 
+  const shouldRender =
+    typeof document !== 'undefined' &&
+    selectionRect &&
+    !editor.view?.dragging &&
+    (isCellSelected || editor.isActive('tableCell') || editor.isActive('tableHeader'))
+
+  if (!shouldRender) {
+    return <></>
+  }
+
   return (
     <>
-      {/* 1. Selection Perimeter Continuous 2px Outline (Notion Style point border) */}
-      {typeof document !== 'undefined' &&
-        selectionRect &&
-        !editor.view?.dragging &&
-        (isCellSelected || editor.isActive('tableCell') || editor.isActive('tableHeader')) &&
-        createPortal(
+      {createPortal(
+        <>
+          {/* 1. Selection Perimeter Continuous 2px Outline (Notion Style point border) */}
           <div
             className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[1390] border-2 border-indigo-500/85 dark:border-violet-400/85 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
             style={{
@@ -286,122 +226,93 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
               width: selectionRect.width,
               height: selectionRect.height,
             }}
-          />,
-          document.body,
-        )}
+          />
 
-      {/* 2. BubbleMenu with Expandable 4-dot Circle Trigger (8px -> 16px) */}
-      <BaseBubbleMenu
-        editor={editor}
-        pluginKey="tableCellMenu"
-        updateDelay={0}
-        appendTo={appendTo?.current || undefined}
-        getReferencedVirtualElement={getReferencedVirtualElement}
-        options={TABLE_CELL_MENU_OPTIONS}
-        shouldShow={shouldShow}
-      >
-        <div className="relative flex items-center">
-          <Popover.Root
-            open={menuOpen}
-            onOpenChange={(open) => {
-              if (open) {
-                window.dispatchEvent(new CustomEvent('tiptap:close-menus', { detail: 'tableCell' }))
-              }
-              setMenuOpen(open)
-            }}
-          >
-            <Popover.Trigger asChild>
-              <button
-                type="button"
-                onPointerDown={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                }}
-                onMouseDown={handleButtonMouseDown}
-                onMouseEnter={() => setIsBtnHovered(true)}
-                onMouseLeave={() => setIsBtnHovered(false)}
-                className={`rounded-full bg-indigo-600 dark:bg-violet-500 text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-30 select-none ${
-                  isExpanded ? 'w-4 h-4 -ml-2' : 'w-2 h-2 -ml-1'
-                }`}
-                title="Click for options, drag to adjust cell selection"
-                aria-label="Table cells option"
-              >
-                {/* 2x2 4-dot grid icon visible when expanded */}
-                <svg
-                  className={`w-2.5 h-2.5 fill-current transition-opacity duration-150 ${
-                    isExpanded ? 'opacity-100 scale-100' : 'opacity-0 scale-50'
-                  }`}
-                  viewBox="0 0 16 16"
-                >
-                  <circle cx="5" cy="5" r="1.5" />
-                  <circle cx="11" cy="5" r="1.5" />
-                  <circle cx="5" cy="11" r="1.5" />
-                  <circle cx="11" cy="11" r="1.5" />
-                </svg>
-              </button>
-            </Popover.Trigger>
-            <Popover.Content
-              side="right"
-              align="start"
-              sideOffset={8}
-              className="z-[1400] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
+          {/* 2. Expandable 4-dot Circle Trigger (8px -> 16px) & Popover Menu */}
+          {isButtonVisible && (
+            <div
+              className="fixed z-[1395] -translate-y-1/2 flex items-center"
+              style={{
+                top: selectionRect.top + selectionRect.height / 2,
+                left: selectionRect.left + selectionRect.width,
+              }}
             >
-              <div className="glass-menu min-w-[12rem] p-1.5 shadow-2xl rounded-xl flex flex-col gap-0.5 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
-                {/* 1. Alignment Row */}
-                <div className="flex items-center gap-1 p-0.5 bg-black/5 dark:bg-white/5 rounded-md mb-0.5">
+              <Popover.Root
+                open={menuOpen}
+                onOpenChange={open => {
+                  if (open) {
+                    window.dispatchEvent(new CustomEvent('tiptap:close-menus', { detail: 'tableCell' }))
+                  }
+                  setMenuOpen(open)
+                }}
+              >
+                <Popover.Trigger asChild>
                   <button
                     type="button"
-                    onClick={onAlign('left')}
-                    className="flex-1 py-1 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200 transition-colors"
-                    title="Align left"
+                    onPointerDown={e => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                    onMouseDown={handleButtonMouseDown}
+                    onMouseEnter={() => setIsBtnHovered(true)}
+                    onMouseLeave={() => setIsBtnHovered(false)}
+                    className={`rounded-full bg-indigo-600 dark:bg-violet-500 text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-30 select-none ${
+                      isExpanded ? 'w-4 h-4 -ml-2' : 'w-2 h-2 -ml-1'
+                    }`}
+                    title="Click for options, drag to adjust cell selection"
+                    aria-label="Table cells option"
                   >
-                    <Icon name="AlignLeft" className="w-3.5 h-3.5" />
+                    <svg
+                      className={`w-2.5 h-2.5 fill-current transition-opacity duration-150 ${
+                        isExpanded ? 'opacity-100 scale-100' : 'opacity-0 scale-50'
+                      }`}
+                      viewBox="0 0 16 16"
+                    >
+                      <circle cx="5" cy="5" r="1.5" />
+                      <circle cx="11" cy="5" r="1.5" />
+                      <circle cx="5" cy="11" r="1.5" />
+                      <circle cx="11" cy="11" r="1.5" />
+                    </svg>
                   </button>
-                  <button
-                    type="button"
-                    onClick={onAlign('center')}
-                    className="flex-1 py-1 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200 transition-colors"
-                    title="Align center"
-                  >
-                    <Icon name="AlignCenter" className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onAlign('right')}
-                    className="flex-1 py-1 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200 transition-colors"
-                    title="Align right"
-                  >
-                    <Icon name="AlignRight" className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                </Popover.Trigger>
+                <Popover.Content
+                  side="right"
+                  align="start"
+                  sideOffset={8}
+                  className="z-[1400] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
+                >
+                  <div className="glass-menu min-w-[12rem] p-1.5 shadow-2xl rounded-xl flex flex-col gap-0.5 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
+                    {/* Alignment Submenu */}
+                    <TableAlignmentSubmenu editor={editor} onClose={() => setMenuOpen(false)} />
 
-                <div className="h-[1px] bg-black/5 dark:bg-white/10 my-0.5" />
+                    <div className="h-[1px] bg-black/5 dark:bg-white/10 my-0.5" />
 
-                {canMerge && (
-                  <button type="button" onClick={onMergeCells} className={itemClass}>
-                    <Icon name="Columns2" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-                    <span>Merge cells</span>
-                  </button>
-                )}
+                    {canMerge && (
+                      <button type="button" onClick={onMergeCells} className={itemClass}>
+                        <Icon name="Combine" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+                        <span>Merge cells</span>
+                      </button>
+                    )}
 
-                {canSplit && (
-                  <button type="button" onClick={onSplitCell} className={itemClass}>
-                    <Icon name="Split" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-                    <span>Split cell</span>
-                  </button>
-                )}
+                    {canSplit && (
+                      <button type="button" onClick={onSplitCell} className={itemClass}>
+                        <Icon name="Split" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+                        <span>Split cell</span>
+                      </button>
+                    )}
 
-                {(canMerge || canSplit) && <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />}
-
-                <button type="button" onClick={onClearContents} className={itemClass}>
-                  <Icon name="Eraser" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-                  <span>Clear cell contents</span>
-                </button>
-              </div>
-            </Popover.Content>
-          </Popover.Root>
-        </div>
-      </BaseBubbleMenu>
+                    <button type="button" onClick={onClearContents} className={itemClass}>
+                      <Icon name="Eraser" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+                      <span>Clear contents</span>
+                    </button>
+                  </div>
+                </Popover.Content>
+              </Popover.Root>
+            </div>
+          )}
+        </>,
+        document.body,
+      )}
     </>
   )
 })

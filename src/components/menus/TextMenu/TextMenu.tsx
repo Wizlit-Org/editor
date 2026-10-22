@@ -39,6 +39,11 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
 
       selectionTimeout = window.setTimeout(() => {
         setSelecting(false)
+        try {
+          if (editor.view && !editor.isDestroyed) {
+            editor.view.dispatch(editor.state.tr.setMeta('textMenu', 'updatePosition'))
+          }
+        } catch {}
       }, 150)
     }
 
@@ -55,7 +60,7 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
 
   return (
     <BubbleMenu
-      className={selecting ? 'hidden' : ''}
+      className={selecting ? 'opacity-0 pointer-events-none' : 'opacity-100 transition-opacity duration-150'}
       options={MENU_OPTIONS}
       editor={editor}
       pluginKey="textMenu"
