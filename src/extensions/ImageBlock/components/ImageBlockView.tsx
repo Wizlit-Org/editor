@@ -236,16 +236,25 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
 
             {/* Uploading Server Image Overlay */}
             {isUploading && (
-              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-md rounded-lg text-white transition-all pointer-events-none gap-2">
-                <Icon name="RefreshCw" className="w-8 h-8 animate-spin" />
-                <span className="text-xs font-semibold">이미지 업로드 중...</span>
+              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/45 dark:bg-black/65 backdrop-blur-md rounded-xl text-white transition-all pointer-events-none gap-2 border border-dashed border-indigo-400/60 shadow-lg">
+                <Icon name="RefreshCw" className="w-8 h-8 animate-spin text-indigo-400 dark:text-violet-300" />
+                <span className="text-xs font-semibold tracking-wide">이미지 업로드 중...</span>
               </div>
             )}
-            {/* Loading Skeleton */}
-            {isLoading && !hasError && (
-              <div className="w-full aspect-video min-h-[140px] rounded-lg bg-black/[0.04] dark:bg-white/[0.04] backdrop-blur-sm animate-pulse flex flex-col items-center justify-center gap-2 border border-black/5 dark:border-white/5">
-                <Icon name="Image" className="w-7 h-7 text-zinc-400 dark:text-zinc-500 animate-pulse" />
-                <span className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">이미지 불러오는 중...</span>
+            {/* Notion-style Sophisticated Loading / Uploading Skeleton */}
+            {(isLoading || isUploading) && !hasError && (
+              <div className="w-full aspect-video min-h-[160px] max-h-[320px] rounded-xl bg-gradient-to-br from-zinc-100/90 via-zinc-200/40 to-zinc-100/90 dark:from-zinc-900/80 dark:via-zinc-800/40 dark:to-zinc-900/80 backdrop-blur-md animate-pulse flex flex-col items-center justify-center gap-3 border border-dashed border-zinc-300/80 dark:border-zinc-700/80 shadow-inner">
+                <div className="w-11 h-11 rounded-xl bg-white/90 dark:bg-zinc-800/90 shadow-xs flex items-center justify-center border border-black/5 dark:border-white/10">
+                  <Icon name="Image" className="w-5 h-5 text-indigo-500 dark:text-violet-400 animate-pulse" />
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-200 tracking-tight">
+                    {isUploading ? '이미지 업로드 중...' : '이미지 불러오는 중...'}
+                  </span>
+                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
+                    잠시만 기다려주세요
+                  </span>
+                </div>
               </div>
             )}
 

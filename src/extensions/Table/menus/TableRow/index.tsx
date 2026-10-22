@@ -11,6 +11,7 @@ import {
   duplicateRow,
 } from './rowActions'
 import { getRowAnchorVirtualElement } from '../useTableMenuPosition'
+import { cn } from '@/lib/utils'
 
 const TABLE_ROW_MENU_OPTIONS = {
   offset: 12,
@@ -37,6 +38,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
   useEffect(() => {
     const handleScroll = () => {
       setIsClosedByScroll(true)
+      window.dispatchEvent(new CustomEvent('tiptap:close-menus', { detail: 'scroll' }))
     }
     window.addEventListener('scroll', handleScroll, { passive: true, capture: true })
     return () => {
@@ -118,7 +120,13 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       options={TABLE_ROW_MENU_OPTIONS}
       shouldShow={shouldShow}
     >
-      <div className="glass-menu min-w-[14rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-[1350] bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
+      <div
+        style={{ display: isClosedByScroll ? 'none' : undefined }}
+        className={cn(
+          'glass-menu min-w-[14rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-[1350] bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200',
+          isClosedByScroll && '!hidden',
+        )}
+      >
         {isFirstRow && (
           <>
             <button type="button" onClick={onToggleHeaderRow} className={itemClass}>

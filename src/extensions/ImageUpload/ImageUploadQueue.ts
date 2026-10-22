@@ -40,6 +40,7 @@ interface UploadQueueItem {
   maxSize?: number;
   forceReduceSize?: boolean;
   controller: AbortController;
+  tempBlobUrl?: string;
 }
 
 export type UploadStatus = 'compressing' | 'uploading' | 'validating' | 'success' | 'failed';
@@ -98,14 +99,32 @@ export class UploadQueue {
 
     const controller = new AbortController();                   // ← new controller
     const id = item.id || `${item.file.name}-${Date.now()}`;
-    this.originalItems.set(id, { ...item, id, controller });
+    let tempBlobUrl: string | undefined = undefined;
+    if (typeof window !== 'undefined' && typeof URL !== 'undefined') {
+      try {
+        tempBlobUrl = URL.createObjectURL(item.file);
+        if (this.editor) {
+          this.editor
+            .chain()
+            .focus()
+            .insertContentAt(
+              item.pos,
+              this.editor.schema.nodes.imageBlock.create({ src: tempBlobUrl })
+            )
+            .run();
+        }
+      } catch {}
+    }
+
+    const queueItem = { ...item, id, controller, tempBlobUrl };
+    this.originalItems.set(id, queueItem);
     this.statusMap.set(id, {
       id,
       fileName: item.file.name,
       status: 'compressing',
       originalSize: item.file.size,
     });
-    this.queue.push({ ...item, id, controller });
+    this.queue.push(queueItem);
     this.emit();
     this.process();
   }
@@ -198,14 +217,43 @@ export class UploadQueue {
         return;
       }
 
-      this.editor
-        .chain()
-        .focus()
-        .insertContentAt(
-          item.pos,
-          this.editor.schema.nodes.imageBlock.create({ src: url })
-        )
-        .run();
+      if (item.tempBlobUrl && this.editor) {
+        let foundPos: number | null = null;
+        this.editor.state.doc.descendants((node, pos) => {
+          if (node.type.name === 'imageBlock' && node.attrs.src === item.tempBlobUrl) {
+            foundPos = pos;
+            return false;
+          }
+        });
+        if (foundPos !== null) {
+          this.editor
+            .chain()
+            .setNodeSelection(foundPos)
+            .updateAttributes('imageBlock', { src: url })
+            .run();
+        } else {
+          this.editor
+            .chain()
+            .focus()
+            .insertContentAt(
+              item.pos,
+              this.editor.schema.nodes.imageBlock.create({ src: url })
+            )
+            .run();
+        }
+        try {
+          URL.revokeObjectURL(item.tempBlobUrl);
+        } catch {}
+      } else {
+        this.editor
+          .chain()
+          .focus()
+          .insertContentAt(
+            item.pos,
+            this.editor.schema.nodes.imageBlock.create({ src: url })
+          )
+          .run();
+      }
 
       this.statusMap.set(id!, {
         ...origStatus,

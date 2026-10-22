@@ -21,27 +21,128 @@ interface PasteOptionItem {
   label: string
   icon: string
   isPrimary?: boolean
-  action: () => void
+  insert: () => void
 }
 
 export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }) => {
   const [data, setData] = useState<SmartPasteEventDetail | null>(null)
-  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [selectedId, setSelectedId] = useState<string>('')
   const [imgError, setImgError] = useState(false)
   const [ogMeta, setOgMeta] = useState<{ title?: string; image?: string; domain?: string } | null>(null)
 
-  const handleClose = useCallback(
-    (fallbackToPlainText = false) => {
-      if (fallbackToPlainText && data) {
-        insertPlainText(editor, data.text)
+  // Pure cancel/close (without inserting anything)
+  const handleClose = useCallback(() => {
+    setData(null)
+    setSelectedId('')
+    setImgError(false)
+    setOgMeta(null)
+  }, [])
+
+  // Build options based on detected type
+  const options = useMemo<PasteOptionItem[]>(() => {
+    if (!data) return []
+
+    const plainTextOpt: PasteOptionItem = {
+      id: 'plain-text',
+      label: '일반 텍스트',
+      icon: 'Type',
+      insert: () => insertPlainText(editor, data.text),
+    }
+
+    switch (data.type) {
+      case 'image_url':
+        return [
+          plainTextOpt,
+          {
+            id: 'link',
+            label: '하이퍼링크',
+            icon: 'Link',
+            insert: () => insertHyperlink(editor, data.text),
+          },
+          {
+            id: 'image-block',
+            label: '이미지 삽입',
+            icon: 'Image',
+            isPrimary: true,
+            insert: () => insertImage(editor, data.text),
+          },
+        ]
+
+      case 'youtube_url': {
+        const videoId = data.meta?.videoId || ''
+        return [
+          plainTextOpt,
+          {
+            id: 'link',
+            label: '하이퍼링크',
+            icon: 'Link',
+            insert: () => insertHyperlink(editor, data.text),
+          },
+          {
+            id: 'youtube-video',
+            label: 'YouTube 임베드',
+            icon: 'Youtube',
+            isPrimary: true,
+            insert: () => {
+              if (videoId) {
+                insertYoutube(editor, videoId)
+              } else {
+                insertHyperlink(editor, data.text)
+              }
+            },
+          },
+        ]
       }
-      setData(null)
-      setSelectedIndex(0)
-      setImgError(false)
-      setOgMeta(null)
-    },
-    [data, editor],
-  )
+
+      case 'web_url':
+        return [
+          plainTextOpt,
+          {
+            id: 'link',
+            label: '하이퍼링크',
+            icon: 'Link',
+            isPrimary: true,
+            insert: () => insertHyperlink(editor, data.text),
+          },
+        ]
+
+      case 'code':
+        return [
+          plainTextOpt,
+          {
+            id: 'code-block',
+            label: '코드 블록',
+            icon: 'Code',
+            isPrimary: true,
+            insert: () => insertCodeBlock(editor, data.text),
+          },
+        ]
+
+      case 'list':
+        return [
+          plainTextOpt,
+          {
+            id: 'list-items',
+            label: '리스트',
+            icon: 'List',
+            isPrimary: true,
+            insert: () => insertMarkdownList(editor, data.text),
+          },
+        ]
+
+      default:
+        return [plainTextOpt]
+    }
+  }, [data, editor])
+
+  // Final insertion handler
+  const handleConfirm = useCallback(() => {
+    const currentOpt = options.find(o => o.id === selectedId) || options[options.length - 1]
+    if (currentOpt) {
+      currentOpt.insert()
+    }
+    handleClose()
+  }, [options, selectedId, handleClose])
 
   // Listen to tiptap:smart-paste and tiptap:close-menus
   useEffect(() => {
@@ -49,7 +150,6 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
       const customEvent = e as CustomEvent<SmartPasteEventDetail>
       if (customEvent.detail) {
         setData(customEvent.detail)
-        setSelectedIndex(0)
         setImgError(false)
         setOgMeta(null)
       }
@@ -57,7 +157,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
 
     const handleCloseMenus = () => {
       if (data) {
-        handleClose(true)
+        handleClose()
       }
     }
 
@@ -68,6 +168,14 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
       window.removeEventListener('tiptap:close-menus', handleCloseMenus)
     }
   }, [data, handleClose])
+
+  // Set default selected mode to primary option
+  useEffect(() => {
+    if (options.length > 0) {
+      const primary = options.find(o => o.isPrimary)
+      setSelectedId(primary ? primary.id : options[options.length - 1].id)
+    }
+  }, [options])
 
   // Fetch OpenGraph metadata when web_url is pasted
   useEffect(() => {
@@ -96,152 +204,27 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     }
   }, [data])
 
-  // Build options based on detected type
-  const options = useMemo<PasteOptionItem[]>(() => {
-    if (!data) return []
-
-    const plainTextOpt: PasteOptionItem = {
-      id: 'plain-text',
-      label: '일반 텍스트',
-      icon: 'Type',
-      action: () => {
-        insertPlainText(editor, data.text)
-        handleClose(false)
-      },
-    }
-
-    switch (data.type) {
-      case 'image_url':
-        return [
-          plainTextOpt,
-          {
-            id: 'link',
-            label: '하이퍼링크',
-            icon: 'Link',
-            action: () => {
-              insertHyperlink(editor, data.text)
-              handleClose(false)
-            },
-          },
-          {
-            id: 'image-block',
-            label: '이미지로 삽입',
-            icon: 'Image',
-            isPrimary: true,
-            action: () => {
-              insertImage(editor, data.text)
-              handleClose(false)
-            },
-          },
-        ]
-
-      case 'youtube_url': {
-        const videoId = data.meta?.videoId || ''
-        return [
-          plainTextOpt,
-          {
-            id: 'link',
-            label: '하이퍼링크',
-            icon: 'Link',
-            action: () => {
-              insertHyperlink(editor, data.text)
-              handleClose(false)
-            },
-          },
-          {
-            id: 'youtube-video',
-            label: 'YouTube 임베드',
-            icon: 'Youtube',
-            isPrimary: true,
-            action: () => {
-              if (videoId) {
-                insertYoutube(editor, videoId)
-              } else {
-                insertHyperlink(editor, data.text)
-              }
-              handleClose(false)
-            },
-          },
-        ]
-      }
-
-      case 'web_url':
-        return [
-          plainTextOpt,
-          {
-            id: 'link',
-            label: '하이퍼링크',
-            icon: 'Link',
-            isPrimary: true,
-            action: () => {
-              insertHyperlink(editor, data.text)
-              handleClose(false)
-            },
-          },
-        ]
-
-      case 'code':
-        return [
-          plainTextOpt,
-          {
-            id: 'code-block',
-            label: '코드 블록',
-            icon: 'Code',
-            isPrimary: true,
-            action: () => {
-              insertCodeBlock(editor, data.text)
-              handleClose(false)
-            },
-          },
-        ]
-
-      case 'list':
-        return [
-          plainTextOpt,
-          {
-            id: 'list-items',
-            label: '리스트',
-            icon: 'List',
-            isPrimary: true,
-            action: () => {
-              insertMarkdownList(editor, data.text)
-              handleClose(false)
-            },
-          },
-        ]
-
-      default:
-        return [plainTextOpt]
-    }
-  }, [data, editor, handleClose])
-
-  // Select primary option by default
-  useEffect(() => {
-    if (options.length > 0) {
-      const primaryIdx = options.findIndex(o => o.isPrimary)
-      setSelectedIndex(primaryIdx >= 0 ? primaryIdx : options.length - 1)
-    }
-  }, [options])
-
-  // Keyboard navigation: Escape, Enter, Arrow keys
+  // Keyboard navigation: Enter to confirm, Escape to cancel, Left/Right to cycle
   useEffect(() => {
     if (!data) return
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         e.preventDefault()
-        setSelectedIndex(prev => (prev + 1) % options.length)
+        const curIdx = options.findIndex(o => o.id === selectedId)
+        const nextIdx = (curIdx + 1) % options.length
+        setSelectedId(options[nextIdx].id)
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         e.preventDefault()
-        setSelectedIndex(prev => (prev - 1 + options.length) % options.length)
+        const curIdx = options.findIndex(o => o.id === selectedId)
+        const prevIdx = (curIdx - 1 + options.length) % options.length
+        setSelectedId(options[prevIdx].id)
       } else if (e.key === 'Enter') {
         e.preventDefault()
-        if (options[selectedIndex]) {
-          options[selectedIndex].action()
-        }
+        handleConfirm()
       } else if (e.key === 'Escape') {
         e.preventDefault()
-        handleClose(true)
+        handleClose()
       }
     }
 
@@ -249,32 +232,53 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     return () => {
       window.removeEventListener('keydown', onKeyDown, true)
     }
-  }, [data, options, selectedIndex, handleClose])
+  }, [data, options, selectedId, handleConfirm, handleClose])
 
   if (!data || options.length === 0 || typeof document === 'undefined') {
     return null
   }
 
-  // Type header text & badge
-  const headerInfo = (() => {
-    switch (data.type) {
-      case 'image_url':
-        return { title: '이미지 URL 감지됨', icon: 'Image' }
-      case 'youtube_url':
-        return { title: 'YouTube 동영상 감지됨', icon: 'Youtube' }
-      case 'web_url':
-        return { title: '웹 링크 감지됨', icon: 'Globe' }
-      case 'code':
-        return { title: '코드 스니펫 감지됨', icon: 'Code' }
-      case 'list':
-        return { title: '마크다운 리스트 감지됨', icon: 'List' }
-      default:
-        return { title: '붙여넣기 옵션', icon: 'Type' }
-    }
-  })()
+  const headerInfo = ({
+    image_url: { title: '이미지 URL 감지됨', icon: 'Image' },
+    youtube_url: { title: 'YouTube 동영상 감지됨', icon: 'Youtube' },
+    web_url: { title: '웹 링크 감지됨', icon: 'Globe' },
+    code: { title: '코드 스니펫 감지됨', icon: 'Code' },
+    list: { title: '마크다운 리스트 감지됨', icon: 'List' },
+  } as Record<string, { title: string; icon: string }>)[data.type] || { title: '붙여넣기 옵션', icon: 'Type' }
 
-  // Render Visual Preview Box
+  // Render Dynamic Visual Preview Box depending on selectedId
   const renderVisualPreview = () => {
+    // 1. Plain text preview mode
+    if (selectedId === 'plain-text') {
+      return (
+        <div className="p-3 bg-zinc-100 dark:bg-zinc-800/40 rounded-xl border border-zinc-200/70 dark:border-zinc-700/60 max-h-44 overflow-y-auto">
+          <p className="text-xs font-mono text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap break-all leading-relaxed">
+            {data.text}
+          </p>
+        </div>
+      )
+    }
+
+    // 2. Hyperlink preview mode
+    if (selectedId === 'link') {
+      return (
+        <div className="p-3.5 bg-zinc-100 dark:bg-zinc-800/40 rounded-xl border border-zinc-200/70 dark:border-zinc-700/60 flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-violet-950/50 flex items-center justify-center shrink-0 text-indigo-600 dark:text-violet-400">
+            <Icon name="Link" className="w-4 h-4" />
+          </div>
+          <div className="flex flex-col min-w-0 flex-1">
+            <span className="text-xs font-medium text-indigo-600 dark:text-violet-400 underline underline-offset-2 truncate">
+              {data.text}
+            </span>
+            <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+              클릭 가능한 하이퍼링크 서식으로 삽입됩니다.
+            </span>
+          </div>
+        </div>
+      )
+    }
+
+    // 3. Rich format previews
     switch (data.type) {
       case 'image_url':
         return (
@@ -352,7 +356,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
                 <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
                 <span className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
               </div>
-              <span className="text-[10px] font-mono text-zinc-400">Code Preview</span>
+              <span className="text-[10px] font-mono text-zinc-400">Code Block Preview</span>
             </div>
             <pre className="p-3 text-xs font-mono leading-relaxed overflow-x-auto max-h-40 text-emerald-400/90 dark:text-emerald-300/90">
               {displayLines.join('\n')}
@@ -390,7 +394,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
   return createPortal(
     <div
       className="fixed inset-0 z-[1450] bg-black/45 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
-      onClick={() => handleClose(true)}
+      onClick={handleClose}
     >
       <div
         className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150 select-none"
@@ -409,7 +413,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
 
           <button
             type="button"
-            onClick={() => handleClose(true)}
+            onClick={handleClose}
             className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
             title="닫기 (Esc)"
           >
@@ -421,37 +425,54 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
         <div className="p-4 flex flex-col gap-3">
           <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
             <span>미리보기</span>
-            <span className="text-[10px] text-zinc-400">원하는 삽입 방식을 선택하세요</span>
+            <span className="text-[10px] text-zinc-400">하단 포맷을 클릭하여 결과 확인</span>
           </div>
 
           {renderVisualPreview()}
         </div>
 
-        {/* Action Button Choices */}
-        <div className="p-3 bg-zinc-50 dark:bg-zinc-900/60 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-end gap-2">
-          {options.map((opt, idx) => {
-            const isSelected = idx === selectedIndex
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={opt.action}
-                onMouseEnter={() => setSelectedIndex(idx)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-                  opt.isPrimary
-                    ? isSelected
-                      ? 'bg-indigo-600 text-white dark:bg-violet-600 shadow-sm ring-2 ring-indigo-400 dark:ring-violet-400'
-                      : 'bg-indigo-500 text-white dark:bg-violet-500 hover:bg-indigo-600 dark:hover:bg-violet-600 shadow-2xs'
-                    : isSelected
-                    ? 'bg-zinc-200 text-zinc-900 dark:bg-zinc-700 dark:text-zinc-100 ring-1 ring-zinc-300 dark:ring-zinc-600'
-                    : 'bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border border-zinc-200/80 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-750'
-                }`}
-              >
-                <Icon name={opt.icon as any} className="w-3.5 h-3.5" />
-                <span>{opt.label}</span>
-              </button>
-            )
-          })}
+        {/* Action Controls Bar */}
+        <div className="p-3 bg-zinc-50 dark:bg-zinc-900/60 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between gap-2">
+          {/* Left: Mode Selection Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto">
+            {options.map(opt => {
+              const isSelected = opt.id === selectedId
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setSelectedId(opt.id)}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-indigo-600 text-white dark:bg-violet-600 shadow-xs'
+                      : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-750'
+                  }`}
+                >
+                  <Icon name={opt.icon as any} className="w-3 h-3" />
+                  <span>{opt.label}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Right: Cancel & Final Confirm Button */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-2.5 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              className="px-3.5 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 dark:bg-violet-600 dark:hover:bg-violet-700 text-white rounded-lg shadow-sm transition-all cursor-pointer flex items-center gap-1"
+            >
+              <span>삽입</span>
+              <span className="text-[10px] opacity-75 font-mono">↵</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>,

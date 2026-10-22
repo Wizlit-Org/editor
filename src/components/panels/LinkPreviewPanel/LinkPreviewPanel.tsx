@@ -33,6 +33,7 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const [faviconError, setFaviconError] = useState(false)
   const [meta, setMeta] = useState<LinkMetadata | null>(() => previewCache.get(url) || null)
 
   const sanitizedLink = url?.startsWith('javascript:') ? '' : url
@@ -61,6 +62,7 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
     let isMounted = true
     setLoading(true)
     setImageError(false)
+    setFaviconError(false)
 
     const fetchMeta = async () => {
       try {
@@ -131,15 +133,13 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
       <div className="h-9 px-2.5 flex items-center justify-between gap-1.5 border-b border-zinc-200/60 dark:border-zinc-800/80 bg-zinc-50/70 dark:bg-zinc-800/30">
         {/* Left: Favicon + Clickable Link / Domain */}
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <div className="w-4 h-4 rounded-xs overflow-hidden shrink-0 flex items-center justify-center bg-black/[0.03] dark:bg-white/[0.05]">
-            {faviconUrl ? (
+          <div className="w-4 h-4 rounded aspect-square overflow-hidden shrink-0 flex items-center justify-center bg-black/[0.04] dark:bg-white/[0.06]">
+            {faviconUrl && !faviconError ? (
               <img
                 src={faviconUrl}
                 alt=""
-                className="w-3.5 h-3.5 object-contain"
-                onError={e => {
-                  ;(e.currentTarget as HTMLElement).style.display = 'none'
-                }}
+                className="w-full h-full object-contain aspect-square"
+                onError={() => setFaviconError(true)}
               />
             ) : (
               <Icon name="Globe" className="w-3.5 h-3.5 text-zinc-400" />
