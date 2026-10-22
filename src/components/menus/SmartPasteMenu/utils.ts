@@ -22,7 +22,7 @@ export const detectPasteType = (
       }
 
       // Image URL
-      const isImg = /\.(png|jpe?g|gif|webp|svg|bmp|ico)(\?.*)?$/i.test(url.pathname)
+      const isImg = /\.(png|jpe?g|gif|webp|svg|bmp|ico|avif|tiff)(\?.*)?$/i.test(url.pathname)
       if (isImg) {
         return { type: 'image_url', meta: { url: trimmed } }
       }

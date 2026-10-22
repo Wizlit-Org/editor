@@ -206,19 +206,6 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
               return true;
             }
 
-            const isImageUrl = (u: string) => {
-              try {
-                const parsed = new URL(u.trim())
-                return /\.(png|jpe?g|gif|webp|svg|bmp|avif|ico)(\?.*)?$/i.test(parsed.pathname)
-              } catch {
-                return false
-              }
-            }
-
-            if (isImageUrl(text) && this.editor.commands.uploadImageByUrl({ url: text })) {
-              return true;
-            }
-
             if (this.editor.commands.uploadImageByHtml({ html })) {
               return true;
             }

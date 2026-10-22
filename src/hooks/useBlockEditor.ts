@@ -99,11 +99,10 @@ export const useBlockEditor = ({
 
           // 3) Smart Paste Detection (Image URL, YouTube, Web URL, Code snippet, Markdown list)
           const detected = detectPasteType(text)
-          if (detected && editor && editor.view) {
+          if (detected && _view) {
             event.preventDefault()
-            const { state, view } = editor
-            const pos = state.selection.from
-            const coords = view.coordsAtPos(pos)
+            const pos = _view.state.selection.from
+            const coords = _view.coordsAtPos(pos)
             window.dispatchEvent(
               new CustomEvent('tiptap:smart-paste', {
                 detail: {
@@ -116,8 +115,8 @@ export const useBlockEditor = ({
                     bottom: coords.bottom,
                   },
                   selection: {
-                    from: state.selection.from,
-                    to: state.selection.to,
+                    from: _view.state.selection.from,
+                    to: _view.state.selection.to,
                   },
                 },
               }),
