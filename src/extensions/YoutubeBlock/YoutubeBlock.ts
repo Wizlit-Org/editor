@@ -90,6 +90,10 @@ export const YoutubeBlock = Youtube.extend<YoutubeBlockOptions>({
         renderHTML: attributes =>
           attributes.caption ? { 'data-caption': attributes.caption } : {},
       },
+      isEditing: {
+        default: false,
+        renderHTML: () => ({}),
+      },
       nocookie: {
         default: true,
       },

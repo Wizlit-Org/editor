@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Editor, NodeViewWrapper } from '@tiptap/react'
 import { Node } from '@tiptap/pm/model'
 import { cn } from '@/lib/utils'
@@ -9,7 +9,7 @@ import { formatYoutubeEmbedUrl } from '../YoutubeBlock'
 interface YoutubeBlockViewProps extends NodeViewProps {
   editor: Editor
   getPos: () => number
-  node: Node & { attrs: { src: string; align?: string; width?: string; caption?: string } }
+  node: Node & { attrs: { src: string; align?: string; width?: string; caption?: string; isEditing?: boolean } }
   updateAttributes: (attrs: Record<string, any>) => void
 }
 
@@ -26,10 +26,10 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
   node,
   updateAttributes,
 }) => {
-  const { src, align = 'center', width = '100%', caption = '' } = node.attrs
+  const { src, align = 'center', width = '100%', caption = '', isEditing = false } = node.attrs
   const editorEditable = editor.isEditable
 
-  const [emptyUrlInput, setEmptyUrlInput] = useState('')
+  const [emptyUrlInput, setEmptyUrlInput] = useState(src || '')
   const [isResizing, setIsResizing] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [isEditingCaption, setIsEditingCaption] = useState(false)
@@ -37,6 +37,12 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null)
   const captionInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (isEditing) {
+      setEmptyUrlInput(src || '')
+    }
+  }, [isEditing, src])
 
   const videoId = useMemo(() => getYoutubeVideoId(src), [src])
   const thumbnailUrl = videoId ? `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg` : null
@@ -48,17 +54,21 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
   const handleApplyEmptyUrl = useCallback(() => {
     const trimmed = emptyUrlInput.trim()
     if (trimmed) {
-      updateAttributes({ src: trimmed })
+      updateAttributes({ src: trimmed, isEditing: false })
     }
   }, [emptyUrlInput, updateAttributes])
 
   const handleCancelEmptyBlock = useCallback(() => {
-    try {
-      editor.commands.deleteSelection()
-    } catch {
-      updateAttributes({ src: '' })
+    if (isEditing && src) {
+      updateAttributes({ isEditing: false })
+    } else {
+      try {
+        editor.commands.deleteSelection()
+      } catch {
+        updateAttributes({ src: '', isEditing: false })
+      }
     }
-  }, [editor, updateAttributes])
+  }, [editor, isEditing, src, updateAttributes])
 
   const onSelectBlock = useCallback(
     (event: React.MouseEvent) => {
@@ -132,8 +142,9 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
     [],
   )
 
-  // Empty URL state: Render premium glassmorphism embed card
-  if (!src || !src.trim()) {
+  // Empty URL state or Editing mode: Render premium glassmorphism embed card
+  const isBoxMode = !src || !src.trim() || isEditing
+  if (isBoxMode) {
     if (!editorEditable) return <></>
 
     return (
@@ -142,23 +153,29 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
           ref={containerRef}
           className="mx-auto w-full max-w-lg p-6 rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-[#18181b]/85 backdrop-blur-2xl shadow-2xl flex flex-col items-center justify-center gap-4 text-center select-none transition-all"
         >
-          {/* YouTube Official Gradient Badge */}
-          <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25">
-            <Icon name="Play" className="w-6 h-6 ml-0.5 fill-current" />
-          </div>
-
           <div>
-            <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">YouTube 동영상 임베드</h4>
+            <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              {isEditing ? 'YouTube 동영상 링크 변경' : 'YouTube 동영상 임베드'}
+            </h4>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-              동영상 링크를 붙여넣어 에디터에서 바로 시청하세요
+              {isEditing
+                ? '새 동영상 링크를 입력하여 영상을 교체하세요'
+                : '동영상 링크를 붙여넣어 에디터에서 바로 시청하세요'}
             </p>
           </div>
 
-          {/* Real-time Video Thumbnail Preview if valid URL typed */}
+          {/* Real-time Video Thumbnail Preview if valid URL typed (div Facade to eliminate host .external-image-label and ensure 100% fill) */}
           {previewThumbUrl && (
-            <div className="w-full max-w-sm aspect-video rounded-xl overflow-hidden border border-black/10 dark:border-white/10 relative shadow-md flex items-center justify-center bg-black/5 dark:bg-white/5 animate-in fade-in-0 zoom-in-95 duration-150">
-              <img src={previewThumbUrl} alt="Preview" className="block w-full h-full object-cover object-center" />
-              <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+            <div className="w-full max-w-sm aspect-video rounded-xl overflow-hidden border border-black/10 dark:border-white/10 relative shadow-md bg-neutral-900 animate-in fade-in-0 zoom-in-95 duration-150">
+              <div
+                className="w-full h-full"
+                style={{
+                  backgroundImage: `url(${previewThumbUrl})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              />
+              <div className="absolute inset-0 bg-black/20 flex items-center justify-center pointer-events-none">
                 <div className="w-10 h-10 rounded-full bg-white/85 text-red-600 flex items-center justify-center shadow-lg">
                   <Icon name="Play" className="w-5 h-5 ml-0.5 fill-current" />
                 </div>
@@ -191,7 +208,7 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
               onClick={handleApplyEmptyUrl}
               className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium text-xs shadow-md shadow-red-600/20 transition-all active:scale-95 whitespace-nowrap cursor-pointer"
             >
-              동영상 임베드
+              {isEditing ? '동영상 변경' : '동영상 임베드'}
             </button>
             <button
               type="button"
