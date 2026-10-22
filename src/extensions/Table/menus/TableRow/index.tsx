@@ -58,13 +58,13 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
 
   const shouldShow = useCallback(
     ({ view, state, from }: ShouldShowProps) => {
-      if (isClosedByScroll || !state || typeof from !== 'number') {
+      if (!state || typeof from !== 'number') {
         return false
       }
 
       return isRowGripSelected({ editor, view, state, from })
     },
-    [editor, isClosedByScroll],
+    [editor],
   )
 
   const onMoveRowUp = useCallback(() => {

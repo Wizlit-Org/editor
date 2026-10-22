@@ -61,13 +61,13 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
 
   const shouldShow = useCallback(
     ({ view, state, from }: ShouldShowProps) => {
-      if (isClosedByScroll || !state) {
+      if (!state) {
         return false
       }
 
       return isColumnGripSelected({ editor, view, state, from: from || 0 })
     },
-    [editor, isClosedByScroll],
+    [editor],
   )
 
   const onAlign = useCallback(

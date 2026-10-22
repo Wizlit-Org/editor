@@ -90,7 +90,7 @@ export const TextMenu = ({ editor }: TextMenuProps) => {
       options={MENU_OPTIONS}
       editor={editor}
       pluginKey="textMenu"
-      shouldShow={props => !isClosedByScroll && states.shouldShow(props)}
+      shouldShow={states.shouldShow}
       updateDelay={0}
     >
       <div
