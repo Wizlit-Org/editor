@@ -339,10 +339,10 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
       computePositionConfig={positionConfig}
     >
       <div
-        className={`w-[48px] h-[32px] flex items-center gap-0 select-none relative after:content-[''] after:absolute after:top-0 after:bottom-0 after:-right-6 after:w-6 after:pointer-events-auto transition-opacity duration-150 ease-out ${
+        className={`w-[48px] h-[32px] flex items-center gap-0 select-none relative z-[1330] after:content-[''] after:absolute after:top-0 after:bottom-0 after:-right-6 after:w-6 after:pointer-events-auto transition-opacity duration-150 ease-out ${
           shouldHideHandle ? 'hidden pointer-events-none opacity-0 !w-0 !h-0 overflow-hidden' : ''
         }`}
-        style={shouldHideHandle ? { display: 'none', pointerEvents: 'none', visibility: 'hidden' } : undefined}
+        style={shouldHideHandle ? { display: 'none', pointerEvents: 'none', visibility: 'hidden', zIndex: 1330 } : { zIndex: 1330 }}
       >
         <button
           type="button"
@@ -389,14 +389,14 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
               <Icon name="GripVertical" className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
             </button>
           </Popover.Trigger>
-          <Popover.Portal container={appendTo?.current || (typeof document !== 'undefined' ? document.body : undefined)}>
+          <Popover.Portal container={typeof document !== 'undefined' ? document.body : undefined}>
             <Popover.Content
               side="bottom"
               align="start"
               sideOffset={6}
               collisionPadding={16}
-              className="z-50 outline-none animate-in fade-in-0 zoom-in-95 duration-150"
-              style={{ zIndex: 50 }}
+              className="z-[1350] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
+              style={{ zIndex: 1350 }}
             >
               <div className="glass-menu p-1.5 flex flex-col min-w-[15rem] max-h-[24rem] overflow-y-auto bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200 shadow-xl rounded-xl transition-all duration-150">
                 {menuView === 'main' && (

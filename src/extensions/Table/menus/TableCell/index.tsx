@@ -270,22 +270,24 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         <>
           {/* 1. Selection Perimeter Continuous 2px Outline (Notion Style point border) */}
           <div
-            className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[35] border-2 border-indigo-500/85 dark:border-violet-400/85 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
+            className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[1330] border-2 border-indigo-500/85 dark:border-violet-400/85 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
             style={{
               top: selectionRect.top,
               left: selectionRect.left,
               width: selectionRect.width,
               height: selectionRect.height,
+              zIndex: 1330,
             }}
           />
 
           {/* 2. Expandable 4-dot Circle Trigger (8px -> 16px) & Popover Menu */}
           {isButtonVisible && (
             <div
-              className="fixed z-[35] -translate-y-1/2 flex items-center"
+              className="fixed z-[1330] -translate-y-1/2 flex items-center"
               style={{
                 top: selectionRect.top + selectionRect.height / 2,
                 left: selectionRect.left + selectionRect.width,
+                zIndex: 1330,
               }}
             >
               <Popover.Root
@@ -307,7 +309,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                     }}
                     onMouseEnter={() => setIsBtnHovered(true)}
                     onMouseLeave={() => setIsBtnHovered(false)}
-                    className={`rounded-full bg-indigo-600 dark:bg-violet-500 text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-[35] select-none ${
+                    className={`rounded-full bg-indigo-600 dark:bg-violet-500 text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-[1330] select-none ${
                       isExpanded ? 'w-4 h-4 -ml-2' : 'w-2 h-2 -ml-1'
                     }`}
                     title="Click for options, drag to adjust cell selection"
@@ -326,13 +328,14 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                     </svg>
                   </button>
                 </Popover.Anchor>
-                <Popover.Portal container={appendTo?.current || (typeof document !== 'undefined' ? document.body : undefined)}>
+                <Popover.Portal container={typeof document !== 'undefined' ? document.body : undefined}>
                   <Popover.Content
                     side="right"
                     align="center"
                     sideOffset={10}
                     collisionPadding={16}
-                    className="z-50 outline-none animate-in fade-in-0 zoom-in-95 duration-150"
+                    className="z-[1350] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
+                    style={{ zIndex: 1350 }}
                   >
                     <div className="glass-menu min-w-[12rem] p-1.5 shadow-2xl rounded-xl flex flex-col gap-0.5 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
                       {/* 1. One-click Segmented Alignment Toolbar */}
@@ -405,7 +408,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
             </div>
           )}
         </>,
-        (appendTo?.current as HTMLElement) || (typeof document !== 'undefined' ? document.body : (null as any)),
+        typeof document !== 'undefined' ? (document.body as HTMLElement) : (null as any),
       )}
     </>
   )

@@ -251,7 +251,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
   return (
     <>
-      <div className={`relative flex min-h-full h-auto flex-[1_0_auto] overflow-x-clip [overflow-x:clip] [container-type:inline-size] ${themeClass} ${className}`.trim()} ref={menuContainerRef}>
+      <div className={`relative flex min-h-full h-auto flex-[1_0_auto] overflow-x-clip [overflow-x:clip] ${themeClass} ${className}`.trim()} ref={menuContainerRef}>
         <div className="relative flex flex-col flex-[1_0_auto] h-auto min-h-full">
           {/* <EditorHeader
             editor={editor}
