@@ -8,9 +8,10 @@ import { moveTableColumn, moveTableRow } from '../utils/TableDndUtils'
 
 export interface TableAddButtonsProps {
   editor: Editor
+  appendTo?: React.RefObject<HTMLElement | null>
 }
 
-export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
+export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, appendTo }) => {
   const {
     tableRect,
     columnGrips,
@@ -212,19 +213,19 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
         activeColGrip.left < (tableRect.wrapperRight ?? Infinity)))
 
   return createPortal(
-    <div id="table-add-buttons-portal" className="pointer-events-auto" style={{ zIndex: 20, position: 'relative' }}>
+    <div id="table-add-buttons-portal" className="pointer-events-auto" style={{ zIndex: 30, position: 'relative' }}>
       {/* 1. Single Top Column Grip Bar: Full column width 12px glass pill */}
       {activeColGrip && isColGripVisible && (
         <button
           key={`active-col-grip-${activeColGrip.index}`}
           type="button"
           onMouseDown={handleGripMouseDown('col', activeColGrip.index)}
-          className="fixed z-[20] h-[12px] rounded-full bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white shadow-2xs transition-all flex items-center justify-center p-0 cursor-pointer select-none"
+          className="fixed z-[30] h-[12px] rounded-full bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white shadow-2xs transition-all flex items-center justify-center p-0 cursor-pointer select-none"
           style={{
             top: tableRect.top - 15,
             left: activeColGrip.left,
             width: activeColGrip.width,
-            zIndex: 20,
+            zIndex: 30,
           }}
           title={`Click to select, drag to move column ${activeColGrip.index + 1}`}
         >
@@ -242,12 +243,12 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
           key={`active-row-grip-${activeRowGrip.index}`}
           type="button"
           onMouseDown={handleGripMouseDown('row', activeRowGrip.index)}
-          className="fixed z-[20] w-[12px] rounded-full bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white shadow-2xs transition-all flex items-center justify-center p-0 cursor-pointer select-none"
+          className="fixed z-[30] w-[12px] rounded-full bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white shadow-2xs transition-all flex items-center justify-center p-0 cursor-pointer select-none"
           style={{
             top: activeRowGrip.top,
             left: tableRect.left - 15,
             height: activeRowGrip.height,
-            zIndex: 20,
+            zIndex: 30,
           }}
           title={`Click to select, drag to move row ${activeRowGrip.index + 1}`}
         >
@@ -274,7 +275,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor }) => {
         }}
       />
     </div>,
-    document.body,
+    (appendTo?.current as HTMLElement) || (typeof document !== 'undefined' ? document.body : (null as any)),
   )
 }
 

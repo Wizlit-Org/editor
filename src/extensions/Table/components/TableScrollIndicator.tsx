@@ -5,6 +5,7 @@ import { Icon } from '@/components/ui/Icon'
 
 interface TableScrollIndicatorProps {
   editor: Editor
+  appendTo?: React.RefObject<HTMLElement | null>
 }
 
 interface TableShadowState {
@@ -33,7 +34,7 @@ const isSameTables = (prev: TableShadowState[], next: TableShadowState[]): boole
   })
 }
 
-export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ editor }) => {
+export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ editor, appendTo }) => {
   const [tables, setTables] = useState<TableShadowState[]>([])
 
   const updateTableScrollStates = useCallback(() => {
@@ -141,7 +142,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
         <React.Fragment key={t.id}>
           {/* Left Edge Fade Shadow Indicator */}
           <div
-            className={`fixed pointer-events-none z-[10] transition-opacity duration-200 bg-gradient-to-r from-black/15 dark:from-black/40 to-transparent ${
+            className={`fixed pointer-events-none z-[20] transition-opacity duration-200 bg-gradient-to-r from-black/15 dark:from-black/40 to-transparent ${
               t.showLeft ? 'opacity-100' : 'opacity-0'
             }`}
             style={{
@@ -154,7 +155,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
 
           {/* Right Edge Fade Shadow Indicator */}
           <div
-            className={`fixed pointer-events-none z-[10] transition-opacity duration-200 bg-gradient-to-l from-black/15 dark:from-black/40 to-transparent ${
+            className={`fixed pointer-events-none z-[20] transition-opacity duration-200 bg-gradient-to-l from-black/15 dark:from-black/40 to-transparent ${
               t.showRight ? 'opacity-100' : 'opacity-0'
             }`}
             style={{
@@ -171,7 +172,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
             onClick={() => handleScrollLeft(t.wrapper)}
             title="Scroll table left"
             aria-label="Scroll table left"
-            className={`fixed z-[10] w-8 h-8 rounded-full bg-white/90 dark:bg-[#202020]/90 backdrop-blur-md border border-black/10 dark:border-white/15 shadow-md flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 hover:bg-white dark:hover:bg-[#2c2c2c] text-zinc-700 dark:text-zinc-200 ${
+            className={`fixed z-[20] w-8 h-8 rounded-full bg-white/90 dark:bg-[#202020]/90 backdrop-blur-md border border-black/10 dark:border-white/15 shadow-md flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 hover:bg-white dark:hover:bg-[#2c2c2c] text-zinc-700 dark:text-zinc-200 ${
               t.showLeft
                 ? 'opacity-100 pointer-events-auto'
                 : 'opacity-0 pointer-events-none'
@@ -190,7 +191,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
             onClick={() => handleScrollRight(t.wrapper)}
             title="Scroll table right"
             aria-label="Scroll table right"
-            className={`fixed z-[10] w-8 h-8 rounded-full bg-white/90 dark:bg-[#202020]/90 backdrop-blur-md border border-black/10 dark:border-white/15 shadow-md flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 hover:bg-white dark:hover:bg-[#2c2c2c] text-zinc-700 dark:text-zinc-200 ${
+            className={`fixed z-[20] w-8 h-8 rounded-full bg-white/90 dark:bg-[#202020]/90 backdrop-blur-md border border-black/10 dark:border-white/15 shadow-md flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 hover:bg-white dark:hover:bg-[#2c2c2c] text-zinc-700 dark:text-zinc-200 ${
               t.showRight
                 ? 'opacity-100 pointer-events-auto'
                 : 'opacity-0 pointer-events-none'
@@ -205,6 +206,6 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
         </React.Fragment>
       ))}
     </>,
-    document.body,
+    (appendTo?.current as HTMLElement) || (typeof document !== 'undefined' ? document.body : (null as any)),
   )
 }

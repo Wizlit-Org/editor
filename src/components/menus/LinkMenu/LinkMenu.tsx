@@ -38,6 +38,7 @@ export const LinkMenu = ({
   }, [])
 
   const shouldShow = useCallback(() => {
+    if (showEdit) return true
     const isMedia =
       editor.isActive('youtube') ||
       editor.isActive('imageBlock') ||
@@ -45,7 +46,7 @@ export const LinkMenu = ({
     if (isMedia) return false
     const isActive = editor.isActive('link')
     return isActive
-  }, [editor])
+  }, [editor, showEdit])
 
   const editable = editor.isEditable
 

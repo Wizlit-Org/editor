@@ -259,7 +259,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           /> */}
           {/* Sticky Table of Contents & Table Scroll Indicators (Client-only, works in both Edit and Read-only modes) */}
           <TableOfContents editor={editor} />
-          <TableScrollIndicator editor={editor} />
+          <TableScrollIndicator editor={editor} appendTo={menuContainerRef} />
           <EditorContent editor={editor} className="flex-1 focus:outline-none" />
           <ContentItemMenu editor={editor} isEditable={!readOnly} appendTo={menuContainerRef} />
           <LinkMenu
@@ -274,7 +274,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
               <TableRowMenu editor={editor} appendTo={menuContainerRef} />
               <TableColumnMenu editor={editor} appendTo={menuContainerRef} />
               <TableCellMenu editor={editor} appendTo={menuContainerRef} />
-              <TableAddButtons editor={editor} />
+              <TableAddButtons editor={editor} appendTo={menuContainerRef} />
               <ImageBlockMenu editor={editor} appendTo={menuContainerRef} />
               <YoutubeBlockMenu editor={editor} appendTo={menuContainerRef} />
               <PastePreviewDialog editor={editor} />

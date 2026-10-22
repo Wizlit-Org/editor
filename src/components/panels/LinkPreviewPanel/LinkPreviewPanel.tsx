@@ -184,6 +184,10 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
         <div className="flex items-center gap-0.5 shrink-0">
           <button
             type="button"
+            onMouseDown={e => {
+              e.preventDefault()
+              e.stopPropagation()
+            }}
             onClick={handleLinkClick}
             className="w-6 h-6 p-0 m-0 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
             title="새 창에서 열기"
@@ -193,6 +197,10 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
 
           <button
             type="button"
+            onMouseDown={e => {
+              e.preventDefault()
+              e.stopPropagation()
+            }}
             onClick={handleCopy}
             className={`w-6 h-6 p-0 m-0 rounded flex items-center justify-center transition-colors cursor-pointer ${
               copied
@@ -208,7 +216,15 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
             <>
               <button
                 type="button"
-                onClick={onEdit}
+                onMouseDown={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                }}
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onEdit?.()
+                }}
                 className="w-6 h-6 p-0 m-0 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
                 title="링크 편집"
               >
@@ -217,7 +233,15 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
 
               <button
                 type="button"
-                onClick={onClear}
+                onMouseDown={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                }}
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onClear?.()
+                }}
                 className="w-6 h-6 p-0 m-0 rounded flex items-center justify-center text-zinc-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                 title="링크 제거"
               >

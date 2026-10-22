@@ -270,7 +270,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         <>
           {/* 1. Selection Perimeter Continuous 2px Outline (Notion Style point border) */}
           <div
-            className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[25] border-2 border-indigo-500/85 dark:border-violet-400/85 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
+            className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[35] border-2 border-indigo-500/85 dark:border-violet-400/85 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
             style={{
               top: selectionRect.top,
               left: selectionRect.left,
@@ -282,7 +282,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
           {/* 2. Expandable 4-dot Circle Trigger (8px -> 16px) & Popover Menu */}
           {isButtonVisible && (
             <div
-              className="fixed z-[30] -translate-y-1/2 flex items-center"
+              className="fixed z-[35] -translate-y-1/2 flex items-center"
               style={{
                 top: selectionRect.top + selectionRect.height / 2,
                 left: selectionRect.left + selectionRect.width,
@@ -307,7 +307,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                     }}
                     onMouseEnter={() => setIsBtnHovered(true)}
                     onMouseLeave={() => setIsBtnHovered(false)}
-                    className={`rounded-full bg-indigo-600 dark:bg-violet-500 text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-30 select-none ${
+                    className={`rounded-full bg-indigo-600 dark:bg-violet-500 text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-[35] select-none ${
                       isExpanded ? 'w-4 h-4 -ml-2' : 'w-2 h-2 -ml-1'
                     }`}
                     title="Click for options, drag to adjust cell selection"
