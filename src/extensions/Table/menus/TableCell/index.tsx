@@ -21,7 +21,7 @@ const getCellPosFromDOM = (view: any, cellEl: HTMLElement): number | null => {
   return null
 }
 
-export const TableCellMenu = React.memo(({ editor }: MenuProps): JSX.Element => {
+export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.Element => {
   const [mounted, setMounted] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [isBtnHovered, setIsBtnHovered] = useState(false)
@@ -326,7 +326,7 @@ export const TableCellMenu = React.memo(({ editor }: MenuProps): JSX.Element => 
                     </svg>
                   </button>
                 </Popover.Anchor>
-                <Popover.Portal>
+                <Popover.Portal container={appendTo?.current}>
                   <Popover.Content
                     side="right"
                     align="center"

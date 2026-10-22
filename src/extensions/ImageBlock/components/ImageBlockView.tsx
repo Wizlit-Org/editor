@@ -15,6 +15,27 @@ interface ImageBlockViewProps extends NodeViewProps {
 export type ConvertSrc = (src: string) => (Promise<string> | string) | 'EXTERNAL_IMAGE'
 export type OnImageClick = (url: string, event: React.MouseEvent<HTMLDivElement>) => void
 
+const resolveImageSrc = (input: string | undefined): string | undefined => {
+  if (!input) return input
+  if (input.startsWith('wizlit://')) {
+    const fileId = input.replace('wizlit://', '')
+    return `/api/file/${fileId}`
+  }
+  if (input.startsWith('wizlit//')) {
+    const fileId = input.split('//')[1]
+    return `/api/file/${fileId}`
+  }
+  if (input.startsWith('wizlit:')) {
+    const fileId = input.replace('wizlit:', '').replace(/^\/\//, '')
+    return `/api/file/${fileId}`
+  }
+  if (input.startsWith('wizlit/')) {
+    const fileId = input.replace(/^wizlit\//, '')
+    return `/api/file/${fileId}`
+  }
+  return input
+}
+
 export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
   editor,
   getPos,
@@ -26,7 +47,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
   const { onImageClick, convertSrc } = extension.options
   const editorEditable = editor.isEditable
 
-  const originalSrc = rawSrc?.match(/^https?:\/\//) ? rawSrc : undefined
+  const originalSrc = rawSrc?.match(/^https?:\/\//) ? rawSrc : resolveImageSrc(rawSrc)
   const [src, setSrc] = useState<string | 'EXTERNAL_IMAGE' | undefined>(originalSrc)
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
@@ -45,13 +66,19 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
     setHasError(false)
     if (convertSrc && rawSrc) {
       Promise.resolve(convertSrc(rawSrc))
-        .then(resolved => setSrc(resolved))
+        .then(resolved => {
+          if (typeof resolved === 'string') {
+            setSrc(resolveImageSrc(resolved))
+          } else {
+            setSrc(resolved)
+          }
+        })
         .catch(() => {
           setIsLoading(false)
           setHasError(true)
         })
     } else if (rawSrc) {
-      setSrc(rawSrc)
+      setSrc(resolveImageSrc(rawSrc))
     }
   }, [convertSrc, rawSrc])
 
@@ -266,7 +293,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
             {src && !isExternalImage && (
               <img
                 ref={imgRef}
-                src={isExternalImage ? originalSrc : (src as string)}
+                src={isExternalImage ? originalSrc : (resolveImageSrc(src as string) || (src as string))}
                 alt={caption || ''}
                 loading="lazy"
                 onClick={onClick}
