@@ -58,10 +58,30 @@ const createPlaceholderWidget = (id: string) => {
 const isImageUrl = (url: string): boolean => {
   try {
     const parsed = new URL(url.trim())
-    return /\.(png|jpe?g|gif|webp|svg|bmp|avif|ico)(\?.*)?$/i.test(parsed.pathname)
+    return /\.(png|jpe?g|gif|webp|svg|bmp|avif|ico|tiff)(\?.*)?$/i.test(parsed.pathname)
   } catch {
     return false
   }
+}
+
+const blobToFile = (blob: Blob, sourceUrl: string): File => {
+  let mimeType = blob.type && blob.type.startsWith('image/') ? blob.type : 'image/png'
+  let ext = mimeType.split('/')[1]?.split('+')[0] || 'png'
+  if (ext === 'jpeg') ext = 'jpg'
+  try {
+    const pathname = new URL(sourceUrl).pathname
+    const match = pathname.match(/\.(png|jpe?g|gif|webp|svg|bmp|avif|ico|tiff)$/i)
+    if (match) {
+      const matchedExt = match[1].toLowerCase()
+      ext = matchedExt === 'jpeg' ? 'jpg' : matchedExt
+      if (!blob.type || !blob.type.startsWith('image/')) {
+        mimeType = `image/${matchedExt === 'jpg' ? 'jpeg' : matchedExt === 'svg' ? 'svg+xml' : matchedExt}`
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return new File([blob], `pasted-${Date.now()}.${ext}`, { type: mimeType })
 }
 
 export interface ImageUploadOptions {
@@ -99,41 +119,59 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
   addCommands() {
     return {
       uploadImageByUrl: ({ url, pos }) => ({ editor }) => {
-        if (!url || url.length === 0) return false
+        if (!url || url.trim().length === 0) return false
 
-        // URL 형식 및 이미지 확장자 검증
+        const cleanUrl = url.trim()
+        // URL 프로토콜 검증 (http / https 허용)
         try {
-          const parsed = new URL(url.trim())
-          const isImageExt = /\.(png|jpe?g|gif|webp|svg|bmp|avif|ico)(\?.*)?$/i.test(parsed.pathname)
-          if (!isImageExt) {
+          const parsed = new URL(cleanUrl)
+          if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
             return false
           }
         } catch {
           return false
         }
 
+        const targetPos = pos ?? editor.state.selection.from
+
         const fallbackToImageBlock = () => {
           if (pos !== undefined) {
             editor.commands.setTextSelection(pos)
           }
-          editor.chain().focus().setImageBlock({ src: url }).run()
+          editor.chain().focus().setImageBlock({ src: cleanUrl }).run()
         }
 
-        // 1) Direct fetch with Blob conversion
-        fetch(url, { mode: 'cors' })
-          .then(async res => {
-            if (!res.ok) throw new Error('Fetch failed')
-            const blob = await res.blob()
-            const mimeType = blob.type || 'image/png'
-            const ext = mimeType.split('/')[1] || 'png'
-            const file = new File([blob], `pasted.${ext}`, { type: mimeType })
-            editor.commands.uploadImages({ files: [file], pos })
+        const fetchViaProxyOrDirect = async (): Promise<Blob> => {
+          // 1) BFF Proxy priority (/api/image-proxy) for 100% CORS-free server fetch
+          try {
+            const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(cleanUrl)}`
+            const proxyRes = await fetch(proxyUrl)
+            if (proxyRes.ok) {
+              const blob = await proxyRes.blob()
+              if (blob.size > 0) return blob
+            }
+          } catch {
+            // Fall through to direct CORS fetch
+          }
+
+          // 2) Direct CORS fetch fallback (for standalone environments or same-origin URLs)
+          const directRes = await fetch(cleanUrl, { mode: 'cors' })
+          if (!directRes.ok) throw new Error(`Direct fetch failed: ${directRes.status}`)
+          const blob = await directRes.blob()
+          if (blob.size === 0) throw new Error('Empty blob')
+          return blob
+        }
+
+        fetchViaProxyOrDirect()
+          .then(blob => {
+            const file = blobToFile(blob, cleanUrl)
+            editor.commands.uploadImages({ files: [file], pos: targetPos })
           })
           .catch(() => {
-            // 2) Fallback to Canvas drawImage
+            // 3) Fallback to Canvas drawImage
             const img = document.createElement('img')
             img.crossOrigin = 'anonymous'
-            img.src = url
+            img.src = cleanUrl
 
             img.onload = () => {
               try {
@@ -148,8 +186,8 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
                     fallbackToImageBlock()
                     return
                   }
-                  const file = new File([blob], 'pasted.png', { type: blob.type })
-                  editor.commands.uploadImages({ files: [file], pos })
+                  const file = new File([blob], `pasted-${Date.now()}.png`, { type: blob.type || 'image/png' })
+                  editor.commands.uploadImages({ files: [file], pos: targetPos })
                 }, 'image/png')
               } catch {
                 fallbackToImageBlock()
@@ -157,7 +195,7 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
             }
 
             img.onerror = () => {
-              // 3) Never fallback to plain text: insert as ImageBlock!
+              // 4) Last resort fallback: insert external ImageBlock
               fallbackToImageBlock()
             }
           })

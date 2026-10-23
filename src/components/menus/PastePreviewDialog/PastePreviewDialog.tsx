@@ -11,12 +11,13 @@ import {
   insertPlainText,
   insertYoutube,
 } from '../SmartPasteMenu/utils'
+import { LivePreviewCanvas } from './LivePreviewCanvas'
 
 export interface PastePreviewDialogProps {
   editor: Editor
 }
 
-interface PasteOptionItem {
+export interface PasteOptionItem {
   id: string
   label: string
   icon: string
@@ -24,42 +25,116 @@ interface PasteOptionItem {
   insert: () => void
 }
 
+const getHeaderInfo = (type?: string) => {
+  switch (type) {
+    case 'image_url':
+      return { title: '이미지 URL 붙여넣기', icon: 'Image' }
+    case 'youtube_url':
+      return { title: 'YouTube 동영상 붙여넣기', icon: 'Youtube' }
+    case 'web_url':
+      return { title: '웹 링크 붙여넣기', icon: 'Globe' }
+    case 'code':
+      return { title: '코드 스니펫 붙여넣기', icon: 'Code' }
+    case 'list':
+      return { title: '목록 붙여넣기', icon: 'List' }
+    default:
+      return { title: '스마트 붙여넣기', icon: 'Type' }
+  }
+}
+
 export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }) => {
   const [data, setData] = useState<SmartPasteEventDetail | null>(null)
   const [selectedId, setSelectedId] = useState<string>('')
-  const [imgError, setImgError] = useState(false)
-  const [ogMeta, setOgMeta] = useState<{ title?: string; image?: string; domain?: string } | null>(null)
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    if (typeof document !== 'undefined') {
+      return (
+        document.documentElement.classList.contains('dark') ||
+        document.body.classList.contains('dark') ||
+        Boolean(editor?.view?.dom?.closest('.dark, .theme-dark, .notion-dark-canvas'))
+      )
+    }
+    return true
+  })
 
-  // Pure cancel/close (without modifying editor content)
+  // Synchronize light/dark theme with editor container or document root
+  useEffect(() => {
+    if (typeof document === 'undefined' || !data) return
+    const editorDom = editor?.view?.dom as HTMLElement | undefined
+    if (editorDom?.closest('.dark, .theme-dark, .notion-dark-canvas')) {
+      setIsDark(true)
+    } else if (editorDom?.closest('.theme-light, .notion-light-canvas')) {
+      setIsDark(false)
+    } else {
+      setIsDark(
+        document.documentElement.classList.contains('dark') ||
+          document.body.classList.contains('dark'),
+      )
+    }
+  }, [data, editor])
+
   const handleClose = useCallback(() => {
     setData(null)
     setSelectedId('')
-    setImgError(false)
-    setOgMeta(null)
   }, [])
 
   // Build options based on detected type
   const options = useMemo<PasteOptionItem[]>(() => {
     if (!data) return []
 
-    const plainTextOpt: PasteOptionItem = { id: 'plain-text', label: '일반 텍스트', icon: 'Type', insert: () => insertPlainText(editor, data.text) }
+    const targetPos = data.selection?.from
+    const restoreSelection = () => {
+      if (data.selection && editor && !editor.isDestroyed) {
+        const docSize = editor.state.doc.content.size
+        const from = Math.max(0, Math.min(data.selection.from, docSize))
+        const to = Math.max(from, Math.min(data.selection.to, docSize))
+        editor.commands.setTextSelection({ from, to })
+      }
+    }
+
+    const plainTextOpt: PasteOptionItem = {
+      id: 'plain-text',
+      label: '일반 텍스트',
+      icon: 'Type',
+      insert: () => {
+        restoreSelection()
+        insertPlainText(editor, data.text)
+      },
+    }
+
+    const linkOpt: PasteOptionItem = {
+      id: 'link',
+      label: '하이퍼링크',
+      icon: 'Link',
+      insert: () => {
+        restoreSelection()
+        insertHyperlink(editor, data.text)
+      },
+    }
 
     switch (data.type) {
       case 'image_url':
         return [
           plainTextOpt,
-          { id: 'link', label: '하이퍼링크', icon: 'Link', insert: () => insertHyperlink(editor, data.text) },
-          { id: 'image-external', label: '외부 이미지 연동', icon: 'ExternalLink', insert: () => insertImage(editor, data.text) },
+          linkOpt,
+          {
+            id: 'image-external',
+            label: '외부 이미지 연동',
+            icon: 'ExternalLink',
+            insert: () => {
+              restoreSelection()
+              insertImage(editor, data.text)
+            },
+          },
           {
             id: 'image-upload',
             label: '서버에 이미지 업로드',
             icon: 'Upload',
             isPrimary: true,
             insert: () => {
+              restoreSelection()
               const uploadCmd = (editor.commands as any).uploadImageByUrl
               if (typeof uploadCmd === 'function') {
-                const handled = uploadCmd({ url: data.text })
-                if (!handled) {
+                if (!uploadCmd({ url: data.text, pos: targetPos })) {
                   insertImage(editor, data.text)
                 }
               } else {
@@ -73,39 +148,52 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
         const videoId = data.meta?.videoId || ''
         return [
           plainTextOpt,
-          { id: 'link', label: '하이퍼링크', icon: 'Link', insert: () => insertHyperlink(editor, data.text) },
+          linkOpt,
           {
             id: 'youtube-video',
-            label: 'YouTube 임베드',
+            label: '유튜브 임베드',
             icon: 'Youtube',
             isPrimary: true,
             insert: () => {
-              if (videoId) {
-                insertYoutube(editor, videoId)
-              } else {
-                insertHyperlink(editor, data.text)
-              }
+              restoreSelection()
+              if (videoId) insertYoutube(editor, videoId)
+              else insertHyperlink(editor, data.text)
             },
           },
         ]
       }
 
       case 'web_url':
-        return [
-          plainTextOpt,
-          { id: 'link', label: '하이퍼링크', icon: 'Link', isPrimary: true, insert: () => insertHyperlink(editor, data.text) },
-        ]
+        return [plainTextOpt, { ...linkOpt, isPrimary: true }]
 
       case 'code':
         return [
           plainTextOpt,
-          { id: 'code-block', label: '코드 블록', icon: 'Code', isPrimary: true, insert: () => insertCodeBlock(editor, data.text) },
+          {
+            id: 'code-block',
+            label: '코드 블록',
+            icon: 'Code',
+            isPrimary: true,
+            insert: () => {
+              restoreSelection()
+              insertCodeBlock(editor, data.text)
+            },
+          },
         ]
 
       case 'list':
         return [
           plainTextOpt,
-          { id: 'list-items', label: '리스트', icon: 'List', isPrimary: true, insert: () => insertMarkdownList(editor, data.text) },
+          {
+            id: 'list-items',
+            label: '목록',
+            icon: 'List',
+            isPrimary: true,
+            insert: () => {
+              restoreSelection()
+              insertMarkdownList(editor, data.text)
+            },
+          },
         ]
 
       default:
@@ -113,32 +201,20 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     }
   }, [data, editor])
 
-  // Final insertion handler
   const handleConfirm = useCallback(() => {
     const currentOpt = options.find(o => o.id === selectedId) || options[options.length - 1]
-    if (currentOpt) {
-      currentOpt.insert()
-    }
+    if (currentOpt) currentOpt.insert()
     handleClose()
   }, [options, selectedId, handleClose])
 
-  // Listen to tiptap:smart-paste and tiptap:close-menus
   useEffect(() => {
     const handleSmartPaste = (e: Event) => {
       const customEvent = e as CustomEvent<SmartPasteEventDetail>
-      if (customEvent.detail) {
-        setData(customEvent.detail)
-        setImgError(false)
-        setOgMeta(null)
-      }
+      if (customEvent.detail) setData(customEvent.detail)
     }
-
     const handleCloseMenus = () => {
-      if (data) {
-        handleClose()
-      }
+      if (data) handleClose()
     }
-
     window.addEventListener('tiptap:smart-paste', handleSmartPaste)
     window.addEventListener('tiptap:close-menus', handleCloseMenus)
     return () => {
@@ -147,7 +223,6 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     }
   }, [data, handleClose])
 
-  // Set default selected mode to primary option
   useEffect(() => {
     if (options.length > 0) {
       const primary = options.find(o => o.isPrimary)
@@ -155,311 +230,207 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     }
   }, [options])
 
-  // Fetch OpenGraph metadata when web_url is pasted
-  useEffect(() => {
-    if (!data || data.type !== 'web_url') return
-    let isMounted = true
-    const fetchOg = async () => {
-      try {
-        const urlObj = new URL(data.text)
-        const domain = urlObj.hostname
-        const res = await fetch(`/api/link-preview?url=${encodeURIComponent(data.text)}`)
-        if (res.ok) {
-          const json = await res.json()
-          if (isMounted) {
-            setOgMeta({ title: json.title, image: json.image, domain: json.domain || domain })
-          }
-        } else if (isMounted) {
-          setOgMeta({ domain })
-        }
-      } catch {
-        if (isMounted) setOgMeta({ domain: data.text })
-      }
-    }
-    fetchOg()
-    return () => {
-      isMounted = false
-    }
-  }, [data])
-
-  // Keyboard navigation: Enter to confirm, Escape to cancel, Left/Right to cycle
+  // Keyboard navigation: Tab / Shift+Tab / Left / Right to cycle, Enter to confirm, Escape to cancel
   useEffect(() => {
     if (!data) return
-
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      const curIdx = options.findIndex(o => o.id === selectedId)
+      if (e.key === 'Tab') {
         e.preventDefault()
-        const curIdx = options.findIndex(o => o.id === selectedId)
-        const nextIdx = (curIdx + 1) % options.length
-        setSelectedId(options[nextIdx].id)
+        e.stopPropagation()
+        const step = e.shiftKey ? -1 : 1
+        setSelectedId(options[(curIdx + step + options.length) % options.length].id)
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault()
+        e.stopPropagation()
+        setSelectedId(options[(curIdx + 1) % options.length].id)
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         e.preventDefault()
-        const curIdx = options.findIndex(o => o.id === selectedId)
-        const prevIdx = (curIdx - 1 + options.length) % options.length
-        setSelectedId(options[prevIdx].id)
+        e.stopPropagation()
+        setSelectedId(options[(curIdx - 1 + options.length) % options.length].id)
       } else if (e.key === 'Enter') {
         e.preventDefault()
+        e.stopPropagation()
         handleConfirm()
       } else if (e.key === 'Escape') {
         e.preventDefault()
+        e.stopPropagation()
         handleClose()
       }
     }
-
     window.addEventListener('keydown', onKeyDown, true)
-    return () => {
-      window.removeEventListener('keydown', onKeyDown, true)
-    }
+    return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [data, options, selectedId, handleConfirm, handleClose])
 
   if (!data || options.length === 0 || typeof document === 'undefined') {
     return null
   }
 
-  // Header icon and title metadata
-  const headerInfo = (() => {
-    switch (data.type) {
-      case 'image_url':
-        return { title: '이미지 URL 감지됨', icon: 'Image' }
-      case 'youtube_url':
-        return { title: 'YouTube 동영상 감지됨', icon: 'Youtube' }
-      case 'web_url':
-        return { title: '웹 링크 감지됨', icon: 'Globe' }
-      case 'code':
-        return { title: '코드 스니펫 감지됨', icon: 'Code' }
-      case 'list':
-        return { title: '마크다운 리스트 감지됨', icon: 'List' }
-      default:
-        return { title: '스마트 붙여넣기', icon: 'Type' }
-    }
-  })()
-
-  // Dynamic preview rendering inside fixed-height box (h-[180px])
-  const renderVisualPreview = () => {
-    // 1. Plain text preview
-    if (selectedId === 'plain-text') {
-      return (
-        <div className="w-full h-full p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/80 overflow-y-auto">
-          <p className="text-xs font-mono text-zinc-300 whitespace-pre-wrap break-all leading-relaxed">
-            {data.text}
-          </p>
-        </div>
-      )
-    }
-
-    // 2. Hyperlink preview (1:1 editor inline link rendering)
-    if (selectedId === 'link') {
-      return (
-        <div className="w-full h-full p-4 bg-zinc-950/70 rounded-xl border border-zinc-800/80 flex flex-col justify-center gap-2">
-          <div className="flex items-center justify-between text-[11px] text-zinc-400 font-mono px-1">
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-              <span>본문 렌더링 미리보기</span>
-            </span>
-            <span className="text-zinc-500 text-[10px]">인라인 하이퍼링크</span>
-          </div>
-          <div className="p-3.5 bg-black/40 rounded-lg border border-white/10 text-sm leading-relaxed text-zinc-200 select-text font-normal">
-            <span className="text-zinc-400 mr-1.5 select-none font-sans">본문 삽입 결과:</span>
-            <a
-              href={data.text}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={e => e.preventDefault()}
-              className="text-indigo-600 dark:text-indigo-400 underline underline-offset-2 font-medium hover:underline cursor-pointer break-all"
-            >
-              {data.text}
-            </a>
-          </div>
-        </div>
-      )
-    }
-
-    // 3. Image URL options (External vs Upload)
-    if (selectedId === 'image-external' || selectedId === 'image-upload') {
-      return (
-        <div className="w-full h-full flex flex-col items-center justify-center p-2 rounded-xl bg-zinc-950/60 border border-zinc-800/80 overflow-hidden relative">
-          <div className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded text-[10px] font-medium bg-black/60 backdrop-blur-xs text-zinc-300 border border-white/10 flex items-center gap-1">
-            <Icon name={selectedId === 'image-upload' ? 'Upload' : 'ExternalLink'} className="w-3 h-3 text-indigo-400" />
-            <span>{selectedId === 'image-upload' ? '서버 최적화 업로드' : '외부 원본 링크 직접 연결'}</span>
-          </div>
-          {!imgError ? (
-            <img
-              src={data.text}
-              alt="Preview"
-              onError={() => setImgError(true)}
-              className="max-h-[135px] max-w-full object-contain rounded shadow-xs"
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center text-zinc-500 gap-1">
-              <Icon name="Image" className="w-8 h-8 opacity-40" />
-              <span className="text-xs">미리보기 로드 실패 (삽입 시 정상 작동)</span>
-            </div>
-          )}
-        </div>
-      )
-    }
-
-    // 4. Other rich format previews
-    switch (data.type) {
-      case 'youtube_url': {
-        const videoId = data.meta?.videoId
-        const thumbUrl = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null
-        return (
-          <div className="w-full h-full rounded-xl bg-zinc-950/60 border border-zinc-800/80 overflow-hidden relative flex items-center justify-center">
-            {thumbUrl ? (
-              <img src={thumbUrl} alt="YouTube Preview" className="w-full h-full object-cover opacity-75" />
-            ) : null}
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <div className="w-12 h-8 bg-red-600 rounded-lg flex items-center justify-center shadow-lg">
-                <div className="w-0 h-0 border-y-4 border-y-transparent border-l-8 border-l-white ml-0.5" />
-              </div>
-            </div>
-          </div>
-        )
-      }
-
-      case 'web_url': {
-        const domain = ogMeta?.domain || data.text
-        return (
-          <div className="w-full h-full p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/80 flex flex-col justify-center">
-            <div className="flex items-center gap-3 p-3 bg-zinc-900/90 rounded-lg border border-zinc-800 shadow-xs">
-              <div className="w-9 h-9 rounded-md bg-zinc-800 flex items-center justify-center shrink-0">
-                <Icon name="Globe" className="w-5 h-5 text-indigo-400" />
-              </div>
-              <div className="flex flex-col min-w-0 flex-1">
-                <span className="text-xs font-semibold text-zinc-200 truncate">
-                  {ogMeta?.title || domain}
-                </span>
-                <span className="text-[11px] text-zinc-400 font-mono truncate">
-                  {data.text}
-                </span>
-              </div>
-            </div>
-          </div>
-        )
-      }
-
-      case 'code': {
-        const lines = data.text.split('\n')
-        const displayLines = lines.slice(0, 8)
-        return (
-          <div className="w-full h-full rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 flex flex-col">
-            <div className="flex items-center justify-between px-3 py-1 bg-zinc-900/90 border-b border-zinc-800">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-red-500/80" />
-                <span className="w-2 h-2 rounded-full bg-yellow-500/80" />
-                <span className="w-2 h-2 rounded-full bg-green-500/80" />
-              </div>
-              <span className="text-[10px] font-mono text-zinc-400">Code Snippet</span>
-            </div>
-            <pre className="p-2.5 text-xs font-mono leading-relaxed overflow-auto flex-1 text-emerald-400/90">
-              {displayLines.join('\n')}
-              {lines.length > 8 ? `\n... (+${lines.length - 8} lines)` : ''}
-            </pre>
-          </div>
-        )
-      }
-
-      case 'list': {
-        const lines = data.text.split('\n').filter(Boolean)
-        const displayLines = lines.slice(0, 5)
-        return (
-          <div className="w-full h-full p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/80 overflow-y-auto">
-            <ul className="flex flex-col gap-1 text-xs text-zinc-200">
-              {displayLines.map((line, idx) => (
-                <li key={idx} className="flex items-start gap-2">
-                  <span className="text-indigo-400 select-none">•</span>
-                  <span className="flex-1 truncate">{line.replace(/^[-*+]\s+/, '').replace(/^\d+\.\s+/, '')}</span>
-                </li>
-              ))}
-              {lines.length > 5 && (
-                <li className="text-[11px] text-zinc-500 italic">...외 {lines.length - 5}개 항목</li>
-              )}
-            </ul>
-          </div>
-        )
-      }
-
-      default:
-        return null
-    }
-  }
+  const headerInfo = getHeaderInfo(data.type)
+  const kbdClass = `px-1.5 py-0.5 text-[10px] font-mono rounded border ${
+    isDark
+      ? 'bg-white/[0.06] border-white/[0.1] text-zinc-300'
+      : 'bg-black/[0.04] border-black/[0.1] text-zinc-700'
+  }`
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[1450] bg-black/40 backdrop-blur-xs flex items-end justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150"
+      role="dialog"
+      aria-modal="true"
+      aria-label={headerInfo.title}
+      className={`fixed inset-0 z-[1450] flex items-center justify-center p-4 sm:p-6 transition-opacity duration-150 ${
+        isDark ? 'bg-black/45 backdrop-blur-md' : 'bg-black/25 backdrop-blur-sm'
+      }`}
       onClick={handleClose}
     >
       <div
-        className="w-[92%] max-w-2xl bg-zinc-900/90 backdrop-blur-xl border border-zinc-700/60 shadow-2xl rounded-2xl overflow-hidden flex flex-col text-zinc-100 select-none animate-in slide-in-from-bottom-4 duration-200"
+        className={`w-[94%] max-w-[680px] rounded-2xl overflow-hidden flex flex-col select-none transition-all duration-200 ${
+          isDark
+            ? 'bg-[#1e1e22]/85 backdrop-blur-2xl border border-white/[0.12] text-zinc-100 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.08)]'
+            : 'bg-white/90 backdrop-blur-2xl border border-black/[0.09] text-zinc-900 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.18),inset_0_1px_0_0_rgba(255,255,255,0.9)]'
+        }`}
         onClick={e => e.stopPropagation()}
       >
-        {/* 1. Header Bar */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800/80 bg-zinc-950/40">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-              <Icon name={headerInfo.icon as any} className="w-3.5 h-3.5" />
+        {/* 1. Top Bar: Title + Slim Glass Pill Segmented Control Tab Bar */}
+        <div
+          className={`flex flex-col gap-2.5 px-4 pt-3.5 pb-3 border-b ${
+            isDark
+              ? 'border-white/[0.08] bg-white/[0.02]'
+              : 'border-black/[0.06] bg-black/[0.015]'
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div
+                className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border ${
+                  isDark
+                    ? 'bg-indigo-500/15 border-indigo-400/25 text-indigo-300'
+                    : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-600'
+                }`}
+              >
+                <Icon name={headerInfo.icon as any} className="w-3.5 h-3.5" />
+              </div>
+              <span className="text-xs font-semibold tracking-tight truncate">
+                {headerInfo.title}
+              </span>
             </div>
-            <span className="text-xs font-semibold text-zinc-200">
-              {headerInfo.title}
-            </span>
+
+            <button
+              type="button"
+              onClick={handleClose}
+              className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors cursor-pointer border border-transparent ${
+                isDark
+                  ? 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.08]'
+                  : 'text-zinc-500 hover:text-zinc-900 hover:bg-black/[0.06]'
+              }`}
+              title="닫기 (Esc)"
+            >
+              <Icon name="X" className="w-3.5 h-3.5" />
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={handleClose}
-            className="w-5 h-5 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-white/10 transition-colors cursor-pointer"
-            title="닫기 (Esc)"
+          {/* Slim Glass Pill Segmented Control (0px CLS via constant border) */}
+          <div
+            role="tablist"
+            className={`flex items-center gap-1 p-1 rounded-xl overflow-x-auto ${
+              isDark
+                ? 'bg-black/40 border border-white/[0.07]'
+                : 'bg-zinc-100/90 border border-black/[0.06]'
+            }`}
           >
-            <Icon name="X" className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* 2. Fixed-Height Visual Preview Box (h-[180px] - Zero Layout Shaking) */}
-        <div className="h-[180px] w-full p-3 flex items-center justify-center bg-black/25 overflow-hidden">
-          {renderVisualPreview()}
-        </div>
-
-        {/* 3. Fixed Bottom Action Bar */}
-        <div className="px-3.5 py-2.5 bg-zinc-950/60 border-t border-zinc-800/80 flex items-center justify-between gap-3">
-          {/* Left: Mode Selection Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto min-w-0 flex-1">
             {options.map(opt => {
               const isSelected = opt.id === selectedId
               return (
                 <button
                   key={opt.id}
+                  role="tab"
+                  aria-selected={isSelected}
                   type="button"
                   onClick={() => setSelectedId(opt.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 cursor-pointer ${
+                  className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 cursor-pointer border ${
                     isSelected
-                      ? 'bg-indigo-600 text-white shadow-md'
-                      : 'bg-white/5 text-zinc-300 border border-white/5 hover:bg-white/10 hover:text-white'
+                      ? isDark
+                        ? 'bg-white/[0.13] text-white border-white/[0.16] shadow-xs'
+                        : 'bg-white text-zinc-900 border-black/[0.08] shadow-xs'
+                      : isDark
+                        ? 'bg-transparent text-zinc-400 border-transparent hover:text-zinc-200 hover:bg-white/[0.05]'
+                        : 'bg-transparent text-zinc-600 border-transparent hover:text-zinc-900 hover:bg-black/[0.04]'
                   }`}
                 >
-                  <Icon name={opt.icon as any} className="w-3.5 h-3.5" />
+                  <Icon
+                    name={opt.icon as any}
+                    className={`w-3.5 h-3.5 ${
+                      isSelected
+                        ? isDark
+                          ? 'text-indigo-300'
+                          : 'text-indigo-600'
+                        : 'opacity-75'
+                    }`}
+                  />
                   <span>{opt.label}</span>
                 </button>
               )
             })}
           </div>
+        </div>
 
-          {/* Right: Cancel & Final Confirm Primary Button */}
-          <div className="flex items-center gap-2 shrink-0">
+        {/* 2. Center: Live Editor Canvas (Read-only TipTap Instance with 1:1 .ProseMirror rendering) */}
+        <div
+          className={`h-[260px] w-full p-3.5 flex items-center justify-center overflow-hidden ${
+            isDark ? 'bg-black/25' : 'bg-zinc-50/70'
+          }`}
+        >
+          <LivePreviewCanvas data={data} selectedId={selectedId} isDark={isDark} />
+        </div>
+
+        {/* 3. Bottom Bar: Keyboard Shortcut Hints (Left) + Cancel / Insert Action Buttons (Right) */}
+        <div
+          className={`px-4 py-2.5 border-t flex items-center justify-between gap-3 ${
+            isDark
+              ? 'bg-white/[0.02] border-white/[0.08]'
+              : 'bg-black/[0.015] border-black/[0.06]'
+          }`}
+        >
+          <div
+            className={`hidden sm:flex items-center gap-2 text-[11px] ${
+              isDark ? 'text-zinc-400' : 'text-zinc-500'
+            }`}
+          >
+            <span className="inline-flex items-center gap-1">
+              <kbd className={kbdClass}>Tab</kbd>
+              <span>전환</span>
+            </span>
+            <span className="opacity-40">·</span>
+            <span className="inline-flex items-center gap-1">
+              <kbd className={kbdClass}>Enter</kbd>
+              <span>삽입</span>
+            </span>
+            <span className="opacity-40">·</span>
+            <span className="inline-flex items-center gap-1">
+              <kbd className={kbdClass}>Esc</kbd>
+              <span>닫기</span>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 ml-auto shrink-0">
             <button
               type="button"
               onClick={handleClose}
-              className="px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg border border-transparent transition-colors cursor-pointer ${
+                isDark
+                  ? 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.08]'
+                  : 'text-zinc-600 hover:text-zinc-900 hover:bg-black/[0.05]'
+              }`}
             >
               취소
             </button>
             <button
               type="button"
               onClick={handleConfirm}
-              className="px-4 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-lg shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-3.5 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-lg border border-indigo-400/30 shadow-sm transition-colors cursor-pointer flex items-center gap-1.5"
             >
               <span>삽입</span>
-              <span className="text-[10px] opacity-75 font-mono">↵</span>
+              <span className="text-[10px] opacity-85 font-mono">↵</span>
             </button>
           </div>
         </div>
