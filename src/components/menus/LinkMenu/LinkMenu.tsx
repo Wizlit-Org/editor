@@ -17,7 +17,6 @@ export const LinkMenu = ({
   const showEditRef = useRef(false)
   const [isClosedByScroll, setIsClosedByScroll] = useState(false)
   const isClosedByScrollRef = useRef(false)
-  const prevLinkRef = useRef<string | null>(null)
 
   const setEditMode = useCallback((val: boolean) => {
     showEditRef.current = val
@@ -38,42 +37,82 @@ export const LinkMenu = ({
     }
   }, [editor])
 
-  const { link, target } = useEditorState({
+  const { link, target, linkPos } = useEditorState({
     editor,
     selector: ctx => {
+      const { $from, from } = ctx.editor.state.selection
+      const linkType = ctx.editor.state.schema.marks.link
+      let foundHref = ''
+      let foundTarget = ''
+      let markStart = -1
+
       const attrs = ctx.editor.getAttributes('link')
       if (attrs?.href) {
-        return { link: attrs.href as string, target: attrs.target as string }
+        foundHref = attrs.href as string
+        foundTarget = (attrs.target as string) || ''
       }
+
       // Fallback for cursor at boundary edges: check $from marks or adjacent nodes
-      try {
-        const { $from } = ctx.editor.state.selection
-        const mark =
-          $from.marks().find(m => m.type.name === 'link') ||
-          $from.nodeBefore?.marks?.find(m => m.type.name === 'link') ||
-          $from.nodeAfter?.marks?.find(m => m.type.name === 'link')
-        if (mark) {
-          return { link: mark.attrs.href as string, target: mark.attrs.target as string }
-        }
-      } catch {}
-      return { link: '', target: '' }
+      if (!foundHref && linkType) {
+        try {
+          const mark =
+            $from.marks().find(m => m.type === linkType) ||
+            $from.nodeBefore?.marks?.find(m => m.type === linkType) ||
+            $from.nodeAfter?.marks?.find(m => m.type === linkType)
+          if (mark) {
+            foundHref = mark.attrs.href as string
+            foundTarget = (mark.attrs.target as string) || ''
+          }
+        } catch {}
+      }
+
+      // Find start position of the current contiguous link mark node
+      if (foundHref && linkType && $from.parent) {
+        try {
+          const parentStart = $from.start()
+          $from.parent.forEach((child, offset) => {
+            const childMark = child.marks?.find(m => m.type === linkType)
+            if (childMark && childMark.attrs?.href === foundHref) {
+              const nodeStart = parentStart + offset
+              const nodeEnd = nodeStart + child.nodeSize
+              if (from >= nodeStart && from <= nodeEnd) {
+                markStart = nodeStart
+              }
+            }
+          })
+        } catch {}
+      }
+
+      return {
+        link: foundHref,
+        target: foundTarget,
+        linkPos: markStart !== -1 ? markStart : from,
+      }
     },
   })
 
-  // When active link changes or selection moves away from link, reset showEdit to false
-  // Skip reset if already in active edit mode to eliminate race-condition closing
+  // Unique target ID combining link position and href to distinctly identify the active link
+  const currentTargetId = link ? `${linkPos}_${link}` : ''
+  const prevTargetRef = useRef<string>(currentTargetId)
+
+  // When active target link changes (different URL or different link node in doc),
+  // ALWAYS reset showEdit to false and revert to LinkPreviewPanel immediately
   useEffect(() => {
-    if (showEditRef.current) return
-    if (link !== prevLinkRef.current) {
-      prevLinkRef.current = link || null
+    if (!currentTargetId) {
+      prevTargetRef.current = ''
+      setEditMode(false)
+      return
+    }
+
+    if (currentTargetId !== prevTargetRef.current) {
+      prevTargetRef.current = currentTargetId
+      // Distinct target link clicked! Instantly reset edit mode to show preview panel
       setEditMode(false)
     }
-  }, [link, setEditMode])
+  }, [currentTargetId, setEditMode])
 
   // Close edit panel when selection moves away from link completely
-  // Skip while in edit mode so minor selection adjustments during editing don't close the panel
   useEffect(() => {
-    if (showEditRef.current) return
     if (!checkIsLinkActive()) {
       setEditMode(false)
     }
