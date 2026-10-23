@@ -167,7 +167,8 @@ export const setColumnAlignment = (
 }
 
 export const moveColumnLeft = (editor: Editor, colIndex: number) => {
-  if (colIndex <= 0) return
+  // Prevent moving column into or swapping with header column (index 0)
+  if (colIndex <= 1) return
   const { state, view } = editor
   const table = findTable(state.selection)
   if (!table) return

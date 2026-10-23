@@ -112,7 +112,8 @@ export const setRowAlignment = (
 }
 
 export const moveRowUp = (editor: Editor, rowIndex: number) => {
-  if (rowIndex <= 0) return
+  // Prevent moving row into or swapping with header row (index 0)
+  if (rowIndex <= 1) return
   const { state, view } = editor
   const table = findTable(state.selection)
   if (!table) return

@@ -118,6 +118,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
 
   const selectedRowIdx = getSelectedRowIndex(editor)
   const isFirstRow = selectedRowIdx === 0
+  const canMoveUp = selectedRowIdx > 1
 
   const itemClass =
     'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none'
@@ -163,10 +164,12 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
 
         {!isFirstRow && (
           <>
-            <button type="button" onClick={onMoveRowUp} className={itemClass}>
-              <Icon name="ArrowUp" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-              <span>Move row up</span>
-            </button>
+            {canMoveUp && (
+              <button type="button" onClick={onMoveRowUp} className={itemClass}>
+                <Icon name="ArrowUp" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+                <span>Move row up</span>
+              </button>
+            )}
 
             <button type="button" onClick={onMoveRowDown} className={itemClass}>
               <Icon name="ArrowDown" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />

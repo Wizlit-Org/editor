@@ -247,10 +247,14 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
       e.preventDefault()
       e.stopPropagation()
 
-      try {
-        const innerPos = editor.view.posAtDOM(cellEl, 0)
-        editor.chain().focus().setTextSelection(innerPos).run()
-      } catch {}
+      // If right-clicked cell is already part of multiple cell selection, preserve selection
+      const isCurrentCellSelected = cellEl.classList.contains('selectedCell')
+      if (!isCurrentCellSelected) {
+        try {
+          const innerPos = editor.view.posAtDOM(cellEl, 0)
+          editor.chain().focus().setTextSelection(innerPos).run()
+        } catch {}
+      }
 
       window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
       setMenuOpen(true)

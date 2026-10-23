@@ -28,13 +28,58 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
     updateTableRect,
   } = useTableGrips(editor)
 
-  const [dragIndicator, setDragIndicator] = useState<{
-    type: 'col' | 'row'
-    left: number
-    top: number
-    width: number
-    height: number
-  } | null>(null)
+  const [dragIndicator, setDragIndicator] = useState<{ type: 'col' | 'row'; left: number; top: number; width: number; height: number } | null>(null)
+  const [draggingSource, setDraggingSource] = useState<{ type: 'col' | 'row'; left: number; top: number; width: number; height: number } | null>(null)
+  const [resizingGuideX, setResizingGuideX] = useState<number | null>(null)
+
+  // Listen to mouse events for column resizing to show full-height vertical indigo guide
+  React.useEffect(() => {
+    const dom = editor.view?.dom
+    if (!dom) return
+    let activeCleanup: (() => void) | null = null
+
+    const handleMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null
+      if (!target) return
+      const handleEl = target.closest('.column-resize-handle') as HTMLElement | null
+      const cellEl = target.closest('td, th') as HTMLElement | null
+
+      let isResizeStart = false
+      if (handleEl) {
+        isResizeStart = true
+      } else if (cellEl) {
+        const rect = cellEl.getBoundingClientRect()
+        if (Math.abs(e.clientX - rect.right) <= 8) isResizeStart = true
+      }
+
+      if (isResizeStart && currentTableEl) {
+        currentTableEl.classList.add('resizing')
+        setResizingGuideX(e.clientX)
+        const onMouseMove = (moveEvt: MouseEvent) => setResizingGuideX(moveEvt.clientX)
+        const onMouseUp = () => {
+          window.removeEventListener('mousemove', onMouseMove)
+          window.removeEventListener('mouseup', onMouseUp)
+          if (currentTableEl) currentTableEl.classList.remove('resizing')
+          setResizingGuideX(null)
+          setTimeout(updateTableRect, 50)
+        }
+
+        window.addEventListener('mousemove', onMouseMove)
+        window.addEventListener('mouseup', onMouseUp)
+        activeCleanup = () => {
+          window.removeEventListener('mousemove', onMouseMove)
+          window.removeEventListener('mouseup', onMouseUp)
+          if (currentTableEl) currentTableEl.classList.remove('resizing')
+        }
+      }
+    }
+
+    dom.addEventListener('mousedown', handleMouseDown)
+    return () => {
+      dom.removeEventListener('mousedown', handleMouseDown)
+      if (activeCleanup) activeCleanup()
+    }
+  }, [editor, currentTableEl, updateTableRect])
 
   const onSelectColumn = useCallback(
     (colIdx: number) => (e: React.MouseEvent) => {
@@ -130,19 +175,32 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
           document.body.style.cursor = type === 'col' ? 'col-resize' : 'row-resize'
 
           if (type === 'col') {
+            // Highlight source column being moved
+            const srcCol = columnGrips[index]
+            if (srcCol) {
+              setDraggingSource({
+                type: 'col',
+                left: srcCol.left,
+                top: tableRect.top,
+                width: srcCol.width,
+                height: tableRect.height,
+              })
+            }
+
             // Find target column index (must be >= 1, cannot move to or replace header column)
-            let bestCol = columnGrips.find(
+            const validCols = columnGrips.filter(g => g.index >= 1)
+            let bestCol = validCols.find(
               g => moveEvent.clientX >= g.left && moveEvent.clientX <= g.left + g.width,
             )
-            if (!bestCol && columnGrips.length > 0) {
-              if (moveEvent.clientX < columnGrips[1]?.left) {
-                bestCol = columnGrips[1]
-              } else if (moveEvent.clientX > columnGrips[columnGrips.length - 1].left + columnGrips[columnGrips.length - 1].width) {
-                bestCol = columnGrips[columnGrips.length - 1]
+            if (!bestCol && validCols.length > 0) {
+              if (moveEvent.clientX < validCols[0].left) {
+                bestCol = validCols[0]
+              } else if (moveEvent.clientX > validCols[validCols.length - 1].left + validCols[validCols.length - 1].width) {
+                bestCol = validCols[validCols.length - 1]
               }
             }
 
-            if (bestCol && bestCol.index >= 1) {
+            if (bestCol) {
               const isRightSide = moveEvent.clientX > bestCol.left + bestCol.width / 2
               const targetIdx = isRightSide ? bestCol.index : Math.max(1, bestCol.index)
               pendingTargetIdx = targetIdx
@@ -160,19 +218,32 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
               pendingTargetIdx = -1
             }
           } else {
+            // Highlight source row being moved
+            const srcRow = rowGrips[index]
+            if (srcRow) {
+              setDraggingSource({
+                type: 'row',
+                left: tableRect.left,
+                top: srcRow.top,
+                width: tableRect.width,
+                height: srcRow.height,
+              })
+            }
+
             // Find target row index (must be >= 1, cannot move to or replace header row)
-            let bestRow = rowGrips.find(
+            const validRows = rowGrips.filter(g => g.index >= 1)
+            let bestRow = validRows.find(
               g => moveEvent.clientY >= g.top && moveEvent.clientY <= g.top + g.height,
             )
-            if (!bestRow && rowGrips.length > 0) {
-              if (moveEvent.clientY < rowGrips[1]?.top) {
-                bestRow = rowGrips[1]
-              } else if (moveEvent.clientY > rowGrips[rowGrips.length - 1].top + rowGrips[rowGrips.length - 1].height) {
-                bestRow = rowGrips[rowGrips.length - 1]
+            if (!bestRow && validRows.length > 0) {
+              if (moveEvent.clientY < validRows[0].top) {
+                bestRow = validRows[0]
+              } else if (moveEvent.clientY > validRows[validRows.length - 1].top + validRows[validRows.length - 1].height) {
+                bestRow = validRows[validRows.length - 1]
               }
             }
 
-            if (bestRow && bestRow.index >= 1) {
+            if (bestRow) {
               const isBottomSide = moveEvent.clientY > bestRow.top + bestRow.height / 2
               const targetIdx = isBottomSide ? bestRow.index : Math.max(1, bestRow.index)
               pendingTargetIdx = targetIdx
@@ -198,6 +269,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         window.removeEventListener('mouseup', onMouseUp)
         document.body.style.cursor = ''
         setDragIndicator(null)
+        setDraggingSource(null)
 
         if (isDragging && pendingTargetIdx >= 1 && pendingTargetIdx !== index) {
           if (type === 'col') {
@@ -360,7 +432,20 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         }}
       />
 
-      {/* 4. Drag Drop Position Indicator Guide Bar */}
+      {/* 4. Drag Source Highlight Overlay (dashed border + translucent fill) */}
+      {draggingSource && (
+        <div
+          className="fixed pointer-events-none bg-indigo-500/15 dark:bg-violet-500/20 border-2 border-dashed border-indigo-500/70 dark:border-violet-400/70 z-[1390] rounded transition-all duration-75"
+          style={{
+            left: draggingSource.left,
+            top: draggingSource.top,
+            width: draggingSource.width,
+            height: draggingSource.height,
+          }}
+        />
+      )}
+
+      {/* 5. Drag Drop Position Indicator Guide Bar */}
       {dragIndicator && (
         <div
           className="fixed pointer-events-none bg-indigo-500 dark:bg-violet-400 z-[1400] shadow-[0_0_10px_rgba(99,102,241,0.9)] rounded-full transition-all duration-75"
@@ -369,6 +454,19 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
             top: dragIndicator.top,
             width: dragIndicator.width,
             height: dragIndicator.height,
+          }}
+        />
+      )}
+
+      {/* 6. Real-time Column Resizing Full-Height Vertical Guide Line */}
+      {resizingGuideX !== null && (
+        <div
+          className="fixed pointer-events-none bg-indigo-500 dark:bg-violet-400 z-[1400] shadow-[0_0_10px_rgba(99,102,241,0.95)] rounded-full transition-none"
+          style={{
+            left: resizingGuideX - 1.5,
+            top: tableRect.top,
+            width: 3,
+            height: tableRect.height,
           }}
         />
       )}
