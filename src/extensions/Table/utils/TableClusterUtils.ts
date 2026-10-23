@@ -2,7 +2,7 @@ import { Editor } from '@tiptap/core'
 import { TableMap, CellSelection } from '@tiptap/pm/tables'
 import { Node } from '@tiptap/pm/model'
 import { Transaction, TextSelection } from '@tiptap/pm/state'
-import { findTable, selectColumn, selectRow } from '../utils'
+import { findTable, selectColumn, selectRow, isCellSelection } from '../utils'
 
 /**
  * Returns transitive-closure row range [start, count] including all interconnected merged cells (rowspan > 1).
@@ -275,12 +275,8 @@ export function selectRowRange(tr: Transaction, minRow: number, maxRow: number):
   const safeMin = Math.max(0, Math.min(minRow, maxRow))
   const safeMax = Math.min(map.height - 1, Math.max(minRow, maxRow))
 
-  const cellsFirst = map.cellsInRect({ left: 0, right: map.width, top: safeMin, bottom: safeMin + 1 })
-  const cellsLast = map.cellsInRect({ left: 0, right: map.width, top: safeMax, bottom: safeMax + 1 })
-
-  if (cellsFirst.length === 0 || cellsLast.length === 0) return tr
-  const head = table.start + cellsFirst[0]
-  const anchor = table.start + cellsLast[cellsLast.length - 1]
+  const head = table.start + map.map[safeMin * map.width]
+  const anchor = table.start + map.map[safeMax * map.width + (map.width - 1)]
   return tr.setSelection(new CellSelection(tr.doc.resolve(anchor), tr.doc.resolve(head)))
 }
 
@@ -295,13 +291,31 @@ export function selectColRange(tr: Transaction, minCol: number, maxCol: number):
   const safeMin = Math.max(0, Math.min(minCol, maxCol))
   const safeMax = Math.min(map.width - 1, Math.max(minCol, maxCol))
 
-  const cellsFirst = map.cellsInRect({ left: safeMin, right: safeMin + 1, top: 0, bottom: map.height })
-  const cellsLast = map.cellsInRect({ left: safeMax, right: safeMax + 1, top: 0, bottom: map.height })
-
-  if (cellsFirst.length === 0 || cellsLast.length === 0) return tr
-  const head = table.start + cellsFirst[0]
-  const anchor = table.start + cellsLast[cellsLast.length - 1]
+  const head = table.start + map.map[safeMin]
+  const anchor = table.start + map.map[(map.height - 1) * map.width + safeMax]
   return tr.setSelection(new CellSelection(tr.doc.resolve(anchor), tr.doc.resolve(head)))
+}
+
+/**
+ * Check if the given row or column grip index is inside the current CellSelection.
+ */
+export function isGripInCurrentSelection(editor: Editor, type: 'col' | 'row', index: number): boolean {
+  const { selection } = editor.state
+  const table = findTable(selection)
+  if (!table || !isCellSelection(selection)) return false
+
+  try {
+    const map = TableMap.get(table.node)
+    const start = selection.$anchorCell.start(-1)
+    const rect = map.rectBetween(selection.$anchorCell.pos - start, selection.$headCell.pos - start)
+    if (type === 'col') {
+      return rect.bottom - rect.top === map.height && rect.left <= index && index < rect.right
+    } else {
+      return rect.right - rect.left === map.width && rect.top <= index && index < rect.bottom
+    }
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -334,3 +348,4 @@ export function focusTableGrip(
     console.error(`Error selecting ${type}:`, err)
   }
 }
+

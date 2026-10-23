@@ -2,6 +2,7 @@ import { findParentNode } from '@tiptap/core'
 import { Selection, Transaction } from '@tiptap/pm/state'
 import { CellSelection, Rect, TableMap } from '@tiptap/pm/tables'
 import { Node, ResolvedPos } from '@tiptap/pm/model'
+import { getClusterRowRange, getClusterColRange } from './utils/TableClusterUtils'
 
 export const isRectSelected = (rect: Rect) => (selection: CellSelection) => {
   const map = TableMap.get(selection.$anchorCell.node(-1))
@@ -200,67 +201,27 @@ const select = (type: 'row' | 'column') => (index: number) => (tr: Transaction) 
 
     // Check if the index is valid
     if (index >= 0 && index < (isRowSelection ? map.height : map.width)) {
-      let minRow = isRowSelection ? index : 0
-      let maxRow = isRowSelection ? index + 1 : map.height
-      let minCol = isRowSelection ? 0 : index
-      let maxCol = isRowSelection ? map.width : index + 1
+      let minRow: number
+      let maxRow: number
+      let minCol: number
+      let maxCol: number
 
-      // Automatically expand selection to include all merged cells (rowspan / colspan > 1)
       if (isRowSelection) {
-        let changed = true
-        while (changed) {
-          changed = false
-          const cells = map.cellsInRect({ left: 0, right: map.width, top: minRow, bottom: maxRow })
-          for (const cellPos of cells) {
-            const rect = map.findCell(cellPos)
-            if (rect.top < minRow) {
-              minRow = rect.top
-              changed = true
-            }
-            if (rect.bottom > maxRow) {
-              maxRow = rect.bottom
-              changed = true
-            }
-          }
-        }
+        const cluster = getClusterRowRange(table.node, index)
+        minRow = cluster.start
+        maxRow = cluster.start + cluster.count
+        minCol = 0
+        maxCol = map.width
       } else {
-        let changed = true
-        while (changed) {
-          changed = false
-          const cells = map.cellsInRect({ left: minCol, right: maxCol, top: 0, bottom: map.height })
-          for (const cellPos of cells) {
-            const rect = map.findCell(cellPos)
-            if (rect.left < minCol) {
-              minCol = rect.left
-              changed = true
-            }
-            if (rect.right > maxCol) {
-              maxCol = rect.right
-              changed = true
-            }
-          }
-        }
+        const cluster = getClusterColRange(table.node, index)
+        minCol = cluster.start
+        maxCol = cluster.start + cluster.count
+        minRow = 0
+        maxRow = map.height
       }
 
-      const cellsInFirstRow = map.cellsInRect({
-        left: minCol,
-        top: minRow,
-        right: isRowSelection ? maxCol : minCol + 1,
-        bottom: isRowSelection ? minRow + 1 : maxRow,
-      })
-
-      const cellsInLastRow =
-        maxRow - minRow === 1
-          ? cellsInFirstRow
-          : map.cellsInRect({
-              left: isRowSelection ? minCol : maxCol - 1,
-              top: isRowSelection ? maxRow - 1 : minRow,
-              right: maxCol,
-              bottom: maxRow,
-            })
-
-      const head = table.start + cellsInFirstRow[0]
-      const anchor = table.start + cellsInLastRow[cellsInLastRow.length - 1]
+      const head = table.start + map.map[minRow * map.width + minCol]
+      const anchor = table.start + map.map[(maxRow - 1) * map.width + (maxCol - 1)]
       const $head = tr.doc.resolve(head)
       const $anchor = tr.doc.resolve(anchor)
 

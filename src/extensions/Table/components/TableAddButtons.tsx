@@ -2,11 +2,12 @@ import React, { useCallback, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Editor } from '@tiptap/react'
 import { TextSelection } from '@tiptap/pm/state'
+import { TableMap } from '@tiptap/pm/tables'
 import { useTableGrips } from '../hooks/useTableGrips'
 import { TableAddBar } from './TableAddBar'
 import { moveTableColumn, moveTableRow, getMergedColRange, getMergedRowRange } from '../utils/TableDndUtils'
 import { findTable, isCellSelection } from '../utils'
-import { findSafeDropIndex, selectColRange, selectRowRange, focusTableGrip } from '../utils/TableClusterUtils'
+import { findSafeDropIndex, selectColRange, selectRowRange, focusTableGrip, isGripInCurrentSelection } from '../utils/TableClusterUtils'
 
 export interface TableAddButtonsProps {
   editor: Editor
@@ -110,20 +111,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       const rowBundle = type === 'row' && tableNode ? getMergedRowRange(tableNode, index) : { start: index, count: 1 }
 
       // Check if clicked grip is already inside current selection
-      let isGripSelected = false
-      const { selection } = editor.state
-      if (isCellSelection(selection) && tableNode) {
-        try {
-          const map = TableMap.get(tableNode)
-          const start = selection.$anchorCell.start(-1)
-          const rect = map.rectBetween(selection.$anchorCell.pos - start, selection.$headCell.pos - start)
-          if (type === 'col') {
-            isGripSelected = rect.bottom - rect.top === map.height && rect.left <= index && index < rect.right
-          } else {
-            isGripSelected = rect.right - rect.left === map.width && rect.top <= index && index < rect.bottom
-          }
-        } catch {}
-      }
+      const isGripSelected = isGripInCurrentSelection(editor, type, index)
 
       const onMouseMove = (moveEvent: MouseEvent) => {
         const dist = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY)
