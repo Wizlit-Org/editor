@@ -1,4 +1,4 @@
-export type SmartPasteType = 'image_url' | 'youtube_url' | 'web_url' | 'code' | 'list'
+export type SmartPasteType = 'image_url' | 'image_data' | 'youtube_url' | 'web_url' | 'code' | 'list'
 
 export interface SmartPasteOption {
   id: string
@@ -11,9 +11,11 @@ export interface SmartPasteOption {
 export interface SmartPasteEventDetail {
   text: string
   type: SmartPasteType
+  files?: File[]
   meta?: {
     videoId?: string
     url?: string
+    mimeType?: string
   }
   coords: {
     top: number

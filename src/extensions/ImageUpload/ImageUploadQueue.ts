@@ -2,6 +2,21 @@ import { Editor } from "@tiptap/core";
 import imageCompression from 'browser-image-compression';
 import { uploadPluginKey, findPlaceholder } from './ImageUpload';
 
+const ensureFileWithExtension = (blobOrFile: Blob | File, originalFile: File): File => {
+  const mime = blobOrFile.type || originalFile.type || 'image/jpeg';
+  let ext = mime.split('/')[1]?.split('+')[0] || 'jpg';
+  if (ext === 'jpeg') ext = 'jpg';
+
+  let fileName = (blobOrFile as File).name || originalFile.name || `image-${Date.now()}.${ext}`;
+  if (!fileName.includes('.')) {
+    fileName = `${fileName}.${ext}`;
+  }
+  if (blobOrFile instanceof File && blobOrFile.name === fileName) {
+    return blobOrFile;
+  }
+  return new File([blobOrFile], fileName, { type: mime });
+};
+
 const resizeFile = async (
   file: File,
   maxSize?: number,
@@ -9,28 +24,40 @@ const resizeFile = async (
   signal?: AbortSignal
 ): Promise<File> => {
   if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-  if (maxSize && file.size > maxSize && !forceReduceSize) {
+  const safeInput = ensureFileWithExtension(file, file);
+
+  // SVG/GIF should not be re-encoded through canvas compression unless strictly over limit
+  if (safeInput.type === 'image/svg+xml' || (!maxSize || safeInput.size <= maxSize)) {
+    return safeInput;
+  }
+
+  if (maxSize && safeInput.size > maxSize && !forceReduceSize) {
     throw new Error(
-      `File size ${Math.round(file.size / 1024)}KB exceeds limit ${Math.round(
+      `File size ${Math.round(safeInput.size / 1024)}KB exceeds limit ${Math.round(
         (maxSize || 0) / 1024
       )}KB. Set forceReduceSize:true to auto-compress.`
     );
   }
-  if (!maxSize || file.size <= maxSize) return file;
 
   // 300KB 상한선 직전(250~290KB)에서 최상의 화질(FHD 해상도 보존)을 유지하도록 설정
   const maxSizeMB = maxSize ? Math.min(0.285, maxSize / (1024 * 1024)) : 0.285;
 
-  const options = {
-    maxSizeMB,
-    maxWidthOrHeight: 1920,
-    initialQuality: 0.85,
-    useWebWorker: false,
-    fileType: file.type || 'image/jpeg',
-    signal,
-  };
+  try {
+    const options = {
+      maxSizeMB,
+      maxWidthOrHeight: 1920,
+      initialQuality: 0.85,
+      useWebWorker: false,
+      fileType: safeInput.type || 'image/jpeg',
+      signal,
+    };
 
-  return imageCompression(file, options);
+    const compressed = await imageCompression(safeInput, options);
+    return ensureFileWithExtension(compressed, safeInput);
+  } catch (err) {
+    // If browser-image-compression fails on certain image formats, fallback to safeInput
+    return safeInput;
+  }
 };
 
 interface UploadQueueItem {

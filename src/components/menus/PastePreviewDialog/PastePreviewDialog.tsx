@@ -25,23 +25,6 @@ export interface PasteOptionItem {
   insert: () => void
 }
 
-const getHeaderInfo = (type?: string) => {
-  switch (type) {
-    case 'image_url':
-      return { title: '이미지 URL 붙여넣기', icon: 'Image' }
-    case 'youtube_url':
-      return { title: 'YouTube 동영상 붙여넣기', icon: 'Youtube' }
-    case 'web_url':
-      return { title: '웹 링크 붙여넣기', icon: 'Globe' }
-    case 'code':
-      return { title: '코드 스니펫 붙여넣기', icon: 'Code' }
-    case 'list':
-      return { title: '목록 붙여넣기', icon: 'List' }
-    default:
-      return { title: '스마트 붙여넣기', icon: 'Type' }
-  }
-}
-
 export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }) => {
   const [data, setData] = useState<SmartPasteEventDetail | null>(null)
   const [selectedId, setSelectedId] = useState<string>('')
@@ -112,6 +95,36 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     }
 
     switch (data.type) {
+      case 'image_data':
+        return [
+          {
+            id: 'image-upload',
+            label: '서버에 이미지 업로드',
+            icon: 'Upload',
+            isPrimary: true,
+            insert: () => {
+              restoreSelection()
+              const uploadBase64Cmd = (editor.commands as any).uploadImageByBase64
+              if (typeof uploadBase64Cmd === 'function') {
+                if (!uploadBase64Cmd({ base64: data.text, pos: targetPos })) {
+                  insertImage(editor, data.text)
+                }
+              } else {
+                insertImage(editor, data.text)
+              }
+            },
+          },
+          {
+            id: 'image-external',
+            label: 'Base64 이미지 직접 삽입',
+            icon: 'Image',
+            insert: () => {
+              restoreSelection()
+              insertImage(editor, data.text)
+            },
+          },
+        ]
+
       case 'image_url':
         return [
           plainTextOpt,
@@ -266,7 +279,6 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     return null
   }
 
-  const headerInfo = getHeaderInfo(data.type)
   const kbdClass = `px-1.5 py-0.5 text-[10px] font-mono rounded border ${
     isDark
       ? 'bg-white/[0.06] border-white/[0.1] text-zinc-300'
@@ -277,66 +289,32 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={headerInfo.title}
+      aria-label="붙여넣기 미리보기"
       className={`fixed inset-0 z-[1450] flex items-center justify-center p-4 sm:p-6 transition-opacity duration-150 ${
-        isDark ? 'bg-black/45 backdrop-blur-md' : 'bg-black/25 backdrop-blur-sm'
+        isDark ? 'bg-black/50 backdrop-blur-md' : 'bg-black/25 backdrop-blur-sm'
       }`}
       onClick={handleClose}
     >
+      {/* Dialog matches exact 42rem (672px) editor column width + 24px horizontal padding = 720px */}
       <div
-        className={`w-[94%] max-w-[680px] rounded-2xl overflow-hidden flex flex-col select-none transition-all duration-200 ${
+        className={`w-[95%] max-w-[720px] rounded-2xl overflow-hidden flex flex-col select-none transition-all duration-200 ${
           isDark
-            ? 'bg-[#1e1e22]/85 backdrop-blur-2xl border border-white/[0.12] text-zinc-100 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.08)]'
-            : 'bg-white/90 backdrop-blur-2xl border border-black/[0.09] text-zinc-900 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.18),inset_0_1px_0_0_rgba(255,255,255,0.9)]'
+            ? 'bg-[#191919] border border-white/[0.12] text-[#e3e3e3] shadow-[0_24px_64px_-12px_rgba(0,0,0,0.75),inset_0_1px_0_0_rgba(255,255,255,0.08)]'
+            : 'bg-white border border-black/[0.1] text-[#222325] shadow-[0_24px_64px_-12px_rgba(0,0,0,0.2),inset_0_1px_0_0_rgba(255,255,255,0.9)]'
         }`}
         onClick={e => e.stopPropagation()}
       >
-        {/* 1. Top Bar: Title + Slim Glass Pill Segmented Control Tab Bar */}
+        {/* 1. Single-Line Minimal Glass Pill Segmented Control Tab Bar */}
         <div
-          className={`flex flex-col gap-2.5 px-4 pt-3.5 pb-3 border-b ${
+          className={`flex items-center justify-between gap-2 px-4 py-2.5 border-b ${
             isDark
-              ? 'border-white/[0.08] bg-white/[0.02]'
-              : 'border-black/[0.06] bg-black/[0.015]'
+              ? 'border-white/[0.08] bg-[#202020]/90'
+              : 'border-black/[0.07] bg-zinc-50/90'
           }`}
         >
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <div
-                className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border ${
-                  isDark
-                    ? 'bg-indigo-500/15 border-indigo-400/25 text-indigo-300'
-                    : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-600'
-                }`}
-              >
-                <Icon name={headerInfo.icon as any} className="w-3.5 h-3.5" />
-              </div>
-              <span className="text-xs font-semibold tracking-tight truncate">
-                {headerInfo.title}
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleClose}
-              className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors cursor-pointer border border-transparent ${
-                isDark
-                  ? 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.08]'
-                  : 'text-zinc-500 hover:text-zinc-900 hover:bg-black/[0.06]'
-              }`}
-              title="닫기 (Esc)"
-            >
-              <Icon name="X" className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Slim Glass Pill Segmented Control (0px CLS via constant border) */}
           <div
             role="tablist"
-            className={`flex items-center gap-1 p-1 rounded-xl overflow-x-auto ${
-              isDark
-                ? 'bg-black/40 border border-white/[0.07]'
-                : 'bg-zinc-100/90 border border-black/[0.06]'
-            }`}
+            className="flex items-center gap-1 overflow-x-auto min-w-0 flex-1"
           >
             {options.map(opt => {
               const isSelected = opt.id === selectedId
@@ -350,10 +328,10 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
                   className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 cursor-pointer border ${
                     isSelected
                       ? isDark
-                        ? 'bg-white/[0.13] text-white border-white/[0.16] shadow-xs'
-                        : 'bg-white text-zinc-900 border-black/[0.08] shadow-xs'
+                        ? 'bg-white/[0.14] text-white border-white/[0.18] shadow-xs'
+                        : 'bg-white text-zinc-900 border-black/[0.1] shadow-xs'
                       : isDark
-                        ? 'bg-transparent text-zinc-400 border-transparent hover:text-zinc-200 hover:bg-white/[0.05]'
+                        ? 'bg-transparent text-zinc-400 border-transparent hover:text-zinc-200 hover:bg-white/[0.06]'
                         : 'bg-transparent text-zinc-600 border-transparent hover:text-zinc-900 hover:bg-black/[0.04]'
                   }`}
                 >
@@ -372,23 +350,30 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
               )
             })}
           </div>
+
+          <button
+            type="button"
+            onClick={handleClose}
+            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer border border-transparent ${
+              isDark
+                ? 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.08]'
+                : 'text-zinc-500 hover:text-zinc-900 hover:bg-black/[0.06]'
+            }`}
+            title="닫기 (Esc)"
+          >
+            <Icon name="X" className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* 2. Center: Live Editor Canvas (Read-only TipTap Instance with 1:1 .ProseMirror rendering) */}
-        <div
-          className={`h-[260px] w-full p-3.5 flex items-center justify-center overflow-hidden ${
-            isDark ? 'bg-black/25' : 'bg-zinc-50/70'
-          }`}
-        >
-          <LivePreviewCanvas data={data} selectedId={selectedId} isDark={isDark} />
-        </div>
+        {/* 2. Center: Direct 1:1 Editor Canvas (No extra boxes, no forced 260px crop) */}
+        <LivePreviewCanvas data={data} selectedId={selectedId} isDark={isDark} />
 
         {/* 3. Bottom Bar: Keyboard Shortcut Hints (Left) + Cancel / Insert Action Buttons (Right) */}
         <div
           className={`px-4 py-2.5 border-t flex items-center justify-between gap-3 ${
             isDark
-              ? 'bg-white/[0.02] border-white/[0.08]'
-              : 'bg-black/[0.015] border-black/[0.06]'
+              ? 'bg-[#202020]/90 border-white/[0.08]'
+              : 'bg-zinc-50/90 border-black/[0.07]'
           }`}
         >
           <div
@@ -427,7 +412,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
             <button
               type="button"
               onClick={handleConfirm}
-              className="px-3.5 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-lg border border-indigo-400/30 shadow-sm transition-colors cursor-pointer flex items-center gap-1.5"
+              className="px-4 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-lg border border-indigo-400/30 shadow-sm transition-colors cursor-pointer flex items-center gap-1.5"
             >
               <span>삽입</span>
               <span className="text-[10px] opacity-85 font-mono">↵</span>

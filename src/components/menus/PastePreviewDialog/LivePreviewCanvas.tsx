@@ -63,14 +63,15 @@ export const buildPreviewDoc = (
     }
   }
 
-  // 3) External Image or Server Image Upload
+  // 3) External Image or Server Image Upload or Base64 Image
   if (selectedId === 'image-external' || selectedId === 'image-upload') {
-    // Use proxy URL for server-upload preview if external CORS blocks direct img load,
-    // while keeping wizlit:// badge distinction clear in the live ImageBlockView
-    const previewSrc =
-      selectedId === 'image-upload'
+    const isDataUri = rawText.startsWith('data:image/')
+    const previewSrc = isDataUri
+      ? rawText
+      : selectedId === 'image-upload'
         ? `/api/image-proxy?url=${encodeURIComponent(rawText)}`
         : rawText
+
     return {
       type: 'doc',
       content: [
@@ -216,7 +217,7 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
       content: previewDoc,
       editorProps: {
         attributes: {
-          class: 'min-h-full focus:outline-none pointer-events-auto',
+          class: '!min-h-0 focus:outline-none pointer-events-auto',
         },
       },
     },
@@ -235,36 +236,9 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
 
   return (
     <div
-      className={`relative w-full h-full overflow-y-auto overflow-x-hidden rounded-xl border transition-colors ${
-        isDark
-          ? 'bg-[#191919] border-white/[0.08] text-[#e3e3e3] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]'
-          : 'bg-white border-black/[0.08] text-[#222325] shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)]'
-      }`}
+      className={`w-full max-h-[62vh] overflow-y-auto overflow-x-hidden px-6 py-5 ${themeCanvasClass} [&_figure]:!my-0 [&_.node-imageBlock]:!my-0 [&_[data-node-view-wrapper]]:!my-0`}
     >
-      {/* Subtle Live Editor Canvas Badge */}
-      <div className="sticky top-2.5 right-3 z-30 flex justify-end px-3 pointer-events-none">
-        <span
-          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium tracking-tight backdrop-blur-md border ${
-            isDark
-              ? 'bg-black/55 text-zinc-300 border-white/10'
-              : 'bg-white/80 text-zinc-600 border-black/10'
-          }`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span>
-            {selectedId === 'image-upload'
-              ? '서버 최적화 업로드 · 1:1 본문 미리보기'
-              : selectedId === 'image-external'
-                ? '외부 이미지 직접 연동 · 1:1 본문 미리보기'
-                : '1:1 실제 에디터 결과 미리보기'}
-          </span>
-        </span>
-      </div>
-
-      {/* Actual TipTap ProseMirror Live Canvas */}
-      <div className={`px-5 pb-5 pt-1 ${themeCanvasClass}`}>
-        <EditorContent editor={previewEditor} className="w-full focus:outline-none" />
-      </div>
+      <EditorContent editor={previewEditor} className="w-full focus:outline-none" />
     </div>
   )
 }

@@ -203,22 +203,31 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
         return true
       },
       uploadImageByBase64: ({ base64, pos }) => ({ editor }) => {
-        if (!base64 || base64.length === 0) return false;
+        if (!base64 || base64.trim().length === 0) return false;
 
-        const dataUriRegex = /^data:([a-z]+\/[a-z0-9.+-]+)(?:;[a-z0-9-]+=.*?)*;base64,([A-Za-z0-9+/]+=*)$/i;
-        const base64Match = base64.match(dataUriRegex);
+        const cleanBase64 = base64.trim();
+        const dataUriRegex = /^data:image\/([a-z0-9.+-]+)(?:;[^,]*)?;base64,([\s\S]+)$/i;
+        const base64Match = cleanBase64.match(dataUriRegex);
 
         if (base64Match) {
-          const [, type, b64] = base64Match;
-          const byteString = atob(b64);
-          const array = new Uint8Array(byteString.length);
-          for (let i = 0; i < byteString.length; i++) {
-            array[i] = byteString.charCodeAt(i);
+          try {
+            const rawSubType = base64Match[1].toLowerCase();
+            const b64Data = base64Match[2].replace(/\s+/g, '');
+            const byteString = atob(b64Data);
+            const array = new Uint8Array(byteString.length);
+            for (let i = 0; i < byteString.length; i++) {
+              array[i] = byteString.charCodeAt(i);
+            }
+            const ext = rawSubType === 'jpeg' ? 'jpg' : rawSubType.split('+')[0] || 'png';
+            const mimeType = `image/${rawSubType}`;
+            const blob = new Blob([array], { type: mimeType });
+            const file = new File([blob], `pasted-${Date.now()}.${ext}`, { type: mimeType });
+            editor.commands.uploadImages({ files: [file], pos: pos ?? editor.state.selection.from });
+            return true;
+          } catch {
+            editor.chain().focus().setImageBlock({ src: cleanBase64 }).run();
+            return true;
           }
-          const blob = new Blob([array], { type: `image/${type}` });
-          const file = new File([blob], `pasted.${type}`, { type: blob.type });
-          editor.commands.uploadImages({ files: [file], pos });
-          return true;
         }
 
         return false;
@@ -270,15 +279,13 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
         
         uploadImageQueue.setEditor(editor)
         limitedFiles.forEach(file => {
-          setTimeout(() => {
-            uploadImageQueue.add({
-              file,
-              pos: _pos,
-              upload: this.options.onUpload,
-              maxSize: this.options.maxSize,
-              forceReduceSize: true,
-            })
-          }, 0)
+          uploadImageQueue.add({
+            file,
+            pos: _pos,
+            upload: this.options.onUpload,
+            maxSize: this.options.maxSize,
+            forceReduceSize: true,
+          })
         })
 
         return true
