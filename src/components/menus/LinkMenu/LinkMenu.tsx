@@ -95,9 +95,26 @@ export const LinkMenu = ({
     }
   }, [editor])
 
-  // Close link menu and edit panel on tiptap:close-menus or scroll
+  // Close link menu on tiptap:close-menus or page scroll
+  // Skip closing when currently in active edit mode (showEditRef.current === true)
   useEffect(() => {
-    const handleCloseMenus = () => {
+    const handleCloseMenus = (e?: Event) => {
+      if (showEditRef.current) return
+      if (e) {
+        const target = e.target as HTMLElement | null
+        if (target) {
+          if (
+            target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.isContentEditable ||
+            target.closest?.(
+              '.glass-menu, [role="dialog"], [role="menu"], [data-radix-popper-content-wrapper], .link-editor-panel, .link-preview-panel'
+            )
+          ) {
+            return
+          }
+        }
+      }
       isClosedByScrollRef.current = true
       setIsClosedByScroll(true)
       setEditMode(false)

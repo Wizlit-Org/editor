@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react'
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { Icon } from '@/components/ui/Icon'
 import { Surface } from '@/components/ui/Surface'
 
@@ -96,6 +96,7 @@ export const LinkEditorPanel: React.FC<LinkEditorPanelProps> = ({
   initialUrl,
   initialText,
 }) => {
+  const urlInputRef = useRef<HTMLInputElement>(null)
   const state = useLinkEditorState({
     onSetLink,
     initialOpenInNewTab,
@@ -103,8 +104,16 @@ export const LinkEditorPanel: React.FC<LinkEditorPanelProps> = ({
     initialText,
   })
 
+  // Prevent browser native autoFocus from triggering horizontal text scroll events
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      urlInputRef.current?.focus({ preventScroll: true })
+    }, 10)
+    return () => clearTimeout(timer)
+  }, [])
+
   return (
-    <Surface className="p-2.5 bg-white/95 dark:bg-[#202020]/95 backdrop-blur-xl border border-black/10 dark:border-white/10 shadow-2xl rounded-xl min-w-[18rem]">
+    <Surface className="link-editor-panel p-2.5 bg-white/95 dark:bg-[#202020]/95 backdrop-blur-xl border border-black/10 dark:border-white/10 shadow-2xl rounded-xl min-w-[18rem]">
       <form onSubmit={state.handleSubmit} className="flex flex-col gap-2">
         {/* 1. Link Display Text Input */}
         <label className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 cursor-text focus-within:border-indigo-500/50 dark:focus-within:border-violet-400/50 transition-colors">
@@ -115,6 +124,7 @@ export const LinkEditorPanel: React.FC<LinkEditorPanelProps> = ({
             placeholder="표시 텍스트 (이름)..."
             value={state.text}
             onChange={state.onTextChange}
+            onScroll={e => e.stopPropagation()}
           />
         </label>
 
@@ -122,12 +132,13 @@ export const LinkEditorPanel: React.FC<LinkEditorPanelProps> = ({
         <label className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 cursor-text focus-within:border-indigo-500/50 dark:focus-within:border-violet-400/50 transition-colors">
           <Icon name="Link" className="w-3.5 h-3.5 flex-none text-zinc-500 dark:text-zinc-400" />
           <input
+            ref={urlInputRef}
             type="text"
             className="flex-1 bg-transparent outline-none min-w-[13rem] text-zinc-800 dark:text-zinc-100 text-xs placeholder:text-zinc-400 dark:placeholder:text-zinc-500 font-mono"
             placeholder="링크 URL (https://...)..."
             value={state.url}
             onChange={state.onUrlChange}
-            autoFocus
+            onScroll={e => e.stopPropagation()}
           />
         </label>
 
