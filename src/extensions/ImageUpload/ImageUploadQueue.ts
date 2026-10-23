@@ -1,5 +1,6 @@
 import { Editor } from "@tiptap/core";
 import imageCompression from 'browser-image-compression';
+import { uploadPluginKey, findPlaceholder } from './ImageUpload';
 
 const resizeFile = async (
   file: File,
@@ -40,7 +41,6 @@ interface UploadQueueItem {
   maxSize?: number;
   forceReduceSize?: boolean;
   controller: AbortController;
-  tempBlobUrl?: string;
 }
 
 export type UploadStatus = 'compressing' | 'uploading' | 'validating' | 'success' | 'failed';
@@ -97,26 +97,18 @@ export class UploadQueue {
       this.clear();
     }
 
-    const controller = new AbortController();                   // ← new controller
-    const id = item.id || `${item.file.name}-${Date.now()}`;
-    let tempBlobUrl: string | undefined = undefined;
-    if (typeof window !== 'undefined' && typeof URL !== 'undefined') {
-      try {
-        tempBlobUrl = URL.createObjectURL(item.file);
-        if (this.editor) {
-          this.editor
-            .chain()
-            .focus()
-            .insertContentAt(
-              item.pos,
-              this.editor.schema.nodes.imageBlock.create({ src: tempBlobUrl })
-            )
-            .run();
-        }
-      } catch {}
+    const controller = new AbortController();
+    const id = item.id || `${item.file.name}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+    // Register Widget Decoration placeholder at item.pos without modifying document content (docChanged: false)
+    if (this.editor && this.editor.view) {
+      const tr = this.editor.state.tr.setMeta(uploadPluginKey, {
+        add: { id, pos: item.pos },
+      });
+      this.editor.view.dispatch(tr);
     }
 
-    const queueItem = { ...item, id, controller, tempBlobUrl };
+    const queueItem = { ...item, id, controller };
     this.originalItems.set(id, queueItem);
     this.statusMap.set(id, {
       id,
@@ -137,6 +129,14 @@ export class UploadQueue {
     const original = this.originalItems.get(id);
     if (original) {
       original.controller.abort();
+    }
+
+    // Remove placeholder decoration if present
+    if (this.editor && this.editor.view) {
+      const tr = this.editor.state.tr.setMeta(uploadPluginKey, {
+        remove: { id },
+      });
+      this.editor.view.dispatch(tr);
     }
 
     // 2) Remove from the pending queue
@@ -198,6 +198,12 @@ export class UploadQueue {
 
       // If aborted mid-flight, bail out
       if (controller.signal.aborted) {
+        if (this.editor && this.editor.view) {
+          const tr = this.editor.state.tr.setMeta(uploadPluginKey, {
+            remove: { id: id! },
+          });
+          this.editor.view.dispatch(tr);
+        }
         return;
       }
 
@@ -208,48 +214,35 @@ export class UploadQueue {
       });
       this.emit();
 
-      if (!url) { // || !(await isValidUrl(url))) {
+      if (!url) {
         this.statusMap.set(id!, {
           ...origStatus,
           status: 'failed',
         });
         this.emit();
+        if (this.editor && this.editor.view) {
+          const tr = this.editor.state.tr.setMeta(uploadPluginKey, {
+            remove: { id: id! },
+          });
+          this.editor.view.dispatch(tr);
+        }
         return;
       }
 
-      if (item.tempBlobUrl && this.editor) {
-        let foundPos: number | null = null;
-        this.editor.state.doc.descendants((node, pos) => {
-          if (node.type.name === 'imageBlock' && node.attrs.src === item.tempBlobUrl) {
-            foundPos = pos;
-            return false;
-          }
-        });
-        if (foundPos !== null) {
-          this.editor
-            .chain()
-            .setNodeSelection(foundPos)
-            .updateAttributes('imageBlock', { src: url })
-            .run();
-        } else {
-          this.editor
-            .chain()
-            .focus()
-            .insertContentAt(
-              item.pos,
-              this.editor.schema.nodes.imageBlock.create({ src: url })
-            )
-            .run();
-        }
-        try {
-          URL.revokeObjectURL(item.tempBlobUrl);
-        } catch {}
-      } else {
+      // 업로드 성공 시: 데코레이션 제거 및 imageBlock 1회 단일 트랜잭션 삽입
+      if (this.editor && this.editor.view) {
+        const foundPos = findPlaceholder(this.editor.state, id!);
+        const insertPos = foundPos !== null ? foundPos : Math.min(item.pos, this.editor.state.doc.content.size);
+
         this.editor
           .chain()
           .focus()
+          .command(({ tr }) => {
+            tr.setMeta(uploadPluginKey, { remove: { id: id! } });
+            return true;
+          })
           .insertContentAt(
-            item.pos,
+            insertPos,
             this.editor.schema.nodes.imageBlock.create({ src: url })
           )
           .run();
@@ -262,6 +255,12 @@ export class UploadQueue {
       });
       this.emit();
     } catch (error: any) {
+      if (this.editor && this.editor.view) {
+        const tr = this.editor.state.tr.setMeta(uploadPluginKey, {
+          remove: { id: id! },
+        });
+        this.editor.view.dispatch(tr);
+      }
       // Swallow abort errors silently
       if (error.name === 'AbortError') {
         return;
@@ -297,9 +296,15 @@ export class UploadQueue {
    * Clear queue, original items, and statuses.
    */
   clear() {
-    // Abort all active uploads
+    // Abort all active uploads and remove decorations
     this.originalItems.forEach(item => {
       item.controller.abort();
+      if (item.id && this.editor && this.editor.view) {
+        const tr = this.editor.state.tr.setMeta(uploadPluginKey, {
+          remove: { id: item.id },
+        });
+        this.editor.view.dispatch(tr);
+      }
     });
     this.queue = [];
     this.originalItems.clear();

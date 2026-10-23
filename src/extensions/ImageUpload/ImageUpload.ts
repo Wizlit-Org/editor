@@ -1,7 +1,50 @@
 import { Extension } from '@tiptap/core'
-import { Plugin, PluginKey } from '@tiptap/pm/state'
+import { Plugin, PluginKey, EditorState } from '@tiptap/pm/state'
+import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import { uploadImageQueue } from '@/hooks/useBlockEditor'
 import { countEmbedNodes } from '@/lib/utils/isCustomNodeSelected'
+
+export const uploadPluginKey = new PluginKey('uploadPlaceholder')
+
+export interface UploadPlaceholderAction {
+  add?: { id: string; pos: number }
+  remove?: { id: string }
+}
+
+export function findPlaceholder(state: EditorState, id: string): number | null {
+  const decos = uploadPluginKey.getState(state) as DecorationSet | undefined
+  const found = decos?.find(undefined, undefined, spec => spec.id === id)
+  return found && found.length ? found[0].from : null
+}
+
+const createPlaceholderWidget = (id: string) => {
+  const wrapper = document.createElement('div')
+  wrapper.className = 'w-full my-4 select-none'
+  wrapper.setAttribute('data-upload-placeholder-id', id)
+  wrapper.innerHTML = `
+    <div class="w-full aspect-video min-h-[180px] max-h-[360px] rounded-lg bg-black/[0.03] dark:bg-white/[0.04] backdrop-blur-md animate-pulse flex flex-col items-center justify-center border border-dashed border-black/10 dark:border-white/10 gap-2 p-6 z-[2]">
+      <svg class="w-8 h-8 text-zinc-400 dark:text-zinc-500 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+        <circle cx="9" cy="9" r="2"/>
+        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+      </svg>
+      <div class="flex flex-col items-center gap-0.5 text-center">
+        <span class="text-xs font-medium text-zinc-600 dark:text-zinc-300">이미지 업로드 중...</span>
+        <span class="text-[11px] text-zinc-400 dark:text-zinc-500">잠시만 기다려주세요</span>
+      </div>
+    </div>
+  `
+  return wrapper
+}
+
+const isImageUrl = (url: string): boolean => {
+  try {
+    const parsed = new URL(url.trim())
+    return /\.(png|jpe?g|gif|webp|svg|bmp|avif|ico)(\?.*)?$/i.test(parsed.pathname)
+  } catch {
+    return false
+  }
+}
 
 export interface ImageUploadOptions {
   onUpload: (file: File) => Promise<string>
@@ -189,6 +232,37 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
 
   addProseMirrorPlugins() {
     return [
+      new Plugin({
+        key: uploadPluginKey,
+        state: {
+          init() {
+            return DecorationSet.empty
+          },
+          apply(tr, set) {
+            set = set.map(tr.mapping, tr.doc)
+            const action = tr.getMeta(uploadPluginKey) as UploadPlaceholderAction | undefined
+            if (action?.add) {
+              const widget = Decoration.widget(
+                action.add.pos,
+                () => createPlaceholderWidget(action.add!.id),
+                { id: action.add.id, key: action.add.id, stopEvent: () => true },
+              )
+              set = set.add(tr.doc, [widget])
+            } else if (action?.remove) {
+              const found = set.find(undefined, undefined, spec => spec.id === action.remove!.id)
+              if (found.length) {
+                set = set.remove(found)
+              }
+            }
+            return set
+          },
+        },
+        props: {
+          decorations(state) {
+            return uploadPluginKey.getState(state)
+          },
+        },
+      }),
       new Plugin({
         key: new PluginKey('imageUpload'),
         props: {
