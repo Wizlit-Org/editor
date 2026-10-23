@@ -1,8 +1,10 @@
 import React, { useCallback } from 'react'
 import { Editor } from '@tiptap/react'
+import { TableMap, CellSelection } from '@tiptap/pm/tables'
 import { Icon } from '@/components/ui/Icon'
-import { setRowAlignment, getSelectedRowIndex } from './TableRow/rowActions'
-import { setColumnAlignment, getSelectedColumnIndex } from './TableColumn/columnActions'
+import { findTable, isCellSelection } from '../utils'
+import { getSelectedRowRange } from './TableRow/rowActions'
+import { getSelectedColRange } from './TableColumn/columnActions'
 
 export interface TableAlignmentSubmenuProps {
   editor: Editor
@@ -30,40 +32,101 @@ export const TableAlignmentSubmenu: React.FC<TableAlignmentSubmenuProps> = ({
     editor.getAttributes('tableHeader').verticalAlign ||
     'top'
 
-  const handleTextAlign = useCallback(
-    (align: 'left' | 'center' | 'right') => (e: React.MouseEvent) => {
-      e.stopPropagation()
+  const applyAlignment = useCallback(
+    (type: 'textAlign' | 'verticalAlign', value: string) => {
+      const { state, view } = editor
+      const table = findTable(state.selection)
+      if (!table) return
+
+      const map = TableMap.get(table.node)
+      let minRow = 0
+      let maxRow = map.height - 1
+      let minCol = 0
+      let maxCol = map.width - 1
+
       if (scope === 'row') {
-        const rowIdx = index ?? getSelectedRowIndex(editor)
-        setRowAlignment(editor, rowIdx, 'textAlign', align)
+        const range = getSelectedRowRange(editor)
+        minRow = typeof index === 'number' ? index : range.min
+        maxRow = typeof index === 'number' ? index : range.max
       } else if (scope === 'column') {
-        const colIdx = index ?? getSelectedColumnIndex(editor)
-        setColumnAlignment(editor, colIdx, 'textAlign', align)
+        const range = getSelectedColRange(editor)
+        minCol = typeof index === 'number' ? index : range.min
+        maxCol = typeof index === 'number' ? index : range.max
       } else {
-        try {
-          editor.chain().focus().setCellAttribute('textAlign', align).setTextAlign(align).run()
-        } catch {
-          editor.chain().focus().setCellAttribute('textAlign', align).run()
+        // Single cell
+        if (isCellSelection(state.selection)) {
+          const start = state.selection.$anchorCell.start(-1)
+          const rect = map.rectBetween(state.selection.$anchorCell.pos - start, state.selection.$headCell.pos - start)
+          minRow = rect.top
+          maxRow = rect.bottom - 1
+          minCol = rect.left
+          maxCol = rect.right - 1
         }
       }
+
+      const cells = map.cellsInRect({
+        left: minCol,
+        right: maxCol + 1,
+        top: minRow,
+        bottom: maxRow + 1,
+      })
+
+      let tr = state.tr
+      const seen = new Set<number>()
+
+      cells.forEach(cellOffset => {
+        const cellPos = table.start + cellOffset
+        if (seen.has(cellPos)) return
+        seen.add(cellPos)
+
+        const cellNode = state.doc.nodeAt(cellPos)
+        if (!cellNode) return
+
+        const newAttrs = { ...cellNode.attrs, [type]: value }
+        tr = tr.setNodeMarkup(cellPos, null, newAttrs)
+
+        // Also update inner paragraph / heading textAlign if type is textAlign
+        if (type === 'textAlign') {
+          cellNode.forEach((child, childOffset) => {
+            if (child.type.name === 'paragraph' || child.type.name === 'heading') {
+              const childPos = cellPos + 1 + childOffset
+              tr = tr.setNodeMarkup(childPos, null, { ...child.attrs, textAlign: value })
+            }
+          })
+        }
+      })
+
+      // Strictly preserve or re-anchor CellSelection over the target range
+      const cellsFirst = map.cellsInRect({ left: minCol, right: minCol + 1, top: minRow, bottom: minRow + 1 })
+      const cellsLast = map.cellsInRect({ left: maxCol, right: maxCol + 1, top: maxRow, bottom: maxRow + 1 })
+      if (cellsFirst.length > 0 && cellsLast.length > 0) {
+        const head = table.start + cellsFirst[0]
+        const anchor = table.start + cellsLast[cellsLast.length - 1]
+        tr = tr.setSelection(new CellSelection(tr.doc.resolve(anchor), tr.doc.resolve(head)))
+      }
+
+      view.dispatch(tr)
+      view.dom.focus({ preventScroll: true })
     },
     [editor, scope, index],
   )
 
+  const handleTextAlign = useCallback(
+    (align: 'left' | 'center' | 'right') => (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      applyAlignment('textAlign', align)
+    },
+    [applyAlignment],
+  )
+
   const handleVerticalAlign = useCallback(
     (valign: 'top' | 'middle' | 'bottom') => (e: React.MouseEvent) => {
+      e.preventDefault()
       e.stopPropagation()
-      if (scope === 'row') {
-        const rowIdx = index ?? getSelectedRowIndex(editor)
-        setRowAlignment(editor, rowIdx, 'verticalAlign', valign)
-      } else if (scope === 'column') {
-        const colIdx = index ?? getSelectedColumnIndex(editor)
-        setColumnAlignment(editor, colIdx, 'verticalAlign', valign)
-      } else {
-        editor.chain().focus().setCellAttribute('verticalAlign', valign).run()
-      }
+      applyAlignment('verticalAlign', valign)
     },
-    [editor, scope, index],
+    [applyAlignment],
   )
 
   const iconBtnClass = (isActive: boolean) =>

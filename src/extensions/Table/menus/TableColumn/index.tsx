@@ -29,41 +29,47 @@ const TABLE_COLUMN_MENU_OPTIONS = {
 
 export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.Element => {
   const [, setTick] = useState(0)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const isMenuOpenRef = useRef(false)
   const [isClosedByScroll, setIsClosedByScroll] = useState(false)
   const isClosedByScrollRef = useRef(false)
 
   useEffect(() => {
-    const handleReset = () => {
+    const handleOpen = () => {
+      isMenuOpenRef.current = true
+      setIsMenuOpen(true)
       isClosedByScrollRef.current = false
       setIsClosedByScroll(false)
       setTick(t => t + 1)
     }
-    editor.on('selectionUpdate', handleReset)
-    editor.on('focus', handleReset)
-    window.addEventListener('tiptap:reset-scroll-lock', handleReset)
-    return () => {
-      editor.off('selectionUpdate', handleReset)
-      editor.off('focus', handleReset)
-      window.removeEventListener('tiptap:reset-scroll-lock', handleReset)
-    }
-  }, [editor])
 
-  // Auto-close menu when editor or window scrolls or receives close event
-  useEffect(() => {
     const handleClose = () => {
+      isMenuOpenRef.current = false
+      setIsMenuOpen(false)
+      setTick(t => t + 1)
+    }
+
+    window.addEventListener('tiptap:open-table-col-menu', handleOpen)
+    window.addEventListener('tiptap:close-table-menus', handleClose)
+    window.addEventListener('tiptap:close-menus', handleClose)
+
+    return () => {
+      window.removeEventListener('tiptap:open-table-col-menu', handleOpen)
+      window.removeEventListener('tiptap:close-table-menus', handleClose)
+      window.removeEventListener('tiptap:close-menus', handleClose)
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleScroll = () => {
       isClosedByScrollRef.current = true
       setIsClosedByScroll(true)
-      try {
-        editor.view.dispatch(editor.state.tr.setMeta('tableColumnMenu', 'hide'))
-      } catch {}
+      isMenuOpenRef.current = false
+      setIsMenuOpen(false)
     }
-    window.addEventListener('tiptap:close-menus', handleClose)
-    window.addEventListener('scroll', handleClose, { passive: true, capture: true })
-    return () => {
-      window.removeEventListener('tiptap:close-menus', handleClose)
-      window.removeEventListener('scroll', handleClose, { capture: true })
-    }
-  }, [editor])
+    window.addEventListener('scroll', handleScroll, { passive: true, capture: true })
+    return () => window.removeEventListener('scroll', handleScroll, { capture: true })
+  }, [])
 
   const getReferencedVirtualElement = useCallback(() => {
     return getColumnAnchorVirtualElement(editor)
@@ -71,13 +77,12 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
 
   const shouldShow = useCallback(
     ({ view, state, from }: ShouldShowProps) => {
-      if (isClosedByScrollRef.current) {
+      if (!isMenuOpenRef.current || isClosedByScrollRef.current) {
         return false
       }
       if (!state) {
         return false
       }
-
       return isColumnGripSelected({ editor, view, state, from: from || 0 })
     },
     [editor],
@@ -139,6 +144,8 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
 
   const onDeleteColumn = useCallback(() => {
     deleteColumn(editor)
+    isMenuOpenRef.current = false
+    setIsMenuOpen(false)
   }, [editor])
 
   const onToggleHeaderColumn = useCallback(() => {
@@ -147,6 +154,8 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
 
   const onDeleteTable = useCallback(() => {
     editor.chain().focus().deleteTable().run()
+    isMenuOpenRef.current = false
+    setIsMenuOpen(false)
   }, [editor])
 
   const selectedColIdx = getSelectedColumnIndex(editor)
@@ -163,20 +172,19 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
       editor={editor}
       pluginKey="tableColumnMenu"
       updateDelay={0}
-      className={cn('z-[1350]', isClosedByScroll && '!hidden pointer-events-none')}
+      className={cn('z-[1350]', (!isMenuOpen || isClosedByScroll) && '!hidden pointer-events-none')}
       appendTo={typeof document !== 'undefined' ? document.body : undefined}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={TABLE_COLUMN_MENU_OPTIONS}
       shouldShow={shouldShow}
     >
       <div
-        style={{ display: isClosedByScroll ? 'none' : undefined, zIndex: 1350 }}
+        style={{ display: !isMenuOpen || isClosedByScroll ? 'none' : undefined, zIndex: 1350 }}
         className={cn(
           'glass-menu min-w-[14rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-[1350] bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200',
-          isClosedByScroll && '!hidden',
+          (!isMenuOpen || isClosedByScroll) && '!hidden',
         )}
       >
-        {/* Alignment Toolbar (Horizontal & Vertical) */}
         <TableAlignmentSubmenu editor={editor} scope="column" index={selectedColIdx} />
 
         <div className="h-[1px] bg-black/5 dark:bg-white/10 my-0.5" />
@@ -258,5 +266,4 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
 })
 
 TableColumnMenu.displayName = 'TableColumnMenu'
-
 export default TableColumnMenu

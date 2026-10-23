@@ -88,7 +88,6 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
     (type: 'col' | 'row', index: number) => (e: React.MouseEvent) => {
       e.preventDefault()
       e.stopPropagation()
-      window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
       focusTableGrip(editor, type, index, currentTableEl, tableRect?.pos ?? -1)
     },
     [editor, currentTableEl, tableRect],
@@ -98,7 +97,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
     (type: 'col' | 'row', index: number) => (e: React.MouseEvent) => {
       e.preventDefault()
       e.stopPropagation()
-      window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
+      window.dispatchEvent(new CustomEvent('tiptap:close-table-menus'))
       if (!tableRect || tableRect.pos < 0) return
 
       const startX = e.clientX
@@ -256,14 +255,18 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
             }
             setTimeout(updateTableRect, 50)
           }
-          window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
         } else {
-          // Click action: select row/col if not selected, or keep selection and trigger menu
+          // Pure click action: select row/col if not selected, or keep selection and trigger menu
           if (!isGripSelected) {
             onSelectGrip(type, index)(e)
-          } else {
-            window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
           }
+          setTimeout(() => {
+            if (type === 'col') {
+              window.dispatchEvent(new CustomEvent('tiptap:open-table-col-menu'))
+            } else {
+              window.dispatchEvent(new CustomEvent('tiptap:open-table-row-menu'))
+            }
+          }, 15)
         }
       }
 

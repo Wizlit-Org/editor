@@ -1,76 +1,12 @@
 import { Editor } from '@tiptap/core'
 import { TableMap } from '@tiptap/pm/tables'
-import { Node } from '@tiptap/pm/model'
+import { getClusterRowRange, getClusterColRange } from './TableClusterUtils'
 
-/**
- * Returns the unified row index range [start, count] including all interconnected merged cells (rowspan > 1).
- */
-export function getMergedRowRange(tableNode: Node, rowIndex: number): { start: number; count: number } {
-  try {
-    const map = TableMap.get(tableNode)
-    if (rowIndex < 0 || rowIndex >= map.height) return { start: rowIndex, count: 1 }
-
-    let minRow = rowIndex
-    let maxRow = rowIndex + 1
-
-    let changed = true
-    while (changed) {
-      changed = false
-      const cells = map.cellsInRect({ left: 0, right: map.width, top: minRow, bottom: maxRow })
-      for (const cellPos of cells) {
-        const rect = map.findCell(cellPos)
-        if (rect.top < minRow) {
-          minRow = rect.top
-          changed = true
-        }
-        if (rect.bottom > maxRow) {
-          maxRow = rect.bottom
-          changed = true
-        }
-      }
-    }
-    return { start: minRow, count: maxRow - minRow }
-  } catch {
-    return { start: rowIndex, count: 1 }
-  }
-}
-
-/**
- * Returns the unified column index range [start, count] including all interconnected merged cells (colspan > 1).
- */
-export function getMergedColRange(tableNode: Node, colIndex: number): { start: number; count: number } {
-  try {
-    const map = TableMap.get(tableNode)
-    if (colIndex < 0 || colIndex >= map.width) return { start: colIndex, count: 1 }
-
-    let minCol = colIndex
-    let maxCol = colIndex + 1
-
-    let changed = true
-    while (changed) {
-      changed = false
-      const cells = map.cellsInRect({ left: minCol, right: maxCol, top: 0, bottom: map.height })
-      for (const cellPos of cells) {
-        const rect = map.findCell(cellPos)
-        if (rect.left < minCol) {
-          minCol = rect.left
-          changed = true
-        }
-        if (rect.right > maxCol) {
-          maxCol = rect.right
-          changed = true
-        }
-      }
-    }
-    return { start: minCol, count: maxCol - minCol }
-  } catch {
-    return { start: colIndex, count: 1 }
-  }
-}
+export { getClusterRowRange as getMergedRowRange, getClusterColRange as getMergedColRange } from './TableClusterUtils'
 
 /**
  * Move / Swap column from sourceIndex to targetIndex in the table at tablePos.
- * Automatically bundles merged columns and preserves tableHeader / tableCell structure based on dynamic slot positions.
+ * Strictly enforces TableMap coordinate mapping (no row.child(colIndex) calls) to support merged cells flawlessly.
  */
 export function moveTableColumn(editor: Editor, tablePos: number, fromIndex: number, toIndex: number): boolean {
   if (fromIndex === toIndex || tablePos < 0) return false
@@ -92,30 +28,39 @@ export function moveTableColumn(editor: Editor, tablePos: number, fromIndex: num
       if (row.child(0).type.spec.tableRole !== 'header_cell') hasHeaderCol = false
     })
 
-    const bundle = getMergedColRange(tableNode, fromIndex)
+    const bundle = getClusterColRange(tableNode, fromIndex)
+
+    // Build reordered column indices array
+    const originalCols: number[] = []
+    for (let c = 0; c < map.width; c++) originalCols.push(c)
+    const movedCols = originalCols.splice(bundle.start, bundle.count)
+    const insertIdx = toIndex > bundle.start ? Math.max(0, toIndex - bundle.count + 1) : toIndex
+    originalCols.splice(insertIdx, 0, ...movedCols)
+    const newColOrder = originalCols
+
     const rows: any[] = []
+    for (let r = 0; r < map.height; r++) {
+      const cells: any[] = []
+      const seenPos = new Set<number>()
 
-    tableNode.forEach((rowNode, _, rIdx) => {
-      if (rowNode.type.name === 'tableRow') {
-        const cells: any[] = []
-        rowNode.forEach(cell => cells.push(cell))
+      newColOrder.forEach((oldCol, newColIdx) => {
+        const cellPos = map.map[r * map.width + oldCol]
+        const rect = map.findCell(cellPos)
 
-        if (bundle.start < cells.length) {
-          const movedCells = cells.splice(bundle.start, bundle.count)
-          const insertIdx = toIndex > bundle.start ? Math.max(0, toIndex - bundle.count + 1) : toIndex
-          cells.splice(insertIdx, 0, ...movedCells)
+        if (rect.top === r && !seenPos.has(cellPos)) {
+          seenPos.add(cellPos)
+          const cellNode = tableNode.nodeAt(cellPos)
+          if (cellNode) {
+            const isHeader = (hasHeaderRow && r === 0) || (hasHeaderCol && newColIdx === 0)
+            const targetType = isHeader ? headerType : cellType
+            cells.push(targetType.create(cellNode.attrs, cellNode.content))
+          }
         }
+      })
 
-        const normalizedCells: any[] = []
-        cells.forEach((cell, cIdx) => {
-          const isHeader = (hasHeaderRow && rIdx === 0) || (hasHeaderCol && cIdx === 0)
-          const targetType = isHeader ? headerType : cellType
-          normalizedCells.push(targetType.create(cell.attrs, cell.content))
-        })
-
-        rows.push(rowNode.type.create(rowNode.attrs, normalizedCells))
-      }
-    })
+      const rowNode = tableNode.child(r)
+      rows.push(rowNode.type.create(rowNode.attrs, cells))
+    }
 
     const newTableNode = tableNode.type.create(tableNode.attrs, rows)
     const tr = state.tr.replaceWith(tablePos, tablePos + tableNode.nodeSize, newTableNode)
@@ -129,7 +74,7 @@ export function moveTableColumn(editor: Editor, tablePos: number, fromIndex: num
 
 /**
  * Move / Swap row from sourceIndex to targetIndex in the table at tablePos.
- * Automatically bundles merged rows and preserves tableHeader / tableCell structure based on dynamic slot positions.
+ * Bundles merged rows and preserves tableHeader / tableCell structure based on dynamic slot positions.
  */
 export function moveTableRow(editor: Editor, tablePos: number, fromIndex: number, toIndex: number): boolean {
   if (fromIndex === toIndex || tablePos < 0) return false
@@ -151,7 +96,7 @@ export function moveTableRow(editor: Editor, tablePos: number, fromIndex: number
       if (row.child(0).type.spec.tableRole !== 'header_cell') hasHeaderCol = false
     })
 
-    const bundle = getMergedRowRange(tableNode, fromIndex)
+    const bundle = getClusterRowRange(tableNode, fromIndex)
     const rows: any[] = []
     tableNode.forEach(row => rows.push(row))
 
