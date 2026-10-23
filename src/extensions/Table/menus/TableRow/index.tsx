@@ -1,5 +1,5 @@
 import { BubbleMenu as BaseBubbleMenu } from '@tiptap/react/menus'
-import React, { useCallback, useState, useEffect, JSX } from 'react'
+import React, { useCallback, useState, useEffect, useRef, JSX } from 'react'
 import { isRowGripSelected } from './utils'
 import { Icon } from '@/components/ui/Icon'
 import { MenuProps, ShouldShowProps } from '@/components/menus/types'
@@ -22,28 +22,32 @@ const TABLE_ROW_MENU_OPTIONS = {
 export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.Element => {
   const [, setTick] = useState(0)
   const [isClosedByScroll, setIsClosedByScroll] = useState(false)
+  const isClosedByScrollRef = useRef(false)
 
   useEffect(() => {
-    const handleUpdate = () => {
+    const handleReset = () => {
+      isClosedByScrollRef.current = false
       setIsClosedByScroll(false)
       setTick(t => t + 1)
     }
-    editor.on('selectionUpdate', handleUpdate)
-    editor.on('transaction', handleUpdate)
-    editor.on('focus', handleUpdate)
-    window.addEventListener('tiptap:reset-scroll-lock', handleUpdate)
+    editor.on('selectionUpdate', handleReset)
+    editor.on('focus', handleReset)
+    window.addEventListener('tiptap:reset-scroll-lock', handleReset)
     return () => {
-      editor.off('selectionUpdate', handleUpdate)
-      editor.off('transaction', handleUpdate)
-      editor.off('focus', handleUpdate)
-      window.removeEventListener('tiptap:reset-scroll-lock', handleUpdate)
+      editor.off('selectionUpdate', handleReset)
+      editor.off('focus', handleReset)
+      window.removeEventListener('tiptap:reset-scroll-lock', handleReset)
     }
   }, [editor])
 
   // Auto-close menu when editor or window scrolls or receives close event
   useEffect(() => {
     const handleClose = () => {
+      isClosedByScrollRef.current = true
       setIsClosedByScroll(true)
+      try {
+        editor.view.dispatch(editor.state.tr.setMeta('tableRowMenu', 'hide'))
+      } catch {}
     }
     window.addEventListener('tiptap:close-menus', handleClose)
     window.addEventListener('scroll', handleClose, { passive: true, capture: true })
@@ -51,7 +55,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       window.removeEventListener('tiptap:close-menus', handleClose)
       window.removeEventListener('scroll', handleClose, { capture: true })
     }
-  }, [])
+  }, [editor])
 
   const getReferencedVirtualElement = useCallback(() => {
     return getRowAnchorVirtualElement(editor)
@@ -59,7 +63,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
 
   const shouldShow = useCallback(
     ({ view, state, from }: ShouldShowProps) => {
-      if (isClosedByScroll) {
+      if (isClosedByScrollRef.current) {
         return false
       }
       if (!state || typeof from !== 'number') {
@@ -68,7 +72,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
 
       return isRowGripSelected({ editor, view, state, from })
     },
-    [editor, isClosedByScroll],
+    [editor],
   )
 
   const onMoveRowUp = useCallback(() => {
@@ -124,7 +128,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       editor={editor}
       pluginKey="tableRowMenu"
       updateDelay={0}
-      className="z-[1350]"
+      className={cn('z-[1350]', isClosedByScroll && '!hidden pointer-events-none')}
       appendTo={typeof document !== 'undefined' ? document.body : undefined}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={TABLE_ROW_MENU_OPTIONS}

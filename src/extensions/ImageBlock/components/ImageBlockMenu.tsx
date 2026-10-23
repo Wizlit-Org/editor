@@ -4,7 +4,7 @@ import { useCallback, useRef, useState, useEffect, JSX } from 'react'
 import { Toolbar } from '@/components/ui/Toolbar'
 import { Icon } from '@/components/ui/Icon'
 import { MenuProps } from '@/components/menus/types'
-import { getRenderContainer } from '@/lib/utils'
+import { getRenderContainer, cn } from '@/lib/utils'
 
 const IMAGE_BLOCK_MENU_OPTIONS = {
   offset: 8,
@@ -14,18 +14,18 @@ const IMAGE_BLOCK_MENU_OPTIONS = {
 export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => {
   const menuRef = useRef<HTMLDivElement>(null)
   const [isClosedByScroll, setIsClosedByScroll] = useState(false)
+  const isClosedByScrollRef = useRef(false)
 
   useEffect(() => {
     const handleReset = () => {
+      isClosedByScrollRef.current = false
       setIsClosedByScroll(false)
     }
     editor.on('selectionUpdate', handleReset)
-    editor.on('transaction', handleReset)
     editor.on('focus', handleReset)
     window.addEventListener('tiptap:reset-scroll-lock', handleReset)
     return () => {
       editor.off('selectionUpdate', handleReset)
-      editor.off('transaction', handleReset)
       editor.off('focus', handleReset)
       window.removeEventListener('tiptap:reset-scroll-lock', handleReset)
     }
@@ -33,7 +33,11 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
 
   useEffect(() => {
     const handleClose = () => {
+      isClosedByScrollRef.current = true
       setIsClosedByScroll(true)
+      try {
+        editor.view.dispatch(editor.state.tr.setMeta('imageBlockMenu', 'hide'))
+      } catch {}
     }
     window.addEventListener('tiptap:close-menus', handleClose)
     window.addEventListener('scroll', handleClose, { passive: true, capture: true })
@@ -41,7 +45,7 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
       window.removeEventListener('tiptap:close-menus', handleClose)
       window.removeEventListener('scroll', handleClose, { capture: true })
     }
-  }, [])
+  }, [editor])
 
   const getReferenceClientRect = useCallback(() => {
     const renderContainer = getRenderContainer(editor, 'node-imageBlock')
@@ -59,9 +63,9 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
   )
 
   const shouldShow = useCallback(() => {
-    if (isClosedByScroll) return false
+    if (isClosedByScrollRef.current) return false
     return editor.isActive('imageBlock')
-  }, [editor, isClosedByScroll])
+  }, [editor])
 
   const onAlignImageLeft = useCallback(() => {
     editor.chain().focus(undefined, { scrollIntoView: false }).setImageBlockAlign('left').run()
@@ -134,6 +138,7 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
       pluginKey="imageBlockMenu"
       shouldShow={shouldShow}
       updateDelay={0}
+      className={cn('z-50', isClosedByScroll && '!hidden pointer-events-none')}
       appendTo={appendTo?.current || undefined}
       options={IMAGE_BLOCK_MENU_OPTIONS}
       getReferencedVirtualElement={getReferencedVirtualElement}

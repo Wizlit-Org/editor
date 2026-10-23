@@ -1,10 +1,11 @@
-import { useCallback, useState, useEffect, JSX, useMemo } from 'react'
+import { useCallback, useState, useEffect, useRef, JSX, useMemo } from 'react'
 import { BubbleMenu as BaseBubbleMenu } from '@tiptap/react/menus'
 import { useEditorState } from '@tiptap/react'
 
 import { MenuProps } from '../types'
 import { LinkPreviewPanel } from '@/components/panels/LinkPreviewPanel'
 import { LinkEditorPanel } from '@/components/panels'
+import { cn } from '@/lib/utils'
 
 export const LinkMenu = ({
   editor,
@@ -14,6 +15,7 @@ export const LinkMenu = ({
 }: MenuProps): JSX.Element => {
   const [showEdit, setShowEdit] = useState(false)
   const [isClosedByScroll, setIsClosedByScroll] = useState(false)
+  const isClosedByScrollRef = useRef(false)
   const { link, target } = useEditorState({
     editor,
     selector: ctx => {
@@ -32,15 +34,14 @@ export const LinkMenu = ({
   // Reset scroll lock on editor interaction
   useEffect(() => {
     const handleReset = () => {
+      isClosedByScrollRef.current = false
       setIsClosedByScroll(false)
     }
     editor.on('selectionUpdate', handleReset)
-    editor.on('transaction', handleReset)
     editor.on('focus', handleReset)
     window.addEventListener('tiptap:reset-scroll-lock', handleReset)
     return () => {
       editor.off('selectionUpdate', handleReset)
-      editor.off('transaction', handleReset)
       editor.off('focus', handleReset)
       window.removeEventListener('tiptap:reset-scroll-lock', handleReset)
     }
@@ -49,8 +50,12 @@ export const LinkMenu = ({
   // Close link menu and edit panel on tiptap:close-menus or scroll
   useEffect(() => {
     const handleCloseMenus = () => {
+      isClosedByScrollRef.current = true
       setIsClosedByScroll(true)
       setShowEdit(false)
+      try {
+        editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'hide'))
+      } catch {}
     }
     window.addEventListener('tiptap:close-menus', handleCloseMenus)
     window.addEventListener('scroll', handleCloseMenus, { passive: true, capture: true })
@@ -58,10 +63,10 @@ export const LinkMenu = ({
       window.removeEventListener('tiptap:close-menus', handleCloseMenus)
       window.removeEventListener('scroll', handleCloseMenus, { capture: true })
     }
-  }, [])
+  }, [editor])
 
   const shouldShow = useCallback(() => {
-    if (isClosedByScroll) return false
+    if (isClosedByScrollRef.current) return false
     if (showEdit) return true
     const isMedia =
       editor.isActive('youtube') ||
@@ -70,7 +75,7 @@ export const LinkMenu = ({
     if (isMedia) return false
     const isActive = editor.isActive('link')
     return isActive
-  }, [editor, showEdit, isClosedByScroll])
+  }, [editor, showEdit])
 
   const editable = editor.isEditable
 
@@ -218,7 +223,7 @@ export const LinkMenu = ({
       pluginKey="linkMenu"
       shouldShow={shouldShow}
       updateDelay={0}
-      className="z-[1350]"
+      className={cn('z-[1350]', isClosedByScroll && '!hidden pointer-events-none')}
       appendTo={appendTo?.current || (typeof document !== 'undefined' ? document.body : undefined)}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={menuOptions}
