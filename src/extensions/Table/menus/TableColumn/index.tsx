@@ -78,27 +78,6 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
     [editor],
   )
 
-  const onAlign = useCallback(
-    (alignment: 'left' | 'center' | 'right') => (e: React.MouseEvent) => {
-      e.stopPropagation()
-      try {
-        editor.chain().focus().setCellAttribute('textAlign', alignment).setTextAlign(alignment).run()
-      } catch {
-        editor.chain().focus().setCellAttribute('textAlign', alignment).run()
-      }
-    },
-    [editor],
-  )
-
-  const activeAlign =
-    editor.getAttributes('tableCell').textAlign ||
-    editor.getAttributes('tableHeader').textAlign ||
-    (editor.isActive({ textAlign: 'center' })
-      ? 'center'
-      : editor.isActive({ textAlign: 'right' })
-      ? 'right'
-      : 'left')
-
   const onMoveColumnLeft = useCallback(() => {
     const idx = getSelectedColumnIndex(editor)
     moveColumnLeft(editor, idx)
@@ -175,47 +154,7 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
           isClosedByScroll && '!hidden',
         )}
       >
-        {/* 1. One-click Segmented Alignment Toolbar */}
-        <div className="flex items-center gap-1 p-0.5 bg-black/5 dark:bg-white/5 rounded-md mb-0.5">
-          <button
-            type="button"
-            onClick={onAlign('left')}
-            className={`flex-1 py-1 flex items-center justify-center rounded text-xs transition-colors ${
-              activeAlign === 'left'
-                ? 'bg-white dark:bg-white/20 text-indigo-600 dark:text-violet-300 shadow-xs font-semibold'
-                : 'hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200'
-            }`}
-            title="Align left"
-          >
-            <Icon name="AlignLeft" className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={onAlign('center')}
-            className={`flex-1 py-1 flex items-center justify-center rounded text-xs transition-colors ${
-              activeAlign === 'center'
-                ? 'bg-white dark:bg-white/20 text-indigo-600 dark:text-violet-300 shadow-xs font-semibold'
-                : 'hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200'
-            }`}
-            title="Align center"
-          >
-            <Icon name="AlignCenter" className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={onAlign('right')}
-            className={`flex-1 py-1 flex items-center justify-center rounded text-xs transition-colors ${
-              activeAlign === 'right'
-                ? 'bg-white dark:bg-white/20 text-indigo-600 dark:text-violet-300 shadow-xs font-semibold'
-                : 'hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200'
-            }`}
-            title="Align right"
-          >
-            <Icon name="AlignRight" className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* 2. Submenu for detailed Alignment */}
+        {/* Alignment Toolbar (Horizontal & Vertical) */}
         <TableAlignmentSubmenu editor={editor} scope="column" index={selectedColIdx} />
 
         <div className="h-[1px] bg-black/5 dark:bg-white/10 my-0.5" />

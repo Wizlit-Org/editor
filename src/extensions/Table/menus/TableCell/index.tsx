@@ -209,27 +209,6 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
     [editor, getActiveCells],
   )
 
-  const onAlign = useCallback(
-    (alignment: 'left' | 'center' | 'right') => (e: React.MouseEvent) => {
-      e.stopPropagation()
-      try {
-        editor.chain().focus().setCellAttribute('textAlign', alignment).setTextAlign(alignment).run()
-      } catch {
-        editor.chain().focus().setCellAttribute('textAlign', alignment).run()
-      }
-    },
-    [editor],
-  )
-
-  const activeAlign =
-    editor.getAttributes('tableCell').textAlign ||
-    editor.getAttributes('tableHeader').textAlign ||
-    (editor.isActive({ textAlign: 'center' })
-      ? 'center'
-      : editor.isActive({ textAlign: 'right' })
-      ? 'right'
-      : 'left')
-
   const onMergeCells = useCallback(() => {
     editor.chain().focus().mergeCells().run()
     setMenuOpen(false)
@@ -338,48 +317,8 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                     style={{ zIndex: 1350 }}
                   >
                     <div className="glass-menu min-w-[12rem] p-1.5 shadow-2xl rounded-xl flex flex-col gap-0.5 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
-                      {/* 1. One-click Segmented Alignment Toolbar */}
-                      <div className="flex items-center gap-1 p-0.5 bg-black/5 dark:bg-white/5 rounded-md mb-0.5">
-                        <button
-                          type="button"
-                          onClick={onAlign('left')}
-                          className={`flex-1 py-1 flex items-center justify-center rounded text-xs transition-colors ${
-                            activeAlign === 'left'
-                              ? 'bg-white dark:bg-white/20 text-indigo-600 dark:text-violet-300 shadow-xs font-semibold'
-                              : 'hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200'
-                          }`}
-                          title="Align left"
-                        >
-                          <Icon name="AlignLeft" className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={onAlign('center')}
-                          className={`flex-1 py-1 flex items-center justify-center rounded text-xs transition-colors ${
-                            activeAlign === 'center'
-                              ? 'bg-white dark:bg-white/20 text-indigo-600 dark:text-violet-300 shadow-xs font-semibold'
-                              : 'hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200'
-                          }`}
-                          title="Align center"
-                        >
-                          <Icon name="AlignCenter" className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={onAlign('right')}
-                          className={`flex-1 py-1 flex items-center justify-center rounded text-xs transition-colors ${
-                            activeAlign === 'right'
-                              ? 'bg-white dark:bg-white/20 text-indigo-600 dark:text-violet-300 shadow-xs font-semibold'
-                              : 'hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200'
-                          }`}
-                          title="Align right"
-                        >
-                          <Icon name="AlignRight" className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-
-                      {/* 2. Submenu for detailed Alignment */}
-                      <TableAlignmentSubmenu editor={editor} scope="cell" onClose={() => setMenuOpen(false)} />
+                      {/* Alignment Toolbar (Horizontal & Vertical) */}
+                      <TableAlignmentSubmenu editor={editor} scope="cell" />
 
                       <div className="h-[1px] bg-black/5 dark:bg-white/10 my-0.5" />
 
