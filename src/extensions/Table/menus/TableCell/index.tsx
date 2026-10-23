@@ -6,6 +6,7 @@ import { isCellSelection } from '../../utils'
 import { Icon } from '@/components/ui/Icon'
 import { MenuProps } from '@/components/menus/types'
 import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
+import { DeleteRowIcon, DeleteColumnIcon } from '../../components/TableActionIcons'
 
 const getCellPosFromDOM = (view: any, cellEl: HTMLElement): number | null => {
   try {
@@ -402,12 +403,12 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                       <div className="h-[1px] bg-black/5 dark:bg-white/10 my-0.5" />
 
                       <button type="button" onClick={onDeleteRow} className={dangerClass}>
-                        <Icon name="Trash2" className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
+                        <DeleteRowIcon />
                         <span>Delete row</span>
                       </button>
 
                       <button type="button" onClick={onDeleteColumn} className={dangerClass}>
-                        <Icon name="Trash2" className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
+                        <DeleteColumnIcon />
                         <span>Delete column</span>
                       </button>
                     </div>

@@ -13,6 +13,7 @@ import {
 } from './columnActions'
 import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
 import { getColumnAnchorVirtualElement } from '../useTableMenuPosition'
+import { DeleteColumnIcon } from '../../components/TableActionIcons'
 
 import { cn } from '@/lib/utils'
 
@@ -223,7 +224,7 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
         <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
 
         <button type="button" onClick={onDeleteColumn} className={dangerClass}>
-          <Icon name="Trash2" className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
+          <DeleteColumnIcon />
           <span>Delete column</span>
         </button>
 

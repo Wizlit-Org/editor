@@ -12,6 +12,7 @@ import {
 } from './rowActions'
 import { getRowAnchorVirtualElement } from '../useTableMenuPosition'
 import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
+import { DeleteRowIcon } from '../../components/TableActionIcons'
 import { cn } from '@/lib/utils'
 
 const TABLE_ROW_MENU_OPTIONS = {
@@ -203,7 +204,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
         <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
 
         <button type="button" onClick={onDeleteRow} className={dangerClass}>
-          <Icon name="Trash2" className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
+          <DeleteRowIcon />
           <span>Delete row</span>
         </button>
 

@@ -4,7 +4,7 @@ import { Editor } from '@tiptap/react'
 import { TextSelection } from '@tiptap/pm/state'
 import { useTableGrips } from '../hooks/useTableGrips'
 import { TableAddBar } from './TableAddBar'
-import { moveTableColumn, moveTableRow } from '../utils/TableDndUtils'
+import { moveTableColumn, moveTableRow, getMergedColRange, getMergedRowRange } from '../utils/TableDndUtils'
 import { selectColumn, selectRow, findTable } from '../utils'
 
 export interface TableAddButtonsProps {
@@ -31,7 +31,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
 
   const [dragIndicator, setDragIndicator] = useState<{ type: 'col' | 'row'; left: number; top: number; width: number; height: number } | null>(null)
   const [draggingSource, setDraggingSource] = useState<{ type: 'col' | 'row'; left: number; top: number; width: number; height: number } | null>(null)
-  const [dragGhost, setDragGhost] = useState<{ type: 'col' | 'row'; index: number; x: number; y: number } | null>(null)
+  const [dragGhost, setDragGhost] = useState<{ type: 'col' | 'row'; index: number; label: string; x: number; y: number } | null>(null)
   const [resizingGuideX, setResizingGuideX] = useState<number | null>(null)
 
   // Listen to mouse events for column resizing to show full-height vertical indigo guide
@@ -163,18 +163,31 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       let isDragging = false
       let pendingTargetIdx = -1
 
+      const tableNode = editor.state.doc.nodeAt(tableRect.pos)
+      const colBundle = type === 'col' && tableNode ? getMergedColRange(tableNode, index) : { start: index, count: 1 }
+      const rowBundle = type === 'row' && tableNode ? getMergedRowRange(tableNode, index) : { start: index, count: 1 }
+
       const onMouseMove = (moveEvent: MouseEvent) => {
         const dist = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY)
         if (dist > 4) {
           isDragging = true
           document.body.style.cursor = type === 'col' ? 'col-resize' : 'row-resize'
-          setDragGhost({ type, index, x: moveEvent.clientX, y: moveEvent.clientY })
 
           if (type === 'col') {
-            const srcCol = columnGrips[index]
-            if (srcCol) {
-              setDraggingSource({ type: 'col', left: srcCol.left, top: tableRect.top, width: srcCol.width, height: tableRect.height })
+            const startGrip = columnGrips[colBundle.start]
+            const endGrip = columnGrips[colBundle.start + colBundle.count - 1]
+            if (startGrip && endGrip) {
+              setDraggingSource({
+                type: 'col',
+                left: startGrip.left,
+                top: tableRect.top,
+                width: endGrip.left + endGrip.width - startGrip.left,
+                height: tableRect.height,
+              })
             }
+            const label = colBundle.count > 1 ? `Columns ${colBundle.start + 1}-${colBundle.start + colBundle.count}` : `Column ${index + 1}`
+            setDragGhost({ type, index, label, x: moveEvent.clientX, y: moveEvent.clientY })
+
             let bestCol = columnGrips.find(g => moveEvent.clientX >= g.left && moveEvent.clientX <= g.left + g.width)
             if (!bestCol && columnGrips.length > 0) {
               if (moveEvent.clientX < columnGrips[0].left) bestCol = columnGrips[0]
@@ -196,10 +209,20 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
               pendingTargetIdx = -1
             }
           } else {
-            const srcRow = rowGrips[index]
-            if (srcRow) {
-              setDraggingSource({ type: 'row', left: tableRect.left, top: srcRow.top, width: tableRect.width, height: srcRow.height })
+            const startGrip = rowGrips[rowBundle.start]
+            const endGrip = rowGrips[rowBundle.start + rowBundle.count - 1]
+            if (startGrip && endGrip) {
+              setDraggingSource({
+                type: 'row',
+                left: tableRect.left,
+                top: startGrip.top,
+                width: tableRect.width,
+                height: endGrip.top + endGrip.height - startGrip.top,
+              })
             }
+            const label = rowBundle.count > 1 ? `Rows ${rowBundle.start + 1}-${rowBundle.start + rowBundle.count}` : `Row ${index + 1}`
+            setDragGhost({ type, index, label, x: moveEvent.clientX, y: moveEvent.clientY })
+
             let bestRow = rowGrips.find(g => moveEvent.clientY >= g.top && moveEvent.clientY <= g.top + g.height)
             if (!bestRow && rowGrips.length > 0) {
               if (moveEvent.clientY < rowGrips[0].top) bestRow = rowGrips[0]
@@ -400,7 +423,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
           style={{ left: dragGhost.x, top: dragGhost.y }}
         >
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 dark:bg-violet-500 animate-pulse" />
-          <span>{dragGhost.type === 'col' ? `Column ${dragGhost.index + 1}` : `Row ${dragGhost.index + 1}`}</span>
+          <span>{dragGhost.label}</span>
         </div>
       )}
 

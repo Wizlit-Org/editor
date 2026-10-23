@@ -200,26 +200,63 @@ const select = (type: 'row' | 'column') => (index: number) => (tr: Transaction) 
 
     // Check if the index is valid
     if (index >= 0 && index < (isRowSelection ? map.height : map.width)) {
-      const left = isRowSelection ? 0 : index
-      const top = isRowSelection ? index : 0
-      const right = isRowSelection ? map.width : index + 1
-      const bottom = isRowSelection ? index + 1 : map.height
+      let minRow = isRowSelection ? index : 0
+      let maxRow = isRowSelection ? index + 1 : map.height
+      let minCol = isRowSelection ? 0 : index
+      let maxCol = isRowSelection ? map.width : index + 1
+
+      // Automatically expand selection to include all merged cells (rowspan / colspan > 1)
+      if (isRowSelection) {
+        let changed = true
+        while (changed) {
+          changed = false
+          const cells = map.cellsInRect({ left: 0, right: map.width, top: minRow, bottom: maxRow })
+          for (const cellPos of cells) {
+            const rect = map.findCell(cellPos)
+            if (rect.top < minRow) {
+              minRow = rect.top
+              changed = true
+            }
+            if (rect.bottom > maxRow) {
+              maxRow = rect.bottom
+              changed = true
+            }
+          }
+        }
+      } else {
+        let changed = true
+        while (changed) {
+          changed = false
+          const cells = map.cellsInRect({ left: minCol, right: maxCol, top: 0, bottom: map.height })
+          for (const cellPos of cells) {
+            const rect = map.findCell(cellPos)
+            if (rect.left < minCol) {
+              minCol = rect.left
+              changed = true
+            }
+            if (rect.right > maxCol) {
+              maxCol = rect.right
+              changed = true
+            }
+          }
+        }
+      }
 
       const cellsInFirstRow = map.cellsInRect({
-        left,
-        top,
-        right: isRowSelection ? right : left + 1,
-        bottom: isRowSelection ? top + 1 : bottom,
+        left: minCol,
+        top: minRow,
+        right: isRowSelection ? maxCol : minCol + 1,
+        bottom: isRowSelection ? minRow + 1 : maxRow,
       })
 
       const cellsInLastRow =
-        bottom - top === 1
+        maxRow - minRow === 1
           ? cellsInFirstRow
           : map.cellsInRect({
-              left: isRowSelection ? left : right - 1,
-              top: isRowSelection ? bottom - 1 : top,
-              right,
-              bottom,
+              left: isRowSelection ? minCol : maxCol - 1,
+              top: isRowSelection ? maxRow - 1 : minRow,
+              right: maxCol,
+              bottom: maxRow,
             })
 
       const head = table.start + cellsInFirstRow[0]
