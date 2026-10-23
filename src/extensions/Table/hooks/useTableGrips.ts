@@ -62,7 +62,8 @@ export function useTableGrips(editor: Editor) {
     const r = currentTableEl.getBoundingClientRect()
     let tablePos = -1
     try {
-      const pos = editor.view.posAtDOM(currentTableEl, 0)
+      const firstCell = currentTableEl.querySelector('td, th')
+      const pos = firstCell ? editor.view.posAtDOM(firstCell, 0) : editor.view.posAtDOM(currentTableEl, 0)
       const resolved = editor.state.doc.resolve(pos)
       for (let d = resolved.depth; d >= 0; d--) {
         if (resolved.node(d).type.name === 'table') {

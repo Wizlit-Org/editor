@@ -135,8 +135,18 @@ export const LinkMenu = ({
   }, [editor])
 
   const onHide = useCallback(() => {
+    if (showEdit) return
     setShowEdit(false)
-  }, [])
+  }, [showEdit])
+
+  // Trigger position update when switching to edit mode
+  useEffect(() => {
+    if (showEdit) {
+      try {
+        editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'updatePosition'))
+      } catch {}
+    }
+  }, [showEdit, editor])
 
   const getReferenceClientRect = useCallback(() => {
     const { from } = editor.state.selection
@@ -161,7 +171,10 @@ export const LinkMenu = ({
   }, [editor])
 
   const getReferencedVirtualElement = useCallback(
-    () => ({ getBoundingClientRect: getReferenceClientRect }),
+    () => ({
+      getBoundingClientRect: getReferenceClientRect,
+      getClientRects: () => [getReferenceClientRect()],
+    }),
     [getReferenceClientRect],
   )
 
@@ -169,9 +182,7 @@ export const LinkMenu = ({
     () => ({
       placement: 'bottom-start' as const,
       flip: true,
-      interactive: true,
-      offset: [0, 8] as [number, number],
-      zIndex: 1350,
+      offset: 8,
       onHide,
     }),
     [onHide],

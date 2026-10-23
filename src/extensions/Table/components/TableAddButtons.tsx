@@ -1,10 +1,11 @@
 import React, { useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Editor } from '@tiptap/react'
-import { CellSelection, TableMap } from '@tiptap/pm/tables'
+import { TextSelection } from '@tiptap/pm/state'
 import { useTableGrips } from '../hooks/useTableGrips'
 import { TableAddBar } from './TableAddBar'
 import { moveTableColumn, moveTableRow } from '../utils/TableDndUtils'
+import { selectColumn, selectRow, findTable } from '../utils'
 
 export interface TableAddButtonsProps {
   editor: Editor
@@ -14,6 +15,7 @@ export interface TableAddButtonsProps {
 export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, appendTo }) => {
   const {
     tableRect,
+    currentTableEl,
     columnGrips,
     rowGrips,
     hoveredColIndex,
@@ -31,25 +33,33 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       e.preventDefault()
       e.stopPropagation()
       window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
-      if (!tableRect || tableRect.pos < 0) return
 
       try {
-        const tableNode = editor.state.doc.nodeAt(tableRect.pos)
-        if (!tableNode) return
-        const map = TableMap.get(tableNode)
-        const anchorCellPos = tableRect.pos + 1 + map.map[colIdx]
-        const headCellPos = tableRect.pos + 1 + map.map[(map.height - 1) * map.width + colIdx]
+        let tr = editor.state.tr
+        if (!findTable(tr.selection)) {
+          let targetPos = -1
+          if (currentTableEl) {
+            const firstCell = currentTableEl.querySelector('td, th')
+            if (firstCell) {
+              targetPos = editor.view.posAtDOM(firstCell, 0)
+            }
+          }
+          if (targetPos < 0 && tableRect && tableRect.pos >= 0) {
+            targetPos = tableRect.pos + 2
+          }
+          if (targetPos >= 0) {
+            tr = tr.setSelection(TextSelection.near(tr.doc.resolve(targetPos)))
+          }
+        }
 
-        const $anchor = editor.state.doc.resolve(anchorCellPos)
-        const $head = editor.state.doc.resolve(headCellPos)
-        const selection = new CellSelection($anchor, $head)
-        editor.view.dispatch(editor.state.tr.setSelection(selection))
-        editor.view.focus()
+        const newTr = selectColumn(colIdx)(tr)
+        editor.view.dispatch(newTr)
+        editor.view.dom.focus({ preventScroll: true })
       } catch (err) {
         console.error('Error selecting column:', err)
       }
     },
-    [editor, tableRect],
+    [editor, currentTableEl, tableRect],
   )
 
   const onSelectRow = useCallback(
@@ -57,25 +67,33 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       e.preventDefault()
       e.stopPropagation()
       window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
-      if (!tableRect || tableRect.pos < 0) return
 
       try {
-        const tableNode = editor.state.doc.nodeAt(tableRect.pos)
-        if (!tableNode) return
-        const map = TableMap.get(tableNode)
-        const anchorCellPos = tableRect.pos + 1 + map.map[rowIdx * map.width]
-        const headCellPos = tableRect.pos + 1 + map.map[rowIdx * map.width + (map.width - 1)]
+        let tr = editor.state.tr
+        if (!findTable(tr.selection)) {
+          let targetPos = -1
+          if (currentTableEl) {
+            const firstCell = currentTableEl.querySelector('td, th')
+            if (firstCell) {
+              targetPos = editor.view.posAtDOM(firstCell, 0)
+            }
+          }
+          if (targetPos < 0 && tableRect && tableRect.pos >= 0) {
+            targetPos = tableRect.pos + 2
+          }
+          if (targetPos >= 0) {
+            tr = tr.setSelection(TextSelection.near(tr.doc.resolve(targetPos)))
+          }
+        }
 
-        const $anchor = editor.state.doc.resolve(anchorCellPos)
-        const $head = editor.state.doc.resolve(headCellPos)
-        const selection = new CellSelection($anchor, $head)
-        editor.view.dispatch(editor.state.tr.setSelection(selection))
-        editor.view.focus()
+        const newTr = selectRow(rowIdx)(tr)
+        editor.view.dispatch(newTr)
+        editor.view.dom.focus({ preventScroll: true })
       } catch (err) {
         console.error('Error selecting row:', err)
       }
     },
-    [editor, tableRect],
+    [editor, currentTableEl, tableRect],
   )
 
   const handleGripMouseDown = useCallback(

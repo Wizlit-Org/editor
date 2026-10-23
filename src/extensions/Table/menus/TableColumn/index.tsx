@@ -17,7 +17,8 @@ import { getColumnAnchorVirtualElement } from '../useTableMenuPosition'
 import { cn } from '@/lib/utils'
 
 const TABLE_COLUMN_MENU_OPTIONS = {
-  offset: 12,
+  offset: 6,
+  placement: 'bottom-start' as const,
   flip: true,
 }
 

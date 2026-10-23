@@ -14,7 +14,8 @@ import { getRowAnchorVirtualElement } from '../useTableMenuPosition'
 import { cn } from '@/lib/utils'
 
 const TABLE_ROW_MENU_OPTIONS = {
-  offset: 12,
+  offset: 6,
+  placement: 'right-start' as const,
   flip: true,
 }
 
