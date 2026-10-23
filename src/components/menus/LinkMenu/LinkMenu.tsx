@@ -81,7 +81,13 @@ export const LinkMenu = ({
 
   const handleEdit = useCallback(() => {
     setShowEdit(true)
-  }, [])
+    requestAnimationFrame(() => {
+      try {
+        editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'show'))
+        editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'updatePosition'))
+      } catch {}
+    })
+  }, [editor])
 
   // Extract current link text from the editor document
   const currentLinkText = useMemo(() => {
@@ -164,14 +170,20 @@ export const LinkMenu = ({
   }, [editor])
 
   const onHide = useCallback(() => {
-    if (showEdit) return
+    if (showEdit) {
+      try {
+        editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'show'))
+      } catch {}
+      return
+    }
     setShowEdit(false)
-  }, [showEdit])
+  }, [showEdit, editor])
 
-  // Trigger position update when switching to edit mode
+  // Keep menu visible and trigger position update when switching to edit mode
   useEffect(() => {
     if (showEdit) {
       try {
+        editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'show'))
         editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'updatePosition'))
       } catch {}
     }

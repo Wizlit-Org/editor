@@ -151,7 +151,9 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
         {/* Left: Favicon + Clickable Link / Domain */}
         <div className="inline-flex items-center gap-1.5 min-w-0 flex-1">
           <span className="w-3.5 h-3.5 shrink-0 flex items-center justify-center">
-            {faviconUrl && !faviconError ? (
+            {loading ? (
+              <span className="w-3.5 h-3.5 rounded bg-black/[0.08] dark:bg-white/[0.08] animate-pulse" />
+            ) : faviconUrl && !faviconError ? (
               <img
                 src={faviconUrl}
                 alt=""
@@ -163,17 +165,17 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
             )}
           </span>
 
-          <a
-            {...(!disableDefaultAction ? defaultProps : {})}
-            onClick={handleLinkClick}
-            className="text-xs leading-none font-medium text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-violet-400 hover:underline truncate transition-colors cursor-pointer"
-            title={url}
-          >
-            {domain || url}
-          </a>
-
-          {loading && (
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse shrink-0 ml-0.5" />
+          {loading ? (
+            <div className="h-2.5 w-24 rounded bg-black/[0.08] dark:bg-white/[0.08] animate-pulse" />
+          ) : (
+            <a
+              {...(!disableDefaultAction ? defaultProps : {})}
+              onClick={handleLinkClick}
+              className="text-xs leading-none font-medium text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-violet-400 hover:underline truncate transition-colors cursor-pointer"
+              title={url}
+            >
+              {domain || url}
+            </a>
           )}
         </div>
 
@@ -218,7 +220,6 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
                 type="button"
                 onMouseDown={e => {
                   e.preventDefault()
-                  e.stopPropagation()
                 }}
                 onClick={e => {
                   e.preventDefault()
@@ -252,47 +253,63 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
         </div>
       </div>
 
-      {/* 2. Rich Bookmark Card Body */}
-      {hasImage && (
-        <a
-          {...(!disableDefaultAction ? defaultProps : {})}
-          onClick={handleLinkClick}
-          className="relative w-full h-32 bg-zinc-100 dark:bg-zinc-800/40 overflow-hidden block group cursor-pointer border-b border-zinc-200/60 dark:border-zinc-800/60"
-        >
-          <img
-            src={meta!.image!}
-            alt={titleText}
-            onError={() => setImageError(true)}
-            className="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent pointer-events-none" />
-        </a>
-      )}
-
-      {/* Metadata Description */}
-      {(titleText || descText) && (
-        <div className="p-3 flex flex-col gap-1">
-          <a
-            {...(!disableDefaultAction ? defaultProps : {})}
-            onClick={handleLinkClick}
-            className="text-[12.5px] font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1 leading-snug hover:text-indigo-600 dark:hover:text-violet-400 cursor-pointer transition-colors"
-            title={titleText}
-          >
-            {titleText}
-          </a>
-
-          {descText && (
-            <p className="text-[11px] text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-[1.45]">
-              {descText}
-            </p>
-          )}
-
-          {!descText && !loading && (
-            <span className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate font-mono">
-              {url}
-            </span>
-          )}
+      {/* 2. Notion-style Glass Skeleton or Rich Bookmark Card */}
+      {loading ? (
+        <div className="flex flex-col animate-pulse">
+          <div className="w-full h-24 bg-black/[0.04] dark:bg-white/[0.04] border-b border-zinc-200/50 dark:border-zinc-800/50 flex items-center justify-center">
+            <Icon name="Globe" className="w-6 h-6 text-zinc-300 dark:text-zinc-600 opacity-60" />
+          </div>
+          <div className="p-3 flex flex-col gap-2">
+            <div className="h-3.5 w-3/4 rounded bg-black/[0.08] dark:bg-white/[0.08]" />
+            <div className="flex flex-col gap-1.5 pt-0.5">
+              <div className="h-2.5 w-full rounded bg-black/[0.05] dark:bg-white/[0.05]" />
+              <div className="h-2.5 w-4/5 rounded bg-black/[0.05] dark:bg-white/[0.05]" />
+            </div>
+          </div>
         </div>
+      ) : (
+        <>
+          {hasImage && (
+            <a
+              {...(!disableDefaultAction ? defaultProps : {})}
+              onClick={handleLinkClick}
+              className="relative w-full h-32 bg-zinc-100 dark:bg-zinc-800/40 overflow-hidden block group cursor-pointer border-b border-zinc-200/60 dark:border-zinc-800/60"
+            >
+              <img
+                src={meta!.image!}
+                alt={titleText}
+                onError={() => setImageError(true)}
+                className="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent pointer-events-none" />
+            </a>
+          )}
+
+          {(titleText || descText) && (
+            <div className="p-3 flex flex-col gap-1">
+              <a
+                {...(!disableDefaultAction ? defaultProps : {})}
+                onClick={handleLinkClick}
+                className="text-[12.5px] font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1 leading-snug hover:text-indigo-600 dark:hover:text-violet-400 cursor-pointer transition-colors"
+                title={titleText}
+              >
+                {titleText}
+              </a>
+
+              {descText && (
+                <p className="text-[11px] text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-[1.45]">
+                  {descText}
+                </p>
+              )}
+
+              {!descText && (
+                <span className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate font-mono">
+                  {url}
+                </span>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   )
