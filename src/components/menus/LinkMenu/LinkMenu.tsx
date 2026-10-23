@@ -14,9 +14,29 @@ export const LinkMenu = ({
   disableDefaultAction = false,
 }: MenuProps): JSX.Element => {
   const [showEdit, setShowEdit] = useState(false)
+  const showEditRef = useRef(false)
   const [isClosedByScroll, setIsClosedByScroll] = useState(false)
   const isClosedByScrollRef = useRef(false)
   const prevLinkRef = useRef<string | null>(null)
+
+  const setEditMode = useCallback((val: boolean) => {
+    showEditRef.current = val
+    setShowEdit(val)
+  }, [])
+
+  const checkIsLinkActive = useCallback(() => {
+    if (editor.isActive('link')) return true
+    try {
+      const { $from } = editor.state.selection
+      const hasMark =
+        $from.marks().some(m => m.type.name === 'link') ||
+        $from.nodeBefore?.marks?.some(m => m.type.name === 'link') ||
+        $from.nodeAfter?.marks?.some(m => m.type.name === 'link')
+      return Boolean(hasMark)
+    } catch {
+      return false
+    }
+  }, [editor])
 
   const { link, target } = useEditorState({
     editor,
@@ -44,16 +64,16 @@ export const LinkMenu = ({
   useEffect(() => {
     if (link !== prevLinkRef.current) {
       prevLinkRef.current = link || null
-      setShowEdit(false)
+      setEditMode(false)
     }
-  }, [link])
+  }, [link, setEditMode])
 
-  // Close edit panel when selection moves away from link
+  // Close edit panel when selection moves away from link completely
   useEffect(() => {
-    if (!editor.isActive('link')) {
-      setShowEdit(false)
+    if (!checkIsLinkActive()) {
+      setEditMode(false)
     }
-  }, [editor, editor.state.selection])
+  }, [editor, editor.state.selection, checkIsLinkActive, setEditMode])
 
   // Reset scroll lock on editor interaction
   useEffect(() => {
@@ -76,7 +96,7 @@ export const LinkMenu = ({
     const handleCloseMenus = () => {
       isClosedByScrollRef.current = true
       setIsClosedByScroll(true)
-      setShowEdit(false)
+      setEditMode(false)
       try {
         editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'hide'))
       } catch {}
@@ -87,31 +107,33 @@ export const LinkMenu = ({
       window.removeEventListener('tiptap:close-menus', handleCloseMenus)
       window.removeEventListener('scroll', handleCloseMenus, { capture: true })
     }
-  }, [editor])
+  }, [editor, setEditMode])
 
   const shouldShow = useCallback(() => {
     if (isClosedByScrollRef.current) return false
-    if (showEdit) return true
+    if (showEditRef.current) return true
     const isMedia =
       editor.isActive('youtube') ||
       editor.isActive('imageBlock') ||
       editor.state.doc.nodeAt(editor.state.selection.from)?.type.name === 'youtube'
     if (isMedia) return false
-    const isActive = editor.isActive('link')
-    return isActive
-  }, [editor, showEdit])
+    return checkIsLinkActive()
+  }, [editor, checkIsLinkActive])
 
   const editable = editor.isEditable
 
   const handleEdit = useCallback(() => {
-    setShowEdit(true)
+    try {
+      editor.chain().focus().extendMarkRange('link').run()
+    } catch {}
+    setEditMode(true)
     requestAnimationFrame(() => {
       try {
         editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'show'))
         editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'updatePosition'))
       } catch {}
     })
-  }, [editor])
+  }, [editor, setEditMode])
 
   // Extract current link text from the editor document
   const currentLinkText = useMemo(() => {
@@ -190,26 +212,26 @@ export const LinkMenu = ({
       } catch (err) {
         console.error('Error setting link:', err)
       }
-      setShowEdit(false)
+      setEditMode(false)
     },
-    [editor],
+    [editor, setEditMode],
   )
 
   const onUnsetLink = useCallback(() => {
     editor.chain().focus().extendMarkRange('link').unsetLink().run()
-    setShowEdit(false)
+    setEditMode(false)
     return null
-  }, [editor])
+  }, [editor, setEditMode])
 
   const onHide = useCallback(() => {
-    if (showEdit) {
+    if (showEditRef.current) {
       try {
         editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'show'))
       } catch {}
       return
     }
-    setShowEdit(false)
-  }, [showEdit, editor])
+    setEditMode(false)
+  }, [setEditMode, editor])
 
   // Keep menu visible and trigger position update when switching to edit mode
   useEffect(() => {
@@ -278,7 +300,7 @@ export const LinkMenu = ({
           initialText={currentLinkText}
           initialOpenInNewTab={target === '_blank'}
           onSetLink={onSetLink}
-          onCancel={() => setShowEdit(false)}
+          onCancel={() => setEditMode(false)}
         />
       ) : (
         <LinkPreviewPanel
