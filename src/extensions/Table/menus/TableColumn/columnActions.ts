@@ -1,6 +1,7 @@
 import { Editor } from '@tiptap/react'
 import { TableMap } from '@tiptap/pm/tables'
 import { findTable, isCellSelection } from '../../utils'
+import { moveTableColumn } from '../../utils/TableDndUtils'
 
 export const getSelectedColumnIndex = (editor: Editor): number => {
   const { selection } = editor.state
@@ -167,51 +168,17 @@ export const setColumnAlignment = (
 }
 
 export const moveColumnLeft = (editor: Editor, colIndex: number) => {
-  // Prevent moving column into or swapping with header column (index 0)
-  if (colIndex <= 1) return
-  const { state, view } = editor
-  const table = findTable(state.selection)
+  if (colIndex <= 0) return
+  const table = findTable(editor.state.selection)
   if (!table) return
-
-  const newRows: any[] = []
-  table.node.forEach(rowNode => {
-    const cells: any[] = []
-    rowNode.forEach(cell => cells.push(cell))
-    if (colIndex < cells.length) {
-      const temp = cells[colIndex]
-      cells[colIndex] = cells[colIndex - 1]
-      cells[colIndex - 1] = temp
-    }
-    newRows.push(rowNode.type.create(rowNode.attrs, cells))
-  })
-
-  const newTable = table.node.type.create(table.node.attrs, newRows)
-  const tr = state.tr.replaceWith(table.pos, table.pos + table.node.nodeSize, newTable)
-  view.dispatch(tr)
+  moveTableColumn(editor, table.pos, colIndex, colIndex - 1)
 }
 
 export const moveColumnRight = (editor: Editor, colIndex: number) => {
-  const { state, view } = editor
-  const table = findTable(state.selection)
+  const table = findTable(editor.state.selection)
   if (!table) return
-
   const map = TableMap.get(table.node)
   if (colIndex < 0 || colIndex >= map.width - 1) return
-
-  const newRows: any[] = []
-  table.node.forEach(rowNode => {
-    const cells: any[] = []
-    rowNode.forEach(cell => cells.push(cell))
-    if (colIndex < cells.length - 1) {
-      const temp = cells[colIndex]
-      cells[colIndex] = cells[colIndex + 1]
-      cells[colIndex + 1] = temp
-    }
-    newRows.push(rowNode.type.create(rowNode.attrs, cells))
-  })
-
-  const newTable = table.node.type.create(table.node.attrs, newRows)
-  const tr = state.tr.replaceWith(table.pos, table.pos + table.node.nodeSize, newTable)
-  view.dispatch(tr)
+  moveTableColumn(editor, table.pos, colIndex, colIndex + 1)
 }
 

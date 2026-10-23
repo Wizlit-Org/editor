@@ -1,6 +1,7 @@
 import { Editor } from '@tiptap/react'
 import { TableMap } from '@tiptap/pm/tables'
 import { findTable, isCellSelection } from '../../utils'
+import { moveTableRow } from '../../utils/TableDndUtils'
 
 export const getSelectedRowIndex = (editor: Editor): number => {
   const { selection } = editor.state
@@ -112,40 +113,17 @@ export const setRowAlignment = (
 }
 
 export const moveRowUp = (editor: Editor, rowIndex: number) => {
-  // Prevent moving row into or swapping with header row (index 0)
-  if (rowIndex <= 1) return
-  const { state, view } = editor
-  const table = findTable(state.selection)
+  if (rowIndex <= 0) return
+  const table = findTable(editor.state.selection)
   if (!table) return
-
-  const rows: any[] = []
-  table.node.forEach(row => rows.push(row))
-  if (rowIndex < rows.length) {
-    const temp = rows[rowIndex]
-    rows[rowIndex] = rows[rowIndex - 1]
-    rows[rowIndex - 1] = temp
-  }
-
-  const newTable = table.node.type.create(table.node.attrs, rows)
-  const tr = state.tr.replaceWith(table.pos, table.pos + table.node.nodeSize, newTable)
-  view.dispatch(tr)
+  moveTableRow(editor, table.pos, rowIndex, rowIndex - 1)
 }
 
 export const moveRowDown = (editor: Editor, rowIndex: number) => {
-  const { state, view } = editor
-  const table = findTable(state.selection)
+  const table = findTable(editor.state.selection)
   if (!table) return
-
-  const rows: any[] = []
-  table.node.forEach(row => rows.push(row))
-  if (rowIndex < rows.length - 1) {
-    const temp = rows[rowIndex]
-    rows[rowIndex] = rows[rowIndex + 1]
-    rows[rowIndex + 1] = temp
-  }
-
-  const newTable = table.node.type.create(table.node.attrs, rows)
-  const tr = state.tr.replaceWith(table.pos, table.pos + table.node.nodeSize, newTable)
-  view.dispatch(tr)
+  const map = TableMap.get(table.node)
+  if (rowIndex < 0 || rowIndex >= map.height - 1) return
+  moveTableRow(editor, table.pos, rowIndex, rowIndex + 1)
 }
 

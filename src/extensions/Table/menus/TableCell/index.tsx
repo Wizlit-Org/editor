@@ -27,7 +27,9 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   const [isBtnHovered, setIsBtnHovered] = useState(false)
   const [selectionRect, setSelectionRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
   const [isButtonVisible, setIsButtonVisible] = useState(false)
+  const [isScrolling, setIsScrolling] = useState(false)
   const isDraggingHandleRef = useRef(false)
+  const scrollTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -136,14 +138,25 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
 
   useEffect(() => {
     updateSelectionRect()
+    const handleScroll = () => {
+      setIsScrolling(true)
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
+      scrollTimerRef.current = setTimeout(() => {
+        setIsScrolling(false)
+        updateSelectionRect()
+        scrollTimerRef.current = null
+      }, 60)
+    }
+
     editor.on('selectionUpdate', updateSelectionRect)
-    window.addEventListener('scroll', updateSelectionRect, { passive: true, capture: true })
-    window.addEventListener('resize', updateSelectionRect, { passive: true })
+    window.addEventListener('scroll', handleScroll, { passive: true, capture: true })
+    window.addEventListener('resize', handleScroll, { passive: true })
 
     return () => {
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
       editor.off('selectionUpdate', updateSelectionRect)
-      window.removeEventListener('scroll', updateSelectionRect, { capture: true })
-      window.removeEventListener('resize', updateSelectionRect)
+      window.removeEventListener('scroll', handleScroll, { capture: true })
+      window.removeEventListener('resize', handleScroll)
     }
   }, [editor, updateSelectionRect])
 
@@ -278,6 +291,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
 
   const shouldRender =
     mounted &&
+    !isScrolling &&
     typeof document !== 'undefined' &&
     selectionRect &&
     !editor.view?.dragging &&

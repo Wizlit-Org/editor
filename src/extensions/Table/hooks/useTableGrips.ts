@@ -33,8 +33,10 @@ export function useTableGrips(editor: Editor) {
   const [showRightAddBar, setShowRightAddBar] = useState(false)
   const [showBottomAddBar, setShowBottomAddBar] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+  const [isScrolling, setIsScrolling] = useState(false)
 
   const hoverTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const scrollTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const clearHoverTimer = useCallback(() => {
     if (hoverTimerRef.current) {
@@ -219,7 +221,15 @@ export function useTableGrips(editor: Editor) {
       }
     }
 
-    const handleScroll = () => updateTableRect()
+    const handleScroll = () => {
+      setIsScrolling(true)
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
+      scrollTimerRef.current = setTimeout(() => {
+        setIsScrolling(false)
+        updateTableRect()
+        scrollTimerRef.current = null
+      }, 60)
+    }
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true })
     window.addEventListener('scroll', handleScroll, { capture: true, passive: true })
@@ -227,6 +237,7 @@ export function useTableGrips(editor: Editor) {
 
     return () => {
       clearHoverTimer()
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('scroll', handleScroll, { capture: true })
       window.removeEventListener('resize', handleScroll)
@@ -247,6 +258,7 @@ export function useTableGrips(editor: Editor) {
     showRightAddBar,
     showBottomAddBar,
     isHovered,
+    isScrolling,
     setIsHovered,
     clearHoverTimer,
     updateTableRect,

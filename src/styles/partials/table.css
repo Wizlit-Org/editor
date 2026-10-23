@@ -74,16 +74,10 @@
     &.resizing {
       cursor: col-resize !important;
 
+      /* Suppress duplicate in-cell handle during resizing; portal guide bar renders single full-height guide */
       .column-resize-handle {
-        background-color: #6366f1 !important;
-        width: 3px !important;
-        right: -1.5px !important;
-        bottom: 0 !important;
-        top: 0 !important;
+        opacity: 0 !important;
         pointer-events: none !important;
-        opacity: 1 !important;
-        z-index: 100 !important;
-        box-shadow: 0 0 10px rgba(99, 102, 241, 0.9) !important;
 
         &::before {
           display: none !important;

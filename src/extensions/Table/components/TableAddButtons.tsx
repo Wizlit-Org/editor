@@ -23,6 +23,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
     showRightAddBar,
     showBottomAddBar,
     isHovered,
+    isScrolling,
     setIsHovered,
     clearHoverTimer,
     updateTableRect,
@@ -30,6 +31,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
 
   const [dragIndicator, setDragIndicator] = useState<{ type: 'col' | 'row'; left: number; top: number; width: number; height: number } | null>(null)
   const [draggingSource, setDraggingSource] = useState<{ type: 'col' | 'row'; left: number; top: number; width: number; height: number } | null>(null)
+  const [dragGhost, setDragGhost] = useState<{ type: 'col' | 'row'; index: number; x: number; y: number } | null>(null)
   const [resizingGuideX, setResizingGuideX] = useState<number | null>(null)
 
   // Listen to mouse events for column resizing to show full-height vertical indigo guide
@@ -156,13 +158,6 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
       if (!tableRect || tableRect.pos < 0) return
 
-      // Header row (index 0) or header column (index 0) cannot be dragged or moved
-      if (index === 0) {
-        if (type === 'col') onSelectColumn(index)(e)
-        else onSelectRow(index)(e)
-        return
-      }
-
       const startX = e.clientX
       const startY = e.clientY
       let isDragging = false
@@ -173,89 +168,54 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         if (dist > 4) {
           isDragging = true
           document.body.style.cursor = type === 'col' ? 'col-resize' : 'row-resize'
+          setDragGhost({ type, index, x: moveEvent.clientX, y: moveEvent.clientY })
 
           if (type === 'col') {
-            // Highlight source column being moved
             const srcCol = columnGrips[index]
             if (srcCol) {
-              setDraggingSource({
-                type: 'col',
-                left: srcCol.left,
-                top: tableRect.top,
-                width: srcCol.width,
-                height: tableRect.height,
-              })
+              setDraggingSource({ type: 'col', left: srcCol.left, top: tableRect.top, width: srcCol.width, height: tableRect.height })
             }
-
-            // Find target column index (must be >= 1, cannot move to or replace header column)
-            const validCols = columnGrips.filter(g => g.index >= 1)
-            let bestCol = validCols.find(
-              g => moveEvent.clientX >= g.left && moveEvent.clientX <= g.left + g.width,
-            )
-            if (!bestCol && validCols.length > 0) {
-              if (moveEvent.clientX < validCols[0].left) {
-                bestCol = validCols[0]
-              } else if (moveEvent.clientX > validCols[validCols.length - 1].left + validCols[validCols.length - 1].width) {
-                bestCol = validCols[validCols.length - 1]
+            let bestCol = columnGrips.find(g => moveEvent.clientX >= g.left && moveEvent.clientX <= g.left + g.width)
+            if (!bestCol && columnGrips.length > 0) {
+              if (moveEvent.clientX < columnGrips[0].left) bestCol = columnGrips[0]
+              else if (moveEvent.clientX > columnGrips[columnGrips.length - 1].left + columnGrips[columnGrips.length - 1].width) {
+                bestCol = columnGrips[columnGrips.length - 1]
               }
             }
-
             if (bestCol) {
               const isRightSide = moveEvent.clientX > bestCol.left + bestCol.width / 2
-              const targetIdx = isRightSide ? bestCol.index : Math.max(1, bestCol.index)
+              const targetIdx = isRightSide
+                ? (index < bestCol.index ? bestCol.index : Math.min(columnGrips.length - 1, bestCol.index + 1))
+                : (index < bestCol.index ? Math.max(0, bestCol.index - 1) : bestCol.index)
               pendingTargetIdx = targetIdx
 
               const lineX = isRightSide ? bestCol.left + bestCol.width : bestCol.left
-              setDragIndicator({
-                type: 'col',
-                left: lineX - 1.5,
-                top: tableRect.top,
-                width: 3,
-                height: tableRect.height,
-              })
+              setDragIndicator({ type: 'col', left: lineX - 1.5, top: tableRect.top, width: 3, height: tableRect.height })
             } else {
               setDragIndicator(null)
               pendingTargetIdx = -1
             }
           } else {
-            // Highlight source row being moved
             const srcRow = rowGrips[index]
             if (srcRow) {
-              setDraggingSource({
-                type: 'row',
-                left: tableRect.left,
-                top: srcRow.top,
-                width: tableRect.width,
-                height: srcRow.height,
-              })
+              setDraggingSource({ type: 'row', left: tableRect.left, top: srcRow.top, width: tableRect.width, height: srcRow.height })
             }
-
-            // Find target row index (must be >= 1, cannot move to or replace header row)
-            const validRows = rowGrips.filter(g => g.index >= 1)
-            let bestRow = validRows.find(
-              g => moveEvent.clientY >= g.top && moveEvent.clientY <= g.top + g.height,
-            )
-            if (!bestRow && validRows.length > 0) {
-              if (moveEvent.clientY < validRows[0].top) {
-                bestRow = validRows[0]
-              } else if (moveEvent.clientY > validRows[validRows.length - 1].top + validRows[validRows.length - 1].height) {
-                bestRow = validRows[validRows.length - 1]
+            let bestRow = rowGrips.find(g => moveEvent.clientY >= g.top && moveEvent.clientY <= g.top + g.height)
+            if (!bestRow && rowGrips.length > 0) {
+              if (moveEvent.clientY < rowGrips[0].top) bestRow = rowGrips[0]
+              else if (moveEvent.clientY > rowGrips[rowGrips.length - 1].top + rowGrips[rowGrips.length - 1].height) {
+                bestRow = rowGrips[rowGrips.length - 1]
               }
             }
-
             if (bestRow) {
               const isBottomSide = moveEvent.clientY > bestRow.top + bestRow.height / 2
-              const targetIdx = isBottomSide ? bestRow.index : Math.max(1, bestRow.index)
+              const targetIdx = isBottomSide
+                ? (index < bestRow.index ? bestRow.index : Math.min(rowGrips.length - 1, bestRow.index + 1))
+                : (index < bestRow.index ? Math.max(0, bestRow.index - 1) : bestRow.index)
               pendingTargetIdx = targetIdx
 
               const lineY = isBottomSide ? bestRow.top + bestRow.height : bestRow.top
-              setDragIndicator({
-                type: 'row',
-                left: tableRect.left,
-                top: lineY - 1.5,
-                width: tableRect.width,
-                height: 3,
-              })
+              setDragIndicator({ type: 'row', left: tableRect.left, top: lineY - 1.5, width: tableRect.width, height: 3 })
             } else {
               setDragIndicator(null)
               pendingTargetIdx = -1
@@ -270,8 +230,9 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         document.body.style.cursor = ''
         setDragIndicator(null)
         setDraggingSource(null)
+        setDragGhost(null)
 
-        if (isDragging && pendingTargetIdx >= 1 && pendingTargetIdx !== index) {
+        if (isDragging && pendingTargetIdx >= 0 && pendingTargetIdx !== index) {
           if (type === 'col') {
             moveTableColumn(editor, tableRect.pos, index, pendingTargetIdx)
             setTimeout(updateTableRect, 50)
@@ -346,7 +307,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
     [editor, tableRect, updateTableRect],
   )
 
-  if (!tableRect || !isHovered || !editor.isEditable) {
+  if (!tableRect || !isHovered || !editor.isEditable || isScrolling) {
     return null
   }
 
@@ -432,7 +393,18 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         }}
       />
 
-      {/* 4. Drag Source Highlight Overlay (dashed border + translucent fill) */}
+      {/* 4. Drag Cursor-Following Ghost Preview Badge */}
+      {dragGhost && (
+        <div
+          className="fixed pointer-events-none z-[1450] flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900/95 dark:bg-zinc-100/95 text-white dark:text-zinc-900 text-xs font-semibold shadow-2xl backdrop-blur-md -translate-x-1/2 -translate-y-9 select-none animate-in fade-in-0 zoom-in-95 duration-75"
+          style={{ left: dragGhost.x, top: dragGhost.y }}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 dark:bg-violet-500 animate-pulse" />
+          <span>{dragGhost.type === 'col' ? `Column ${dragGhost.index + 1}` : `Row ${dragGhost.index + 1}`}</span>
+        </div>
+      )}
+
+      {/* 5. Drag Source Highlight Overlay (dashed border + translucent fill) */}
       {draggingSource && (
         <div
           className="fixed pointer-events-none bg-indigo-500/15 dark:bg-violet-500/20 border-2 border-dashed border-indigo-500/70 dark:border-violet-400/70 z-[1390] rounded transition-all duration-75"

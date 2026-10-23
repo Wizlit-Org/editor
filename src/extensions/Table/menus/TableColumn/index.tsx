@@ -130,7 +130,7 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
 
   const selectedColIdx = getSelectedColumnIndex(editor)
   const isFirstCol = selectedColIdx === 0
-  const canMoveLeft = selectedColIdx > 1
+  const canMoveLeft = selectedColIdx > 0
 
   const itemClass =
     'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none cursor-pointer'
@@ -170,23 +170,19 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
           </>
         )}
 
-        {!isFirstCol && (
-          <>
-            {canMoveLeft && (
-              <button type="button" onClick={onMoveColumnLeft} className={itemClass}>
-                <Icon name="ArrowLeft" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-                <span>Move column left</span>
-              </button>
-            )}
-
-            <button type="button" onClick={onMoveColumnRight} className={itemClass}>
-              <Icon name="ArrowRight" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-              <span>Move column right</span>
-            </button>
-
-            <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
-          </>
+        {canMoveLeft && (
+          <button type="button" onClick={onMoveColumnLeft} className={itemClass}>
+            <Icon name="ArrowLeft" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+            <span>Move column left</span>
+          </button>
         )}
+
+        <button type="button" onClick={onMoveColumnRight} className={itemClass}>
+          <Icon name="ArrowRight" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+          <span>Move column right</span>
+        </button>
+
+        <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
 
         {!isFirstCol && (
           <button type="button" onClick={onAddColumnBefore} className={itemClass}>
