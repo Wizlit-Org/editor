@@ -1,6 +1,6 @@
 import { BubbleMenu as BaseBubbleMenu } from '@tiptap/react/menus'
 import { useEditorState } from '@tiptap/react'
-import { useCallback, useRef, JSX } from 'react'
+import { useCallback, useRef, useState, useEffect, JSX } from 'react'
 import { Toolbar } from '@/components/ui/Toolbar'
 import { Icon } from '@/components/ui/Icon'
 import { MenuProps } from '@/components/menus/types'
@@ -13,6 +13,35 @@ const IMAGE_BLOCK_MENU_OPTIONS = {
 
 export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => {
   const menuRef = useRef<HTMLDivElement>(null)
+  const [isClosedByScroll, setIsClosedByScroll] = useState(false)
+
+  useEffect(() => {
+    const handleReset = () => {
+      setIsClosedByScroll(false)
+    }
+    editor.on('selectionUpdate', handleReset)
+    editor.on('transaction', handleReset)
+    editor.on('focus', handleReset)
+    window.addEventListener('tiptap:reset-scroll-lock', handleReset)
+    return () => {
+      editor.off('selectionUpdate', handleReset)
+      editor.off('transaction', handleReset)
+      editor.off('focus', handleReset)
+      window.removeEventListener('tiptap:reset-scroll-lock', handleReset)
+    }
+  }, [editor])
+
+  useEffect(() => {
+    const handleClose = () => {
+      setIsClosedByScroll(true)
+    }
+    window.addEventListener('tiptap:close-menus', handleClose)
+    window.addEventListener('scroll', handleClose, { passive: true, capture: true })
+    return () => {
+      window.removeEventListener('tiptap:close-menus', handleClose)
+      window.removeEventListener('scroll', handleClose, { capture: true })
+    }
+  }, [])
 
   const getReferenceClientRect = useCallback(() => {
     const renderContainer = getRenderContainer(editor, 'node-imageBlock')
@@ -22,13 +51,17 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
   }, [editor])
 
   const getReferencedVirtualElement = useCallback(
-    () => ({ getBoundingClientRect: getReferenceClientRect }),
+    () => ({
+      getBoundingClientRect: getReferenceClientRect,
+      getClientRects: () => [getReferenceClientRect()],
+    }),
     [getReferenceClientRect],
   )
 
   const shouldShow = useCallback(() => {
+    if (isClosedByScroll) return false
     return editor.isActive('imageBlock')
-  }, [editor])
+  }, [editor, isClosedByScroll])
 
   const onAlignImageLeft = useCallback(() => {
     editor.chain().focus(undefined, { scrollIntoView: false }).setImageBlockAlign('left').run()

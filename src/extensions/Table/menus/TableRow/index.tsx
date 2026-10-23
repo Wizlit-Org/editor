@@ -40,15 +40,16 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
     }
   }, [editor])
 
-  // Auto-close menu when editor or window scrolls
+  // Auto-close menu when editor or window scrolls or receives close event
   useEffect(() => {
-    const handleScroll = () => {
+    const handleClose = () => {
       setIsClosedByScroll(true)
-      window.dispatchEvent(new CustomEvent('tiptap:close-menus', { detail: 'scroll' }))
     }
-    window.addEventListener('scroll', handleScroll, { passive: true, capture: true })
+    window.addEventListener('tiptap:close-menus', handleClose)
+    window.addEventListener('scroll', handleClose, { passive: true, capture: true })
     return () => {
-      window.removeEventListener('scroll', handleScroll, { capture: true })
+      window.removeEventListener('tiptap:close-menus', handleClose)
+      window.removeEventListener('scroll', handleClose, { capture: true })
     }
   }, [])
 
@@ -58,13 +59,16 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
 
   const shouldShow = useCallback(
     ({ view, state, from }: ShouldShowProps) => {
+      if (isClosedByScroll) {
+        return false
+      }
       if (!state || typeof from !== 'number') {
         return false
       }
 
       return isRowGripSelected({ editor, view, state, from })
     },
-    [editor],
+    [editor, isClosedByScroll],
   )
 
   const onMoveRowUp = useCallback(() => {

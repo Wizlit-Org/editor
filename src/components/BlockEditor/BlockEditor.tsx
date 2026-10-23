@@ -132,6 +132,20 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     }
   }, [])
 
+  // Global scroll listener: Auto-close all popover menus on any scroll (0ms delay)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const handleScroll = () => {
+      window.dispatchEvent(new CustomEvent('tiptap:close-menus', { detail: 'scroll' }))
+    }
+
+    window.addEventListener('scroll', handleScroll, { capture: true, passive: true })
+    return () => {
+      window.removeEventListener('scroll', handleScroll, { capture: true })
+    }
+  }, [])
+
   const { editor, uploadDialog } = useBlockEditor({
     // aiToken,
     editable: !readOnly,

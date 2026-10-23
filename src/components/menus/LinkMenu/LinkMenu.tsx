@@ -13,6 +13,7 @@ export const LinkMenu = ({
   disableDefaultAction = false,
 }: MenuProps): JSX.Element => {
   const [showEdit, setShowEdit] = useState(false)
+  const [isClosedByScroll, setIsClosedByScroll] = useState(false)
   const { link, target } = useEditorState({
     editor,
     selector: ctx => {
@@ -28,16 +29,39 @@ export const LinkMenu = ({
     }
   }, [editor, editor.state.selection, showEdit])
 
-  // Close edit panel on tiptap:close-menus (e.g. Esc key)
+  // Reset scroll lock on editor interaction
+  useEffect(() => {
+    const handleReset = () => {
+      setIsClosedByScroll(false)
+    }
+    editor.on('selectionUpdate', handleReset)
+    editor.on('transaction', handleReset)
+    editor.on('focus', handleReset)
+    window.addEventListener('tiptap:reset-scroll-lock', handleReset)
+    return () => {
+      editor.off('selectionUpdate', handleReset)
+      editor.off('transaction', handleReset)
+      editor.off('focus', handleReset)
+      window.removeEventListener('tiptap:reset-scroll-lock', handleReset)
+    }
+  }, [editor])
+
+  // Close link menu and edit panel on tiptap:close-menus or scroll
   useEffect(() => {
     const handleCloseMenus = () => {
+      setIsClosedByScroll(true)
       setShowEdit(false)
     }
     window.addEventListener('tiptap:close-menus', handleCloseMenus)
-    return () => window.removeEventListener('tiptap:close-menus', handleCloseMenus)
+    window.addEventListener('scroll', handleCloseMenus, { passive: true, capture: true })
+    return () => {
+      window.removeEventListener('tiptap:close-menus', handleCloseMenus)
+      window.removeEventListener('scroll', handleCloseMenus, { capture: true })
+    }
   }, [])
 
   const shouldShow = useCallback(() => {
+    if (isClosedByScroll) return false
     if (showEdit) return true
     const isMedia =
       editor.isActive('youtube') ||
@@ -46,7 +70,7 @@ export const LinkMenu = ({
     if (isMedia) return false
     const isActive = editor.isActive('link')
     return isActive
-  }, [editor, showEdit])
+  }, [editor, showEdit, isClosedByScroll])
 
   const editable = editor.isEditable
 

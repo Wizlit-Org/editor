@@ -43,15 +43,16 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
     }
   }, [editor])
 
-  // Auto-close menu when editor or window scrolls
+  // Auto-close menu when editor or window scrolls or receives close event
   useEffect(() => {
-    const handleScroll = () => {
+    const handleClose = () => {
       setIsClosedByScroll(true)
-      window.dispatchEvent(new CustomEvent('tiptap:close-menus', { detail: 'scroll' }))
     }
-    window.addEventListener('scroll', handleScroll, { passive: true, capture: true })
+    window.addEventListener('tiptap:close-menus', handleClose)
+    window.addEventListener('scroll', handleClose, { passive: true, capture: true })
     return () => {
-      window.removeEventListener('scroll', handleScroll, { capture: true })
+      window.removeEventListener('tiptap:close-menus', handleClose)
+      window.removeEventListener('scroll', handleClose, { capture: true })
     }
   }, [])
 
@@ -61,13 +62,16 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
 
   const shouldShow = useCallback(
     ({ view, state, from }: ShouldShowProps) => {
+      if (isClosedByScroll) {
+        return false
+      }
       if (!state) {
         return false
       }
 
       return isColumnGripSelected({ editor, view, state, from: from || 0 })
     },
-    [editor],
+    [editor, isClosedByScroll],
   )
 
   const onAlign = useCallback(
