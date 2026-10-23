@@ -138,10 +138,40 @@ export const LinkMenu = ({
     setShowEdit(false)
   }, [])
 
+  const getReferenceClientRect = useCallback(() => {
+    const { from } = editor.state.selection
+    try {
+      const domAtPos = editor.view.domAtPos(from)
+      const el = domAtPos.node as HTMLElement
+      const linkEl =
+        el?.nodeType === 1
+          ? (el as HTMLElement).closest('a')
+          : el?.parentElement?.closest('a')
+      if (linkEl) {
+        return linkEl.getBoundingClientRect()
+      }
+    } catch {}
+
+    try {
+      const coords = editor.view.coordsAtPos(from)
+      return new DOMRect(coords.left, coords.top, Math.max(1, coords.right - coords.left), Math.max(1, coords.bottom - coords.top))
+    } catch {
+      return new DOMRect(-1000, -1000, 0, 0)
+    }
+  }, [editor])
+
+  const getReferencedVirtualElement = useCallback(
+    () => ({ getBoundingClientRect: getReferenceClientRect }),
+    [getReferenceClientRect],
+  )
+
   const menuOptions = useMemo(
     () => ({
-      placement: 'top-start' as const,
-      flip: false,
+      placement: 'bottom-start' as const,
+      flip: true,
+      interactive: true,
+      offset: [0, 8] as [number, number],
+      zIndex: 1350,
       onHide,
     }),
     [onHide],
@@ -153,8 +183,9 @@ export const LinkMenu = ({
       pluginKey="linkMenu"
       shouldShow={shouldShow}
       updateDelay={0}
-      className="z-50"
-      appendTo={appendTo?.current || undefined}
+      className="z-[1350]"
+      appendTo={appendTo?.current || (typeof document !== 'undefined' ? document.body : undefined)}
+      getReferencedVirtualElement={getReferencedVirtualElement}
       options={menuOptions}
     >
       {showEdit ? (
@@ -163,6 +194,7 @@ export const LinkMenu = ({
           initialText={currentLinkText}
           initialOpenInNewTab={target === '_blank'}
           onSetLink={onSetLink}
+          onCancel={() => setShowEdit(false)}
         />
       ) : (
         <LinkPreviewPanel

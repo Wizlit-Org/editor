@@ -7,6 +7,16 @@ export type LinkEditorPanelProps = {
   initialText?: string
   initialOpenInNewTab?: boolean
   onSetLink: (url: string, text?: string, openInNewTab?: boolean) => void
+  onCancel?: () => void
+}
+
+export const normalizeUrl = (input: string): string => {
+  const trimmed = input.trim()
+  if (!trimmed) return ''
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed) || trimmed.startsWith('/') || trimmed.startsWith('#')) {
+    return trimmed
+  }
+  return `https://${trimmed}`
 }
 
 export const useLinkEditorState = ({
@@ -27,21 +37,27 @@ export const useLinkEditorState = ({
     setText(event.target.value)
   }, [])
 
-  const isValidUrl = useMemo(
-    () =>
-      /^(\S+):(\/\/)?\S+$/.test(url) ||
-      url.startsWith('/') ||
-      url.startsWith('#') ||
-      url.startsWith('mailto:') ||
-      url.startsWith('tel:'),
-    [url],
-  )
+  const isValidUrl = useMemo(() => {
+    const trimmed = url.trim()
+    if (!trimmed) return false
+    if (
+      /^(\S+):(\/\/)?\S+$/.test(trimmed) ||
+      trimmed.startsWith('/') ||
+      trimmed.startsWith('#') ||
+      trimmed.startsWith('mailto:') ||
+      trimmed.startsWith('tel:')
+    ) {
+      return true
+    }
+    return /^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/\S*)?$/i.test(trimmed)
+  }, [url])
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault()
       if (isValidUrl) {
-        onSetLink(url, text.trim() ? text.trim() : undefined, openInNewTab)
+        const finalUrl = normalizeUrl(url)
+        onSetLink(finalUrl, text.trim() ? text.trim() : undefined, openInNewTab)
       }
     },
     [url, text, isValidUrl, openInNewTab, onSetLink],
@@ -63,6 +79,7 @@ export const useLinkEditorState = ({
 
 export const LinkEditorPanel: React.FC<LinkEditorPanelProps> = ({
   onSetLink,
+  onCancel,
   initialOpenInNewTab,
   initialUrl,
   initialText,
@@ -114,13 +131,24 @@ export const LinkEditorPanel: React.FC<LinkEditorPanelProps> = ({
             <span>새 탭에서 열기</span>
           </label>
 
-          <button
-            type="submit"
-            disabled={!state.isValidUrl}
-            className="px-3 py-1 rounded-lg text-xs font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white disabled:opacity-40 disabled:pointer-events-none transition-colors shadow-xs cursor-pointer"
-          >
-            적용
-          </button>
+          <div className="flex items-center gap-1.5">
+            {onCancel && (
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-2.5 py-1 rounded-lg text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                취소
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={!state.isValidUrl}
+              className="px-3 py-1 rounded-lg text-xs font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white disabled:opacity-40 disabled:pointer-events-none transition-colors shadow-xs cursor-pointer"
+            >
+              적용
+            </button>
+          </div>
         </div>
       </form>
     </Surface>

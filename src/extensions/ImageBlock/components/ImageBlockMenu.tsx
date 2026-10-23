@@ -76,20 +76,6 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
     [editor],
   )
 
-  const onDownload = useCallback(() => {
-    const src = editor.getAttributes('imageBlock')?.src
-    if (src && typeof window !== 'undefined') {
-      const a = document.createElement('a')
-      a.href = src
-      a.download = 'image'
-      a.target = '_blank'
-      a.rel = 'noopener noreferrer'
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-    }
-  }, [editor])
-
   const onDelete = useCallback(() => {
     editor.chain().focus(undefined, { scrollIntoView: false }).deleteSelection().run()
   }, [editor])
@@ -168,15 +154,6 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
           activeClassname={ACTIVE_CLASS}
         >
           <Icon name="RefreshCw" className="w-4 h-4" />
-        </Toolbar.Button>
-
-        <Toolbar.Button
-          tooltip="Download image"
-          onClick={onDownload}
-          className={BTN_CLASS}
-          activeClassname={ACTIVE_CLASS}
-        >
-          <Icon name="Download" className="w-4 h-4" />
         </Toolbar.Button>
 
         <Toolbar.Button
