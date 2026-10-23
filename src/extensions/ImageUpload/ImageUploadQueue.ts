@@ -100,10 +100,21 @@ export class UploadQueue {
     const controller = new AbortController();
     const id = item.id || `${item.file.name}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-    // Register Widget Decoration placeholder at item.pos without modifying document content (docChanged: false)
+    // 빈 텍스트블록 감지 시 데코레이션 은닉 및 원자적 치환 범위 지정 (docChanged: false)
+    let replaceRange: { from: number; to: number } | undefined = undefined;
     if (this.editor && this.editor.view) {
+      const doc = this.editor.state.doc;
+      const safePos = Math.max(0, Math.min(item.pos, doc.content.size));
+      const $pos = doc.resolve(safePos);
+      if ($pos.parent && $pos.parent.isTextblock && $pos.parent.content.size === 0) {
+        replaceRange = {
+          from: $pos.before(),
+          to: $pos.after(),
+        };
+      }
+
       const tr = this.editor.state.tr.setMeta(uploadPluginKey, {
-        add: { id, pos: item.pos },
+        add: { id, pos: item.pos, replaceRange },
       });
       this.editor.view.dispatch(tr);
     }
@@ -229,23 +240,29 @@ export class UploadQueue {
         return;
       }
 
-      // 업로드 성공 시: 데코레이션 제거 및 imageBlock 1회 단일 트랜잭션 삽입
+      // 업로드 성공 시: 데코레이션 제거 및 imageBlock 1회 단일 트랜잭션 삽입 (빈 단락은 replaceWith 원자적 치환)
       if (this.editor && this.editor.view) {
-        const foundPos = findPlaceholder(this.editor.state, id!);
-        const insertPos = foundPos !== null ? foundPos : Math.min(item.pos, this.editor.state.doc.content.size);
+        const placeholderInfo = findPlaceholder(this.editor.state, id!);
+        const imageNode = this.editor.schema.nodes.imageBlock.create({ src: url });
 
-        this.editor
-          .chain()
-          .focus()
-          .command(({ tr }) => {
-            tr.setMeta(uploadPluginKey, { remove: { id: id! } });
-            return true;
-          })
-          .insertContentAt(
-            insertPos,
-            this.editor.schema.nodes.imageBlock.create({ src: url })
-          )
-          .run();
+        if (placeholderInfo?.replaceRange) {
+          const { from, to } = placeholderInfo.replaceRange;
+          const tr = this.editor.state.tr
+            .setMeta(uploadPluginKey, { remove: { id: id! } })
+            .replaceWith(from, to, imageNode);
+          this.editor.view.dispatch(tr);
+        } else {
+          const insertPos = placeholderInfo ? placeholderInfo.pos : Math.min(item.pos, this.editor.state.doc.content.size);
+          this.editor
+            .chain()
+            .focus()
+            .command(({ tr }) => {
+              tr.setMeta(uploadPluginKey, { remove: { id: id! } });
+              return true;
+            })
+            .insertContentAt(insertPos, imageNode)
+            .run();
+        }
       }
 
       this.statusMap.set(id!, {

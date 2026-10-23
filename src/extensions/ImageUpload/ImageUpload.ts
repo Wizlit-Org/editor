@@ -7,14 +7,32 @@ import { countEmbedNodes } from '@/lib/utils/isCustomNodeSelected'
 export const uploadPluginKey = new PluginKey('uploadPlaceholder')
 
 export interface UploadPlaceholderAction {
-  add?: { id: string; pos: number }
+  add?: {
+    id: string
+    pos: number
+    replaceRange?: { from: number; to: number }
+  }
   remove?: { id: string }
 }
 
-export function findPlaceholder(state: EditorState, id: string): number | null {
+export interface PlaceholderInfo {
+  pos: number
+  replaceRange?: { from: number; to: number }
+}
+
+export function findPlaceholder(state: EditorState, id: string): PlaceholderInfo | null {
   const decos = uploadPluginKey.getState(state) as DecorationSet | undefined
-  const found = decos?.find(undefined, undefined, spec => spec.id === id)
-  return found && found.length ? found[0].from : null
+  if (!decos) return null
+  const found = decos.find(undefined, undefined, spec => spec.id === id)
+  if (!found || found.length === 0) return null
+
+  const widget = found.find(d => (d as any).spec?.key === id)
+  const nodeDeco = found.find(d => (d as any).spec?.key === `${id}-node`)
+
+  const pos = widget ? widget.from : found[0].from
+  const replaceRange = nodeDeco ? { from: nodeDeco.from, to: nodeDeco.to } : undefined
+
+  return { pos, replaceRange }
 }
 
 const createPlaceholderWidget = (id: string) => {
@@ -247,7 +265,17 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
                 () => createPlaceholderWidget(action.add!.id),
                 { id: action.add.id, key: action.add.id, stopEvent: () => true },
               )
-              set = set.add(tr.doc, [widget])
+              const decos = [widget]
+              if (action.add.replaceRange) {
+                const nodeDeco = Decoration.node(
+                  action.add.replaceRange.from,
+                  action.add.replaceRange.to,
+                  { class: '!hidden', style: 'display: none !important;' },
+                  { id: action.add.id, key: `${action.add.id}-node` },
+                )
+                decos.push(nodeDeco)
+              }
+              set = set.add(tr.doc, decos)
             } else if (action?.remove) {
               const found = set.find(undefined, undefined, spec => spec.id === action.remove!.id)
               if (found.length) {
