@@ -71,13 +71,40 @@
       color: rgba(255, 255, 255, 0.95) !important;
     }
 
+    &.resizing {
+      cursor: col-resize !important;
+
+      .column-resize-handle {
+        background-color: #6366f1 !important;
+        width: 2px !important;
+        right: -1px !important;
+        bottom: 0 !important;
+        top: 0 !important;
+        pointer-events: none !important;
+        opacity: 1 !important;
+        z-index: 100 !important;
+        box-shadow: 0 0 8px rgba(99, 102, 241, 0.85) !important;
+
+        &::before {
+          display: none !important;
+        }
+      }
+    }
+
     .column-resize-handle {
-      @apply -bottom-[2px] flex pointer-events-none absolute -right-1 top-0 w-2;
+      @apply -bottom-[2px] flex pointer-events-none absolute -right-1 top-0 w-2 z-20 transition-colors duration-150;
 
       &::before {
         @apply bg-black/20 h-full w-[1px] ml-2;
         @apply dark:bg-white/20;
         content: '';
+      }
+    }
+
+    th:hover > .column-resize-handle,
+    td:hover > .column-resize-handle {
+      &::before {
+        @apply bg-indigo-500/70 dark:bg-violet-400/70;
       }
     }
 

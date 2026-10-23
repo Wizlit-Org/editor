@@ -5,7 +5,8 @@ import { TableMap } from '@tiptap/pm/tables'
  * Move / Swap column from sourceIndex to targetIndex in the table at tablePos
  */
 export function moveTableColumn(editor: Editor, tablePos: number, fromIndex: number, toIndex: number): boolean {
-  if (fromIndex === toIndex || tablePos < 0) return false
+  // Prevent moving header column (index 0) or moving another column into the header position
+  if (fromIndex === toIndex || tablePos < 0 || fromIndex === 0 || toIndex === 0) return false
   const { state, view } = editor
   const tableNode = state.doc.nodeAt(tablePos)
   if (!tableNode || tableNode.type.name !== 'table') return false
@@ -41,7 +42,8 @@ export function moveTableColumn(editor: Editor, tablePos: number, fromIndex: num
  * Move / Swap row from sourceIndex to targetIndex in the table at tablePos
  */
 export function moveTableRow(editor: Editor, tablePos: number, fromIndex: number, toIndex: number): boolean {
-  if (fromIndex === toIndex || tablePos < 0) return false
+  // Prevent moving header row (index 0) or moving another row into the header position
+  if (fromIndex === toIndex || tablePos < 0 || fromIndex === 0 || toIndex === 0) return false
   const { state, view } = editor
   const tableNode = state.doc.nodeAt(tablePos)
   if (!tableNode || tableNode.type.name !== 'table') return false

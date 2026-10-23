@@ -161,22 +161,28 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
           </>
         )}
 
-        <button type="button" onClick={onMoveRowUp} className={itemClass}>
-          <Icon name="ArrowUp" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-          <span>Move row up</span>
-        </button>
+        {!isFirstRow && (
+          <>
+            <button type="button" onClick={onMoveRowUp} className={itemClass}>
+              <Icon name="ArrowUp" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+              <span>Move row up</span>
+            </button>
 
-        <button type="button" onClick={onMoveRowDown} className={itemClass}>
-          <Icon name="ArrowDown" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-          <span>Move row down</span>
-        </button>
+            <button type="button" onClick={onMoveRowDown} className={itemClass}>
+              <Icon name="ArrowDown" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+              <span>Move row down</span>
+            </button>
 
-        <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
+            <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
+          </>
+        )}
 
-        <button type="button" onClick={onAddRowBefore} className={itemClass}>
-          <Icon name="ArrowUpToLine" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-          <span>Insert row above</span>
-        </button>
+        {!isFirstRow && (
+          <button type="button" onClick={onAddRowBefore} className={itemClass}>
+            <Icon name="ArrowUpToLine" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+            <span>Insert row above</span>
+          </button>
+        )}
 
         <button type="button" onClick={onAddRowAfter} className={itemClass}>
           <Icon name="ArrowDownToLine" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />

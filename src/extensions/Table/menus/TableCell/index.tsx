@@ -224,11 +224,51 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
     setMenuOpen(false)
   }, [editor])
 
+  const onDeleteRow = useCallback(() => {
+    editor.chain().focus().deleteRow().run()
+    setMenuOpen(false)
+  }, [editor])
+
+  const onDeleteColumn = useCallback(() => {
+    editor.chain().focus().deleteColumn().run()
+    setMenuOpen(false)
+  }, [editor])
+
+  // Context menu listener for right-clicking inside table cells
+  useEffect(() => {
+    const editorDom = editor.view?.dom
+    if (!editorDom) return
+
+    const handleContextMenu = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null
+      const cellEl = target?.closest('td, th') as HTMLElement | null
+      if (!cellEl || !editorDom.contains(cellEl)) return
+
+      e.preventDefault()
+      e.stopPropagation()
+
+      try {
+        const innerPos = editor.view.posAtDOM(cellEl, 0)
+        editor.chain().focus().setTextSelection(innerPos).run()
+      } catch {}
+
+      window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
+      setMenuOpen(true)
+    }
+
+    editorDom.addEventListener('contextmenu', handleContextMenu)
+    return () => {
+      editorDom.removeEventListener('contextmenu', handleContextMenu)
+    }
+  }, [editor])
+
   const canMerge = editor.can().mergeCells()
   const canSplit = editor.can().splitCell()
 
   const itemClass =
     'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none cursor-pointer'
+  const dangerClass =
+    'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-red-600 dark:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 select-none cursor-pointer'
 
   const isExpanded = isBtnHovered || menuOpen
 
@@ -339,6 +379,18 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                       <button type="button" onClick={onClearContents} className={itemClass}>
                         <Icon name="Eraser" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
                         <span>Clear contents</span>
+                      </button>
+
+                      <div className="h-[1px] bg-black/5 dark:bg-white/10 my-0.5" />
+
+                      <button type="button" onClick={onDeleteRow} className={dangerClass}>
+                        <Icon name="Trash2" className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
+                        <span>Delete row</span>
+                      </button>
+
+                      <button type="button" onClick={onDeleteColumn} className={dangerClass}>
+                        <Icon name="Trash2" className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
+                        <span>Delete column</span>
                       </button>
                     </div>
                   </Popover.Content>

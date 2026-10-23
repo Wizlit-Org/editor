@@ -169,22 +169,28 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
           </>
         )}
 
-        <button type="button" onClick={onMoveColumnLeft} className={itemClass}>
-          <Icon name="ArrowLeft" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-          <span>Move column left</span>
-        </button>
+        {!isFirstCol && (
+          <>
+            <button type="button" onClick={onMoveColumnLeft} className={itemClass}>
+              <Icon name="ArrowLeft" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+              <span>Move column left</span>
+            </button>
 
-        <button type="button" onClick={onMoveColumnRight} className={itemClass}>
-          <Icon name="ArrowRight" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-          <span>Move column right</span>
-        </button>
+            <button type="button" onClick={onMoveColumnRight} className={itemClass}>
+              <Icon name="ArrowRight" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+              <span>Move column right</span>
+            </button>
 
-        <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
+            <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
+          </>
+        )}
 
-        <button type="button" onClick={onAddColumnBefore} className={itemClass}>
-          <Icon name="ArrowLeftToLine" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
-          <span>Insert column left</span>
-        </button>
+        {!isFirstCol && (
+          <button type="button" onClick={onAddColumnBefore} className={itemClass}>
+            <Icon name="ArrowLeftToLine" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+            <span>Insert column left</span>
+          </button>
+        )}
 
         <button type="button" onClick={onAddColumnAfter} className={itemClass}>
           <Icon name="ArrowRightToLine" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
