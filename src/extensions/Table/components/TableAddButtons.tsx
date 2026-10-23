@@ -5,7 +5,8 @@ import { TextSelection } from '@tiptap/pm/state'
 import { useTableGrips } from '../hooks/useTableGrips'
 import { TableAddBar } from './TableAddBar'
 import { moveTableColumn, moveTableRow, getMergedColRange, getMergedRowRange } from '../utils/TableDndUtils'
-import { selectColumn, selectRow, findTable } from '../utils'
+import { findTable, isCellSelection } from '../utils'
+import { findSafeDropIndex, selectColRange, selectRowRange, focusTableGrip } from '../utils/TableClusterUtils'
 
 export interface TableAddButtonsProps {
   editor: Editor
@@ -83,70 +84,12 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
     }
   }, [editor, currentTableEl, updateTableRect])
 
-  const onSelectColumn = useCallback(
-    (colIdx: number) => (e: React.MouseEvent) => {
+  const onSelectGrip = useCallback(
+    (type: 'col' | 'row', index: number) => (e: React.MouseEvent) => {
       e.preventDefault()
       e.stopPropagation()
       window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
-
-      try {
-        let tr = editor.state.tr
-        if (!findTable(tr.selection)) {
-          let targetPos = -1
-          if (currentTableEl) {
-            const firstCell = currentTableEl.querySelector('td, th')
-            if (firstCell) {
-              targetPos = editor.view.posAtDOM(firstCell, 0)
-            }
-          }
-          if (targetPos < 0 && tableRect && tableRect.pos >= 0) {
-            targetPos = tableRect.pos + 2
-          }
-          if (targetPos >= 0) {
-            tr = tr.setSelection(TextSelection.near(tr.doc.resolve(targetPos)))
-          }
-        }
-
-        const newTr = selectColumn(colIdx)(tr)
-        editor.view.dispatch(newTr)
-        editor.view.dom.focus({ preventScroll: true })
-      } catch (err) {
-        console.error('Error selecting column:', err)
-      }
-    },
-    [editor, currentTableEl, tableRect],
-  )
-
-  const onSelectRow = useCallback(
-    (rowIdx: number) => (e: React.MouseEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
-
-      try {
-        let tr = editor.state.tr
-        if (!findTable(tr.selection)) {
-          let targetPos = -1
-          if (currentTableEl) {
-            const firstCell = currentTableEl.querySelector('td, th')
-            if (firstCell) {
-              targetPos = editor.view.posAtDOM(firstCell, 0)
-            }
-          }
-          if (targetPos < 0 && tableRect && tableRect.pos >= 0) {
-            targetPos = tableRect.pos + 2
-          }
-          if (targetPos >= 0) {
-            tr = tr.setSelection(TextSelection.near(tr.doc.resolve(targetPos)))
-          }
-        }
-
-        const newTr = selectRow(rowIdx)(tr)
-        editor.view.dispatch(newTr)
-        editor.view.dom.focus({ preventScroll: true })
-      } catch (err) {
-        console.error('Error selecting row:', err)
-      }
+      focusTableGrip(editor, type, index, currentTableEl, tableRect?.pos ?? -1)
     },
     [editor, currentTableEl, tableRect],
   )
@@ -167,10 +110,57 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       const colBundle = type === 'col' && tableNode ? getMergedColRange(tableNode, index) : { start: index, count: 1 }
       const rowBundle = type === 'row' && tableNode ? getMergedRowRange(tableNode, index) : { start: index, count: 1 }
 
+      // Check if clicked grip is already inside current selection
+      let isGripSelected = false
+      const { selection } = editor.state
+      if (isCellSelection(selection) && tableNode) {
+        try {
+          const map = TableMap.get(tableNode)
+          const start = selection.$anchorCell.start(-1)
+          const rect = map.rectBetween(selection.$anchorCell.pos - start, selection.$headCell.pos - start)
+          if (type === 'col') {
+            isGripSelected = rect.bottom - rect.top === map.height && rect.left <= index && index < rect.right
+          } else {
+            isGripSelected = rect.right - rect.left === map.width && rect.top <= index && index < rect.bottom
+          }
+        } catch {}
+      }
+
       const onMouseMove = (moveEvent: MouseEvent) => {
         const dist = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY)
         if (dist > 4) {
           isDragging = true
+
+          // Case A: Unselected grip drag -> real-time multi-range selection
+          if (!isGripSelected && tableNode) {
+            document.body.style.cursor = 'cell'
+            if (type === 'col') {
+              let hoverCol = columnGrips.find(g => moveEvent.clientX >= g.left && moveEvent.clientX <= g.left + g.width)
+              if (!hoverCol && columnGrips.length > 0) {
+                hoverCol = moveEvent.clientX < columnGrips[0].left ? columnGrips[0] : columnGrips[columnGrips.length - 1]
+              }
+              if (hoverCol) {
+                const minC = Math.min(index, hoverCol.index)
+                const maxC = Math.max(index, hoverCol.index)
+                const tr = selectColRange(editor.state.tr, minC, maxC)
+                editor.view.dispatch(tr)
+              }
+            } else {
+              let hoverRow = rowGrips.find(g => moveEvent.clientY >= g.top && moveEvent.clientY <= g.top + g.height)
+              if (!hoverRow && rowGrips.length > 0) {
+                hoverRow = moveEvent.clientY < rowGrips[0].top ? rowGrips[0] : rowGrips[rowGrips.length - 1]
+              }
+              if (hoverRow) {
+                const minR = Math.min(index, hoverRow.index)
+                const maxR = Math.max(index, hoverRow.index)
+                const tr = selectRowRange(editor.state.tr, minR, maxR)
+                editor.view.dispatch(tr)
+              }
+            }
+            return
+          }
+
+          // Case B: Already selected grip drag -> move entire bundle
           document.body.style.cursor = type === 'col' ? 'col-resize' : 'row-resize'
 
           if (type === 'col') {
@@ -190,19 +180,20 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
 
             let bestCol = columnGrips.find(g => moveEvent.clientX >= g.left && moveEvent.clientX <= g.left + g.width)
             if (!bestCol && columnGrips.length > 0) {
-              if (moveEvent.clientX < columnGrips[0].left) bestCol = columnGrips[0]
-              else if (moveEvent.clientX > columnGrips[columnGrips.length - 1].left + columnGrips[columnGrips.length - 1].width) {
-                bestCol = columnGrips[columnGrips.length - 1]
-              }
+              bestCol = moveEvent.clientX < columnGrips[0].left ? columnGrips[0] : columnGrips[columnGrips.length - 1]
             }
-            if (bestCol) {
+            if (bestCol && tableNode) {
               const isRightSide = moveEvent.clientX > bestCol.left + bestCol.width / 2
-              const targetIdx = isRightSide
+              let targetIdx = isRightSide
                 ? (index < bestCol.index ? bestCol.index : Math.min(columnGrips.length - 1, bestCol.index + 1))
                 : (index < bestCol.index ? Math.max(0, bestCol.index - 1) : bestCol.index)
+
+              // Snap to safe cluster boundary
+              targetIdx = findSafeDropIndex(tableNode, 'col', targetIdx)
               pendingTargetIdx = targetIdx
 
-              const lineX = isRightSide ? bestCol.left + bestCol.width : bestCol.left
+              const targetGrip = columnGrips[targetIdx]
+              const lineX = targetGrip ? (isRightSide ? targetGrip.left + targetGrip.width : targetGrip.left) : (isRightSide ? bestCol.left + bestCol.width : bestCol.left)
               setDragIndicator({ type: 'col', left: lineX - 1.5, top: tableRect.top, width: 3, height: tableRect.height })
             } else {
               setDragIndicator(null)
@@ -225,19 +216,20 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
 
             let bestRow = rowGrips.find(g => moveEvent.clientY >= g.top && moveEvent.clientY <= g.top + g.height)
             if (!bestRow && rowGrips.length > 0) {
-              if (moveEvent.clientY < rowGrips[0].top) bestRow = rowGrips[0]
-              else if (moveEvent.clientY > rowGrips[rowGrips.length - 1].top + rowGrips[rowGrips.length - 1].height) {
-                bestRow = rowGrips[rowGrips.length - 1]
-              }
+              bestRow = moveEvent.clientY < rowGrips[0].top ? rowGrips[0] : rowGrips[rowGrips.length - 1]
             }
-            if (bestRow) {
+            if (bestRow && tableNode) {
               const isBottomSide = moveEvent.clientY > bestRow.top + bestRow.height / 2
-              const targetIdx = isBottomSide
+              let targetIdx = isBottomSide
                 ? (index < bestRow.index ? bestRow.index : Math.min(rowGrips.length - 1, bestRow.index + 1))
                 : (index < bestRow.index ? Math.max(0, bestRow.index - 1) : bestRow.index)
+
+              // Snap to safe cluster boundary
+              targetIdx = findSafeDropIndex(tableNode, 'row', targetIdx)
               pendingTargetIdx = targetIdx
 
-              const lineY = isBottomSide ? bestRow.top + bestRow.height : bestRow.top
+              const targetGrip = rowGrips[targetIdx]
+              const lineY = targetGrip ? (isBottomSide ? targetGrip.top + targetGrip.height : targetGrip.top) : (isBottomSide ? bestRow.top + bestRow.height : bestRow.top)
               setDragIndicator({ type: 'row', left: tableRect.left, top: lineY - 1.5, width: tableRect.width, height: 3 })
             } else {
               setDragIndicator(null)
@@ -255,19 +247,22 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         setDraggingSource(null)
         setDragGhost(null)
 
-        if (isDragging && pendingTargetIdx >= 0 && pendingTargetIdx !== index) {
-          if (type === 'col') {
-            moveTableColumn(editor, tableRect.pos, index, pendingTargetIdx)
-            setTimeout(updateTableRect, 50)
-          } else {
-            moveTableRow(editor, tableRect.pos, index, pendingTargetIdx)
+        if (isDragging) {
+          if (isGripSelected && pendingTargetIdx >= 0 && pendingTargetIdx !== index) {
+            if (type === 'col') {
+              moveTableColumn(editor, tableRect.pos, index, pendingTargetIdx)
+            } else {
+              moveTableRow(editor, tableRect.pos, index, pendingTargetIdx)
+            }
             setTimeout(updateTableRect, 50)
           }
-        } else if (!isDragging) {
-          if (type === 'col') {
-            onSelectColumn(index)(e)
+          window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
+        } else {
+          // Click action: select row/col if not selected, or keep selection and trigger menu
+          if (!isGripSelected) {
+            onSelectGrip(type, index)(e)
           } else {
-            onSelectRow(index)(e)
+            window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
           }
         }
       }
@@ -275,7 +270,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       window.addEventListener('mousemove', onMouseMove)
       window.addEventListener('mouseup', onMouseUp)
     },
-    [editor, tableRect, columnGrips, rowGrips, updateTableRect, onSelectColumn, onSelectRow],
+    [editor, tableRect, columnGrips, rowGrips, updateTableRect, onSelectGrip],
   )
 
   const onAddColumnAtEnd = useCallback(

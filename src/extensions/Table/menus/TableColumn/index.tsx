@@ -5,12 +5,16 @@ import { Icon } from '@/components/ui/Icon'
 import { MenuProps, ShouldShowProps } from '@/components/menus/types'
 import {
   getSelectedColumnIndex,
+  getSelectedColRange,
   moveColumnLeft,
   moveColumnRight,
   clearColumnContents,
   sortColumn,
   duplicateColumn,
+  deleteColumn,
 } from './columnActions'
+import { findTable } from '../../utils'
+import { TableMap } from '@tiptap/pm/tables'
 import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
 import { getColumnAnchorVirtualElement } from '../useTableMenuPosition'
 import { DeleteColumnIcon } from '../../components/TableActionIcons'
@@ -90,11 +94,27 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
   }, [editor])
 
   const onAddColumnBefore = useCallback(() => {
-    editor.chain().focus().addColumnBefore().run()
+    const range = getSelectedColRange(editor)
+    const table = findTable(editor.state.selection)
+    if (table) {
+      const map = TableMap.get(table.node)
+      const targetPos = table.start + map.map[range.min]
+      editor.chain().focus().setTextSelection(targetPos + 1).addColumnBefore().run()
+    } else {
+      editor.chain().focus().addColumnBefore().run()
+    }
   }, [editor])
 
   const onAddColumnAfter = useCallback(() => {
-    editor.chain().focus().addColumnAfter().run()
+    const range = getSelectedColRange(editor)
+    const table = findTable(editor.state.selection)
+    if (table) {
+      const map = TableMap.get(table.node)
+      const targetPos = table.start + map.map[range.max]
+      editor.chain().focus().setTextSelection(targetPos + 1).addColumnAfter().run()
+    } else {
+      editor.chain().focus().addColumnAfter().run()
+    }
   }, [editor])
 
   const onSortAsc = useCallback(() => {
@@ -118,7 +138,7 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
   }, [editor])
 
   const onDeleteColumn = useCallback(() => {
-    editor.chain().focus().deleteColumn().run()
+    deleteColumn(editor)
   }, [editor])
 
   const onToggleHeaderColumn = useCallback(() => {

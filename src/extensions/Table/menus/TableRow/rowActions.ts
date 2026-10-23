@@ -2,17 +2,23 @@ import { Editor } from '@tiptap/react'
 import { TableMap } from '@tiptap/pm/tables'
 import { findTable, isCellSelection } from '../../utils'
 import { moveTableRow } from '../../utils/TableDndUtils'
+import {
+  getClusterRowRange,
+  duplicateRowCluster,
+  deleteRowCluster,
+  findJumpMoveIndex,
+} from '../../utils/TableClusterUtils'
 
-export const getSelectedRowIndex = (editor: Editor): number => {
+export const getSelectedRowRange = (editor: Editor): { min: number; max: number } => {
   const { selection } = editor.state
   const table = findTable(selection)
-  if (!table) return -1
+  if (!table) return { min: 0, max: 0 }
 
   const map = TableMap.get(table.node)
   if (isCellSelection(selection)) {
     const start = selection.$anchorCell.start(-1)
-    const rect = map.findCell(selection.$anchorCell.pos - start)
-    return rect.top
+    const rect = map.rectBetween(selection.$anchorCell.pos - start, selection.$headCell.pos - start)
+    return { min: rect.top, max: rect.bottom - 1 }
   }
 
   const $pos = selection.$from
@@ -21,11 +27,16 @@ export const getSelectedRowIndex = (editor: Editor): number => {
     if (n.type.spec.tableRole === 'cell' || n.type.spec.tableRole === 'header_cell') {
       const cellPos = $pos.before(d)
       const rect = map.findCell(cellPos - table.start)
-      return rect.top
+      const cluster = getClusterRowRange(table.node, rect.top)
+      return { min: cluster.start, max: cluster.start + cluster.count - 1 }
     }
   }
 
-  return 0
+  return { min: 0, max: 0 }
+}
+
+export const getSelectedRowIndex = (editor: Editor): number => {
+  return getSelectedRowRange(editor).min
 }
 
 export const clearRowContents = (editor: Editor, rowIndex: number) => {
@@ -34,13 +45,15 @@ export const clearRowContents = (editor: Editor, rowIndex: number) => {
   if (!table) return
 
   const map = TableMap.get(table.node)
-  if (rowIndex < 0 || rowIndex >= map.height) return
+  const range = getSelectedRowRange(editor)
+  const fromRow = Math.max(0, Math.min(rowIndex, range.min))
+  const toRow = Math.min(map.height - 1, Math.max(rowIndex, range.max))
 
   const cells = map.cellsInRect({
     left: 0,
     right: map.width,
-    top: rowIndex,
-    bottom: rowIndex + 1,
+    top: fromRow,
+    bottom: toRow + 1,
   })
 
   const { tr } = state
@@ -58,31 +71,17 @@ export const clearRowContents = (editor: Editor, rowIndex: number) => {
 }
 
 export const duplicateRow = (editor: Editor, rowIndex: number) => {
-  const { state, view } = editor
-  const table = findTable(state.selection)
-  if (!table) return
+  const range = getSelectedRowRange(editor)
+  const min = Math.min(rowIndex, range.min)
+  const max = Math.max(rowIndex, range.max)
+  duplicateRowCluster(editor, min, max)
+}
 
-  const rows: any[] = []
-  table.node.forEach(row => rows.push(row))
-  if (rowIndex < 0 || rowIndex >= rows.length) return
-
-  const targetRow = rows[rowIndex]
-  const cellType = state.schema.nodes.tableCell || targetRow.type
-
-  // Deep clone all cells in target row with contents and attributes
-  const clonedCells: any[] = []
-  targetRow.forEach((cell: any) => {
-    // If duplicating a header row, convert duplicated cells to regular tableCells
-    const targetType = cell.type.spec.tableRole === 'header_cell' ? cellType : cell.type
-    const cloned = targetType.create(cell.attrs, cell.content)
-    clonedCells.push(cloned)
-  })
-
-  const newRow = targetRow.type.create(targetRow.attrs, clonedCells)
-  const newRows = [...rows.slice(0, rowIndex + 1), newRow, ...rows.slice(rowIndex + 1)]
-  const newTable = table.node.type.create(table.node.attrs, newRows)
-  const tr = state.tr.replaceWith(table.pos, table.pos + table.node.nodeSize, newTable)
-  view.dispatch(tr)
+export const deleteRow = (editor: Editor, rowIndex?: number) => {
+  const range = getSelectedRowRange(editor)
+  const min = typeof rowIndex === 'number' ? Math.min(rowIndex, range.min) : range.min
+  const max = typeof rowIndex === 'number' ? Math.max(rowIndex, range.max) : range.max
+  deleteRowCluster(editor, min, max)
 }
 
 export const setRowAlignment = (
@@ -99,31 +98,38 @@ export const setRowAlignment = (
   table.node.forEach(row => rows.push(row))
   if (rowIndex < 0 || rowIndex >= rows.length) return
 
-  const targetRow = rows[rowIndex]
-  const updatedCells: any[] = []
-  targetRow.forEach((cell: any) => {
-    const newAttrs = { ...cell.attrs, [type]: value }
-    updatedCells.push(cell.type.create(newAttrs, cell.content))
-  })
+  const range = getSelectedRowRange(editor)
+  for (let r = range.min; r <= range.max; r++) {
+    const targetRow = rows[r]
+    const updatedCells: any[] = []
+    targetRow.forEach((cell: any) => {
+      const newAttrs = { ...cell.attrs, [type]: value }
+      updatedCells.push(cell.type.create(newAttrs, cell.content))
+    })
+    rows[r] = targetRow.type.create(targetRow.attrs, updatedCells)
+  }
 
-  rows[rowIndex] = targetRow.type.create(targetRow.attrs, updatedCells)
   const newTable = table.node.type.create(table.node.attrs, rows)
   const tr = state.tr.replaceWith(table.pos, table.pos + table.node.nodeSize, newTable)
   view.dispatch(tr)
 }
 
 export const moveRowUp = (editor: Editor, rowIndex: number) => {
-  if (rowIndex <= 0) return
   const table = findTable(editor.state.selection)
   if (!table) return
-  moveTableRow(editor, table.pos, rowIndex, rowIndex - 1)
+  const range = getSelectedRowRange(editor)
+  const targetIdx = findJumpMoveIndex(table.node, 'row', range.min, 'prev')
+  if (targetIdx >= 0) {
+    moveTableRow(editor, table.pos, range.min, targetIdx)
+  }
 }
 
 export const moveRowDown = (editor: Editor, rowIndex: number) => {
   const table = findTable(editor.state.selection)
   if (!table) return
-  const map = TableMap.get(table.node)
-  if (rowIndex < 0 || rowIndex >= map.height - 1) return
-  moveTableRow(editor, table.pos, rowIndex, rowIndex + 1)
+  const range = getSelectedRowRange(editor)
+  const targetIdx = findJumpMoveIndex(table.node, 'row', range.min, 'next')
+  if (targetIdx >= 0) {
+    moveTableRow(editor, table.pos, range.min, targetIdx)
+  }
 }
-

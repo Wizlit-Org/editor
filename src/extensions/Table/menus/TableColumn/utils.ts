@@ -3,14 +3,13 @@ import { EditorState } from '@tiptap/pm/state'
 import { EditorView } from '@tiptap/pm/view'
 import { TableMap } from '@tiptap/pm/tables'
 
-import { isCellSelection, isColumnSelected, isTableSelected } from '../../utils'
+import { isCellSelection, isTableSelected } from '../../utils'
 import { Table } from '../..'
 
 export const isColumnGripSelected = ({
   editor,
   view,
   state,
-  from,
 }: {
   editor: Editor
   view: EditorView
@@ -33,14 +32,15 @@ export const isColumnGripSelected = ({
     return false
   }
 
-  // 3. Ensure it's purely a single column selection
+  // 3. Column selection is active if all rows are selected across 1 or more columns (single, merged, or multi-col)
   if (isCellSelection(selection)) {
     try {
       const map = TableMap.get(selection.$anchorCell.node(-1))
       const start = selection.$anchorCell.start(-1)
       const rect = map.rectBetween(selection.$anchorCell.pos - start, selection.$headCell.pos - start)
-      const isSingleCol = rect.right - rect.left === 1 && rect.bottom - rect.top === map.height
-      return isSingleCol
+      const isFullHeight = rect.bottom - rect.top === map.height
+      const isNotFullTable = rect.right - rect.left < map.width
+      return isFullHeight && isNotFullTable
     } catch {
       return false
     }

@@ -5,11 +5,15 @@ import { Icon } from '@/components/ui/Icon'
 import { MenuProps, ShouldShowProps } from '@/components/menus/types'
 import {
   getSelectedRowIndex,
+  getSelectedRowRange,
   moveRowUp,
   moveRowDown,
   clearRowContents,
   duplicateRow,
+  deleteRow,
 } from './rowActions'
+import { findTable } from '../../utils'
+import { TableMap } from '@tiptap/pm/tables'
 import { getRowAnchorVirtualElement } from '../useTableMenuPosition'
 import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
 import { DeleteRowIcon } from '../../components/TableActionIcons'
@@ -88,11 +92,27 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
   }, [editor])
 
   const onAddRowBefore = useCallback(() => {
-    editor.chain().focus().addRowBefore().run()
+    const range = getSelectedRowRange(editor)
+    const table = findTable(editor.state.selection)
+    if (table) {
+      const map = TableMap.get(table.node)
+      const targetPos = table.start + map.map[range.min * map.width]
+      editor.chain().focus().setTextSelection(targetPos + 1).addRowBefore().run()
+    } else {
+      editor.chain().focus().addRowBefore().run()
+    }
   }, [editor])
 
   const onAddRowAfter = useCallback(() => {
-    editor.chain().focus().addRowAfter().run()
+    const range = getSelectedRowRange(editor)
+    const table = findTable(editor.state.selection)
+    if (table) {
+      const map = TableMap.get(table.node)
+      const targetPos = table.start + map.map[range.max * map.width]
+      editor.chain().focus().setTextSelection(targetPos + 1).addRowAfter().run()
+    } else {
+      editor.chain().focus().addRowAfter().run()
+    }
   }, [editor])
 
   const onDuplicate = useCallback(() => {
@@ -110,7 +130,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
   }, [editor])
 
   const onDeleteRow = useCallback(() => {
-    editor.chain().focus().deleteRow().run()
+    deleteRow(editor)
   }, [editor])
 
   const onDeleteTable = useCallback(() => {
