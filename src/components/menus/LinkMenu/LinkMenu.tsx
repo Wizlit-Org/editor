@@ -16,20 +16,44 @@ export const LinkMenu = ({
   const [showEdit, setShowEdit] = useState(false)
   const [isClosedByScroll, setIsClosedByScroll] = useState(false)
   const isClosedByScrollRef = useRef(false)
+  const prevLinkRef = useRef<string | null>(null)
+
   const { link, target } = useEditorState({
     editor,
     selector: ctx => {
       const attrs = ctx.editor.getAttributes('link')
-      return { link: attrs.href, target: attrs.target }
+      if (attrs?.href) {
+        return { link: attrs.href as string, target: attrs.target as string }
+      }
+      // Fallback for cursor at boundary edges: check $from marks or adjacent nodes
+      try {
+        const { $from } = ctx.editor.state.selection
+        const mark =
+          $from.marks().find(m => m.type.name === 'link') ||
+          $from.nodeBefore?.marks?.find(m => m.type.name === 'link') ||
+          $from.nodeAfter?.marks?.find(m => m.type.name === 'link')
+        if (mark) {
+          return { link: mark.attrs.href as string, target: mark.attrs.target as string }
+        }
+      } catch {}
+      return { link: '', target: '' }
     },
   })
 
-  // Close edit panel when selection moves away from link (only when not in active edit mode)
+  // When active link changes or selection moves away from link, reset showEdit to false
   useEffect(() => {
-    if (!showEdit && !editor.isActive('link')) {
+    if (link !== prevLinkRef.current) {
+      prevLinkRef.current = link || null
       setShowEdit(false)
     }
-  }, [editor, editor.state.selection, showEdit])
+  }, [link])
+
+  // Close edit panel when selection moves away from link
+  useEffect(() => {
+    if (!editor.isActive('link')) {
+      setShowEdit(false)
+    }
+  }, [editor, editor.state.selection])
 
   // Reset scroll lock on editor interaction
   useEffect(() => {
@@ -91,29 +115,37 @@ export const LinkMenu = ({
 
   // Extract current link text from the editor document
   const currentLinkText = useMemo(() => {
-    if (!editor.isActive('link')) return ''
     try {
       const { state } = editor
-      const { from, to } = state.selection
+      const { from, to, $from } = state.selection
       const markType = state.schema.marks.link
       if (!markType) return ''
 
-      let linkFrom = from
-      let linkTo = to
+      // If user has a non-empty text selection, return that text
+      if (from !== to) {
+        return state.doc.textBetween(from, to)
+      }
 
+      // Find the exact link node at cursor
+      const node =
+        $from.parent.childAfter($from.parentOffset).node ||
+        $from.parent.childBefore($from.parentOffset).node
+      if (node && node.marks?.some(m => m.type === markType) && node.text) {
+        return node.text
+      }
+
+      let linkText = ''
       state.doc.nodesBetween(
-        Math.max(0, from - 1),
-        Math.min(state.doc.content.size, to + 1),
-        (node, pos) => {
-          const mark = node.marks?.find(m => m.type === markType)
-          if (mark) {
-            linkFrom = Math.min(linkFrom, pos)
-            linkTo = Math.max(linkTo, pos + node.nodeSize)
+        Math.max(0, from - 2),
+        Math.min(state.doc.content.size, to + 2),
+        n => {
+          const mark = n.marks?.find(m => m.type === markType)
+          if (mark && n.text && !linkText) {
+            linkText = n.text
           }
         },
       )
-
-      return state.doc.textBetween(linkFrom, linkTo)
+      return linkText
     } catch {
       return ''
     }

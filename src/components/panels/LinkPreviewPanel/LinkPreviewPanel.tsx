@@ -220,6 +220,8 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
                 type="button"
                 onMouseDown={e => {
                   e.preventDefault()
+                  e.stopPropagation()
+                  onEdit?.()
                 }}
                 onClick={e => {
                   e.preventDefault()
@@ -237,6 +239,7 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
                 onMouseDown={e => {
                   e.preventDefault()
                   e.stopPropagation()
+                  onClear?.()
                 }}
                 onClick={e => {
                   e.preventDefault()

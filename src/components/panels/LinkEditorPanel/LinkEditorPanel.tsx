@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { Icon } from '@/components/ui/Icon'
 import { Surface } from '@/components/ui/Surface'
 
@@ -28,6 +28,18 @@ export const useLinkEditorState = ({
   const [url, setUrl] = useState(initialUrl || '')
   const [text, setText] = useState(initialText || '')
   const [openInNewTab, setOpenInNewTab] = useState(initialOpenInNewTab)
+
+  useEffect(() => {
+    setUrl(initialUrl || '')
+  }, [initialUrl])
+
+  useEffect(() => {
+    setText(initialText || '')
+  }, [initialText])
+
+  useEffect(() => {
+    setOpenInNewTab(initialOpenInNewTab ?? true)
+  }, [initialOpenInNewTab])
 
   const onUrlChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setUrl(event.target.value)
