@@ -282,10 +282,18 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
               </div>
             )}
 
-            {/* Skeleton fallback only when NO src exists yet */}
-            {isLoading && !src && !hasError && (
-              <div className="w-full aspect-video min-h-[160px] max-h-[320px] rounded-xl bg-zinc-100 dark:bg-zinc-800/50 animate-pulse flex items-center justify-center border border-dashed border-zinc-300 dark:border-zinc-700">
-                <Icon name="Image" className="w-6 h-6 text-zinc-400 animate-pulse" />
+            {/* Skeleton fallback during loading and uploading */}
+            {(isLoading || isUploading) && !hasError && (
+              <div className="w-full aspect-video min-h-[180px] max-h-[360px] rounded-lg bg-black/[0.03] dark:bg-white/[0.04] backdrop-blur-md animate-pulse flex flex-col items-center justify-center border border-dashed border-black/10 dark:border-white/10 gap-2 p-6 z-[2]">
+                <Icon name="Image" className="w-8 h-8 text-zinc-400 dark:text-zinc-500 animate-pulse" />
+                <div className="flex flex-col items-center gap-0.5 text-center">
+                  <span className="text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                    {isUploading ? '이미지 업로드 중...' : '이미지 불러오는 중...'}
+                  </span>
+                  <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                    잠시만 기다려주세요
+                  </span>
+                </div>
               </div>
             )}
 
@@ -304,8 +312,8 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
                 }}
                 style={{ margin: 0, padding: 0, display: 'block', width: '100%', height: 'auto' }}
                 className={cn(
-                  'block w-full min-w-full h-auto rounded-lg object-contain !m-0 !p-0 transition-all duration-200',
-                  isLoading && !src ? 'opacity-0 h-0 overflow-hidden absolute pointer-events-none' : 'opacity-100',
+                  'block w-full min-w-full h-auto rounded-lg object-contain !m-0 !p-0 transition-opacity duration-200',
+                  isLoading || isUploading ? 'opacity-0 h-0 overflow-hidden absolute pointer-events-none' : 'opacity-100',
                   !editorEditable ? 'cursor-pointer' : '',
                 )}
                 draggable={editorEditable}
@@ -348,7 +356,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
           </div>
 
           {/* Notion-style 10px Padded Symmetric Glass Ring Overlay (Dismissed immediately on mouseleave) */}
-          {!hasError && !isLoading && (
+          {!hasError && !isLoading && !isUploading && (
             <div
               className={cn(
                 'pointer-events-none absolute -inset-[10px] rounded-xl ring-2 ring-black/20 dark:ring-white/30 bg-black/[0.02] dark:bg-white/[0.03] transition-opacity duration-150 z-10',
@@ -358,7 +366,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
           )}
 
           {/* Floating '+ 캡션 추가' Button on Hover */}
-          {editorEditable && !showCaption && !hasError && !isLoading && (
+          {editorEditable && !showCaption && !hasError && !isLoading && !isUploading && (
             <button
               type="button"
               onClick={handleAddCaption}
@@ -373,7 +381,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
           )}
 
           {/* Frosted Glassmorphism Left Pill Resize Handle */}
-          {editorEditable && !hasError && !isLoading && (
+          {editorEditable && !hasError && !isLoading && !isUploading && (
             <div
               onMouseDown={handleResizeStart('left')}
               className={cn(
@@ -388,7 +396,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
           )}
 
           {/* Frosted Glassmorphism Right Pill Resize Handle */}
-          {editorEditable && !hasError && !isLoading && (
+          {editorEditable && !hasError && !isLoading && !isUploading && (
             <div
               onMouseDown={handleResizeStart('right')}
               className={cn(
