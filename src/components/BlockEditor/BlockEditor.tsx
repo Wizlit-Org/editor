@@ -303,7 +303,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
         </div>
       )}
 
-      {!image?.disableBuiltInUploadDialog && !readOnly && (
+      {image?.disableBuiltInUploadDialog === false && !readOnly && (
         <UploadListDialog
           {...uploadDialog}
           className="fixed bottom-4 right-4"
