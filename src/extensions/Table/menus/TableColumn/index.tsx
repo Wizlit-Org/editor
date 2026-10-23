@@ -215,8 +215,8 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
           </button>
         </div>
 
-        {/* 2. Submenu for detailed Vertical Alignment */}
-        <TableAlignmentSubmenu editor={editor} />
+        {/* 2. Submenu for detailed Alignment */}
+        <TableAlignmentSubmenu editor={editor} scope="column" index={selectedColIdx} />
 
         <div className="h-[1px] bg-black/5 dark:bg-white/10 my-0.5" />
 

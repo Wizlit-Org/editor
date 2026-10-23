@@ -11,6 +11,7 @@ import {
   duplicateRow,
 } from './rowActions'
 import { getRowAnchorVirtualElement } from '../useTableMenuPosition'
+import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
 import { cn } from '@/lib/utils'
 
 const TABLE_ROW_MENU_OPTIONS = {
@@ -179,6 +180,12 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
           <Icon name="Eraser" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
           <span>Clear contents</span>
         </button>
+
+        <TableAlignmentSubmenu
+          editor={editor}
+          scope="row"
+          index={getSelectedRowIndex(editor)}
+        />
 
         <button type="button" onClick={onDuplicate} className={itemClass}>
           <Icon name="Copy" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />

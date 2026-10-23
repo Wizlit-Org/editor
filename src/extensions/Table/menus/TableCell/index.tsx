@@ -378,8 +378,8 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                         </button>
                       </div>
 
-                      {/* 2. Submenu for detailed Vertical Alignment */}
-                      <TableAlignmentSubmenu editor={editor} onClose={() => setMenuOpen(false)} />
+                      {/* 2. Submenu for detailed Alignment */}
+                      <TableAlignmentSubmenu editor={editor} scope="cell" onClose={() => setMenuOpen(false)} />
 
                       <div className="h-[1px] bg-black/5 dark:bg-white/10 my-0.5" />
 

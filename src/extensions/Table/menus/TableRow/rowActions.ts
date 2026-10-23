@@ -57,7 +57,58 @@ export const clearRowContents = (editor: Editor, rowIndex: number) => {
 }
 
 export const duplicateRow = (editor: Editor, rowIndex: number) => {
-  editor.chain().focus().addRowAfter().run()
+  const { state, view } = editor
+  const table = findTable(state.selection)
+  if (!table) return
+
+  const rows: any[] = []
+  table.node.forEach(row => rows.push(row))
+  if (rowIndex < 0 || rowIndex >= rows.length) return
+
+  const targetRow = rows[rowIndex]
+  const cellType = state.schema.nodes.tableCell || targetRow.type
+
+  // Deep clone all cells in target row with contents and attributes
+  const clonedCells: any[] = []
+  targetRow.forEach((cell: any) => {
+    // If duplicating a header row, convert duplicated cells to regular tableCells
+    const targetType = cell.type.spec.tableRole === 'header_cell' ? cellType : cell.type
+    const cloned = targetType.create(cell.attrs, cell.content)
+    clonedCells.push(cloned)
+  })
+
+  const newRow = targetRow.type.create(targetRow.attrs, clonedCells)
+  const newRows = [...rows.slice(0, rowIndex + 1), newRow, ...rows.slice(rowIndex + 1)]
+  const newTable = table.node.type.create(table.node.attrs, newRows)
+  const tr = state.tr.replaceWith(table.pos, table.pos + table.node.nodeSize, newTable)
+  view.dispatch(tr)
+}
+
+export const setRowAlignment = (
+  editor: Editor,
+  rowIndex: number,
+  type: 'textAlign' | 'verticalAlign',
+  value: string,
+) => {
+  const { state, view } = editor
+  const table = findTable(state.selection)
+  if (!table) return
+
+  const rows: any[] = []
+  table.node.forEach(row => rows.push(row))
+  if (rowIndex < 0 || rowIndex >= rows.length) return
+
+  const targetRow = rows[rowIndex]
+  const updatedCells: any[] = []
+  targetRow.forEach((cell: any) => {
+    const newAttrs = { ...cell.attrs, [type]: value }
+    updatedCells.push(cell.type.create(newAttrs, cell.content))
+  })
+
+  rows[rowIndex] = targetRow.type.create(targetRow.attrs, updatedCells)
+  const newTable = table.node.type.create(table.node.attrs, rows)
+  const tr = state.tr.replaceWith(table.pos, table.pos + table.node.nodeSize, newTable)
+  view.dispatch(tr)
 }
 
 export const moveRowUp = (editor: Editor, rowIndex: number) => {

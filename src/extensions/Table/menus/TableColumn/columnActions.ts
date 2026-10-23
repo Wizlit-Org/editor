@@ -110,7 +110,60 @@ export const sortColumn = (editor: Editor, colIndex: number, direction: 'asc' | 
 }
 
 export const duplicateColumn = (editor: Editor, colIndex: number) => {
-  editor.chain().focus().addColumnAfter().run()
+  const { state, view } = editor
+  const table = findTable(state.selection)
+  if (!table) return
+
+  const map = TableMap.get(table.node)
+  if (colIndex < 0 || colIndex >= map.width) return
+
+  const newRows: any[] = []
+  table.node.forEach(rowNode => {
+    const cells: any[] = []
+    rowNode.forEach(cell => cells.push(cell))
+    if (colIndex < cells.length) {
+      const targetCell = cells[colIndex]
+      const clonedCell = targetCell.type.create(targetCell.attrs, targetCell.content)
+      cells.splice(colIndex + 1, 0, clonedCell)
+    }
+    newRows.push(rowNode.type.create(rowNode.attrs, cells))
+  })
+
+  const newTable = table.node.type.create(table.node.attrs, newRows)
+  const tr = state.tr.replaceWith(table.pos, table.pos + table.node.nodeSize, newTable)
+  view.dispatch(tr)
+}
+
+export const setColumnAlignment = (
+  editor: Editor,
+  colIndex: number,
+  type: 'textAlign' | 'verticalAlign',
+  value: string,
+) => {
+  const { state, view } = editor
+  const table = findTable(state.selection)
+  if (!table) return
+
+  const map = TableMap.get(table.node)
+  if (colIndex < 0 || colIndex >= map.width) return
+
+  const newRows: any[] = []
+  table.node.forEach(rowNode => {
+    const cells: any[] = []
+    rowNode.forEach((cell, _, cIdx) => {
+      if (cIdx === colIndex) {
+        const newAttrs = { ...cell.attrs, [type]: value }
+        cells.push(cell.type.create(newAttrs, cell.content))
+      } else {
+        cells.push(cell)
+      }
+    })
+    newRows.push(rowNode.type.create(rowNode.attrs, cells))
+  })
+
+  const newTable = table.node.type.create(table.node.attrs, newRows)
+  const tr = state.tr.replaceWith(table.pos, table.pos + table.node.nodeSize, newTable)
+  view.dispatch(tr)
 }
 
 export const moveColumnLeft = (editor: Editor, colIndex: number) => {
