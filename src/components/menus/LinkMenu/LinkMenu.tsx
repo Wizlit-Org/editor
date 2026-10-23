@@ -61,7 +61,9 @@ export const LinkMenu = ({
   })
 
   // When active link changes or selection moves away from link, reset showEdit to false
+  // Skip reset if already in active edit mode to eliminate race-condition closing
   useEffect(() => {
+    if (showEditRef.current) return
     if (link !== prevLinkRef.current) {
       prevLinkRef.current = link || null
       setEditMode(false)
@@ -69,7 +71,9 @@ export const LinkMenu = ({
   }, [link, setEditMode])
 
   // Close edit panel when selection moves away from link completely
+  // Skip while in edit mode so minor selection adjustments during editing don't close the panel
   useEffect(() => {
+    if (showEditRef.current) return
     if (!checkIsLinkActive()) {
       setEditMode(false)
     }
@@ -122,18 +126,72 @@ export const LinkMenu = ({
 
   const editable = editor.isEditable
 
-  const handleEdit = useCallback(() => {
+  // Safe mark range extension supporting split text nodes, hashes, and image URLs
+  const safeExtendLinkRange = useCallback(() => {
     try {
-      editor.chain().focus().extendMarkRange('link').run()
-    } catch {}
+      const { state } = editor
+      const { selection, schema } = state
+      const linkType = schema.marks.link
+      if (!linkType) {
+        editor.chain().focus().extendMarkRange('link').run()
+        return
+      }
+
+      const { from, to, $from } = selection
+      const markFound =
+        $from.marks().find(m => m.type === linkType) ||
+        $from.nodeBefore?.marks?.find(m => m.type === linkType) ||
+        $from.nodeAfter?.marks?.find(m => m.type === linkType)
+
+      const targetHref = markFound?.attrs?.href
+
+      let startPos = from
+      let endPos = to
+
+      // Scan contiguous nodes within parent that share the link mark
+      if ($from.parent) {
+        const parentStart = $from.start()
+        $from.parent.forEach((child, offset) => {
+          const childMark = child.marks?.find(m => m.type === linkType)
+          if (childMark && (!targetHref || childMark.attrs?.href === targetHref)) {
+            const nodeStart = parentStart + offset
+            const nodeEnd = nodeStart + child.nodeSize
+            if (
+              (from >= nodeStart && from <= nodeEnd) ||
+              (to >= nodeStart && to <= nodeEnd) ||
+              (nodeStart >= from && nodeEnd <= to) ||
+              Math.abs(from - nodeEnd) <= 1 ||
+              Math.abs(to - nodeStart) <= 1
+            ) {
+              startPos = Math.min(startPos, nodeStart)
+              endPos = Math.max(endPos, nodeEnd)
+            }
+          }
+        })
+      }
+
+      if (startPos < endPos) {
+        editor.chain().focus().setTextSelection({ from: startPos, to: endPos }).run()
+      } else {
+        editor.chain().focus().extendMarkRange('link').run()
+      }
+    } catch {
+      try {
+        editor.chain().focus().extendMarkRange('link').run()
+      } catch {}
+    }
+  }, [editor])
+
+  const handleEdit = useCallback(() => {
     setEditMode(true)
+    safeExtendLinkRange()
     requestAnimationFrame(() => {
       try {
         editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'show'))
         editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'updatePosition'))
       } catch {}
     })
-  }, [editor, setEditMode])
+  }, [editor, setEditMode, safeExtendLinkRange])
 
   // Extract current link text from the editor document
   const currentLinkText = useMemo(() => {
