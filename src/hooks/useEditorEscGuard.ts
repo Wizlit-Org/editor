@@ -5,8 +5,8 @@ import { isCellSelection } from '@/extensions/Table/utils'
 /**
  * Global Escape Key Guard for Block Editor
  * Captures the 'Escape' key before parent dialogs/modals can receive it.
- * If any editor popover, menu, slash-command list, or table-cell selection is active,
- * it closes the editor popover/selection and stops propagation to protect the outer modal.
+ * If any editor popover, menu, slash-command list, table drag, or table-cell selection is active,
+ * it safely handles the cancellation and stops propagation to protect the outer modal.
  */
 export function useEditorEscGuard(editor: Editor | null) {
   useEffect(() => {
@@ -14,6 +14,20 @@ export function useEditorEscGuard(editor: Editor | null) {
 
     const handleKeyDownCapture = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
+
+      // 0. Check if any drag or resizing is currently active
+      const isDragging = Boolean((window as any).__isTableDragging || editor.view?.dragging)
+      const isResizing = Boolean(document.querySelector('table.resizing, .column-resize-handle.active'))
+
+      if (isDragging || isResizing) {
+        e.preventDefault()
+        e.stopPropagation()
+        e.stopImmediatePropagation()
+        window.dispatchEvent(new CustomEvent('tiptap:cancel-drag'))
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }))
+        window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }))
+        return
+      }
 
       // 1. Check for open Radix Popover or Floating menus
       const hasOpenRadixPopper = Boolean(

@@ -49,9 +49,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
     const handleMouseDown = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null
       if (!target?.closest) return
-      const handleEl = target.closest('.column-resize-handle') as HTMLElement | null
-      const cellEl = target.closest('td, th') as HTMLElement | null
-      const isResize = handleEl || (cellEl && Math.abs(e.clientX - cellEl.getBoundingClientRect().right) <= 8)
+      const isResize = target.closest('.column-resize-handle') || (target.closest('td, th') && Math.abs(e.clientX - target.closest('td, th')!.getBoundingClientRect().right) <= 8)
 
       if (isResize && currentTableEl) {
         currentTableEl.classList.add('resizing')
@@ -96,8 +94,8 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       if (!tableNode) return
 
       const isGripSelected = isGripInCurrentSelection(editor, type, index)
+      const initialSelection = editor.state.selection
 
-      // Calculate exact selected range [start..end] (AC ②)
       let start = index
       let end = index
       if (isGripSelected && isCellSelection(editor.state.selection)) {
@@ -118,29 +116,36 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         } catch {}
       }
 
-      // Check if selected range contains any merged cells (AC ②)
-      const hasMerged =
-        type === 'col'
-          ? hasMergedCellsInColSelection(tableNode, start, end)
-          : hasMergedCellsInRowSelection(tableNode, start, end)
-
+      const hasMerged = type === 'col'
+        ? hasMergedCellsInColSelection(tableNode, start, end)
+        : hasMergedCellsInRowSelection(tableNode, start, end)
       const count = end - start + 1
+      ;(window as any).__isTableDragging = true
 
       const cleanUpDrag = () => {
+        ;(window as any).__isTableDragging = false
         window.removeEventListener('mousemove', onMouseMove)
         window.removeEventListener('mouseup', onMouseUp)
-        window.removeEventListener('keydown', onKeyDown, true)
+        window.removeEventListener('keydown', onKeyDown, { capture: true })
+        window.removeEventListener('tiptap:cancel-drag', handleCancelDrag)
         document.body.style.cursor = ''
         setDragIndicator(null)
         setDragGhost(null)
       }
 
-      // AC ①: Drag cancellation on Escape key
+      const handleCancelDrag = () => {
+        if (!isGripSelected && initialSelection) {
+          try { editor.view.dispatch(editor.state.tr.setSelection(initialSelection)) } catch {}
+        }
+        cleanUpDrag()
+      }
+
       const onKeyDown = (keyEvt: KeyboardEvent) => {
         if (keyEvt.key === 'Escape') {
           keyEvt.preventDefault()
           keyEvt.stopPropagation()
-          cleanUpDrag()
+          keyEvt.stopImmediatePropagation()
+          handleCancelDrag()
         }
       }
 
@@ -152,106 +157,61 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
             isDragging = true
           }
 
-          // Case A: Unselected grip drag -> real-time multi-range selection
           if (!isGripSelected) {
             document.body.style.cursor = 'cell'
             if (type === 'col') {
-              let hoverCol = columnGrips.find(g => moveEvent.clientX >= g.left && moveEvent.clientX <= g.left + g.width)
-              if (!hoverCol && columnGrips.length > 0) {
-                hoverCol = moveEvent.clientX < columnGrips[0].left ? columnGrips[0] : columnGrips[columnGrips.length - 1]
-              }
-              if (hoverCol) {
-                const tr = selectColRange(editor.state.tr, Math.min(index, hoverCol.index), Math.max(index, hoverCol.index))
-                editor.view.dispatch(tr)
-              }
+              let hCol = columnGrips.find(g => moveEvent.clientX >= g.left && moveEvent.clientX <= g.left + g.width)
+              if (!hCol && columnGrips.length > 0) hCol = moveEvent.clientX < columnGrips[0].left ? columnGrips[0] : columnGrips[columnGrips.length - 1]
+              if (hCol) editor.view.dispatch(selectColRange(editor.state.tr, Math.min(index, hCol.index), Math.max(index, hCol.index)))
             } else {
-              let hoverRow = rowGrips.find(g => moveEvent.clientY >= g.top && moveEvent.clientY <= g.top + g.height)
-              if (!hoverRow && rowGrips.length > 0) {
-                hoverRow = moveEvent.clientY < rowGrips[0].top ? rowGrips[0] : rowGrips[rowGrips.length - 1]
-              }
-              if (hoverRow) {
-                const tr = selectRowRange(editor.state.tr, Math.min(index, hoverRow.index), Math.max(index, hoverRow.index))
-                editor.view.dispatch(tr)
-              }
+              let hRow = rowGrips.find(g => moveEvent.clientY >= g.top && moveEvent.clientY <= g.top + g.height)
+              if (!hRow && rowGrips.length > 0) hRow = moveEvent.clientY < rowGrips[0].top ? rowGrips[0] : rowGrips[rowGrips.length - 1]
+              if (hRow) editor.view.dispatch(selectRowRange(editor.state.tr, Math.min(index, hRow.index), Math.max(index, hRow.index)))
             }
             return
           }
 
-          // Case B: Selected grip drag -> move
           document.body.style.cursor = hasMerged ? 'not-allowed' : type === 'col' ? 'col-resize' : 'row-resize'
-
-          // AC ②: Moving selection with merged cells is strictly blocked
           if (hasMerged) {
             pendingTargetIdx = -1
             setDragIndicator(null)
-            setDragGhost({
-              type,
-              index,
-              label: '이동 불가 (병합 셀 포함)',
-              x: moveEvent.clientX,
-              y: moveEvent.clientY,
-              isBlocked: true,
-              targetIdx: -1,
-            })
+            setDragGhost({ type, index, label: '이동 불가 (병합 셀 포함)', x: moveEvent.clientX, y: moveEvent.clientY, isBlocked: true, targetIdx: -1 })
             return
           }
 
           if (type === 'col') {
-            let bestCol = columnGrips.find(g => moveEvent.clientX >= g.left && moveEvent.clientX <= g.left + g.width)
-            if (!bestCol && columnGrips.length > 0) {
-              bestCol = moveEvent.clientX < columnGrips[0].left ? columnGrips[0] : columnGrips[columnGrips.length - 1]
-            }
-
-            if (bestCol) {
-              const isRight = moveEvent.clientX > bestCol.left + bestCol.width / 2
-              let targetIdx = isRight ? bestCol.index + 1 : bestCol.index
+            let bCol = columnGrips.find(g => moveEvent.clientX >= g.left && moveEvent.clientX <= g.left + g.width)
+            if (!bCol && columnGrips.length > 0) bCol = moveEvent.clientX < columnGrips[0].left ? columnGrips[0] : columnGrips[columnGrips.length - 1]
+            if (bCol) {
+              const targetIdx = moveEvent.clientX > bCol.left + bCol.width / 2 ? bCol.index + 1 : bCol.index
               pendingTargetIdx = targetIdx
-
-              // AC ⑤: Drop at current position or abutting boundary is No-op -> dragIndicator = null
-              const isNoOp = pendingTargetIdx >= start && pendingTargetIdx <= end + 1
+              const isNoOp = targetIdx >= start && targetIdx <= end + 1
               const isBlocked = isHeaderStraddling(tableNode, 'col', index, Math.min(columnGrips.length - 1, targetIdx))
               const label = isBlocked ? '헤더 이동 불가' : count > 1 ? `${count}열 이동` : `${index + 1}열 이동`
-
               setDragGhost({ type, index, label, x: moveEvent.clientX, y: moveEvent.clientY, isBlocked, targetIdx })
-
               if (isNoOp || isBlocked) {
                 setDragIndicator(null)
               } else {
                 const lineX = targetIdx < columnGrips.length ? columnGrips[targetIdx].left : columnGrips[columnGrips.length - 1].left + columnGrips[columnGrips.length - 1].width
                 setDragIndicator({ type: 'col', left: lineX - 1, top: tableRect.top, width: 2, height: tableRect.height, isBlocked: false })
               }
-            } else {
-              setDragIndicator(null)
-              pendingTargetIdx = -1
             }
           } else {
-            // Row
-            let bestRow = rowGrips.find(g => moveEvent.clientY >= g.top && moveEvent.clientY <= g.top + g.height)
-            if (!bestRow && rowGrips.length > 0) {
-              bestRow = moveEvent.clientY < rowGrips[0].top ? rowGrips[0] : rowGrips[rowGrips.length - 1]
-            }
-
-            if (bestRow) {
-              const isBottom = moveEvent.clientY > bestRow.top + bestRow.height / 2
-              let targetIdx = isBottom ? bestRow.index + 1 : bestRow.index
+            let bRow = rowGrips.find(g => moveEvent.clientY >= g.top && moveEvent.clientY <= g.top + g.height)
+            if (!bRow && rowGrips.length > 0) bRow = moveEvent.clientY < rowGrips[0].top ? rowGrips[0] : rowGrips[rowGrips.length - 1]
+            if (bRow) {
+              const targetIdx = moveEvent.clientY > bRow.top + bRow.height / 2 ? bRow.index + 1 : bRow.index
               pendingTargetIdx = targetIdx
-
-              // AC ⑤: Drop at current position or abutting boundary is No-op -> dragIndicator = null
-              const isNoOp = pendingTargetIdx >= start && pendingTargetIdx <= end + 1
+              const isNoOp = targetIdx >= start && targetIdx <= end + 1
               const isBlocked = isHeaderStraddling(tableNode, 'row', index, Math.min(rowGrips.length - 1, targetIdx))
               const label = isBlocked ? '헤더 이동 불가' : count > 1 ? `${count}행 이동` : `${index + 1}행 이동`
-
               setDragGhost({ type, index, label, x: moveEvent.clientX, y: moveEvent.clientY, isBlocked, targetIdx })
-
               if (isNoOp || isBlocked) {
                 setDragIndicator(null)
               } else {
                 const lineY = targetIdx < rowGrips.length ? rowGrips[targetIdx].top : rowGrips[rowGrips.length - 1].top + rowGrips[rowGrips.length - 1].height
                 setDragIndicator({ type: 'row', left: tableRect.left, top: lineY - 1, width: tableRect.width, height: 2, isBlocked: false })
               }
-            } else {
-              setDragIndicator(null)
-              pendingTargetIdx = -1
             }
           }
         }
@@ -261,173 +221,144 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         const wasDragging = isDragging
         const target = pendingTargetIdx
         cleanUpDrag()
-
         if (wasDragging) {
           if (isGripSelected && !hasMerged && target >= 0 && !(target >= start && target <= end + 1)) {
             const destIdx = target > end + 1 ? target - 1 : target
             if (!isHeaderStraddling(tableNode, type, index, destIdx)) {
-              if (type === 'col') {
-                moveTableColumn(editor, tableRect.pos, start, destIdx)
-              } else {
-                moveTableRow(editor, tableRect.pos, start, destIdx)
-              }
+              if (type === 'col') moveTableColumn(editor, tableRect.pos, start, destIdx)
+              else moveTableRow(editor, tableRect.pos, start, destIdx)
               setTimeout(updateTableRect, 50)
             }
           }
         } else {
-          // Pure click action
           window.dispatchEvent(new CustomEvent(type === 'col' ? 'tiptap:open-table-col-menu' : 'tiptap:open-table-row-menu'))
           focusTableGrip(editor, type, index, currentTableEl, tableRect?.pos ?? -1)
           if (editor.view && !editor.view.isDestroyed) {
-            editor.view.dispatch(
-              editor.state.tr
-                .setMeta('tableMenuTrigger', Date.now())
-                .setMeta(type === 'col' ? 'tableColumnMenu' : 'tableRowMenu', 'show'),
-            )
+            editor.view.dispatch(editor.state.tr.setMeta('tableMenuTrigger', Date.now()).setMeta(type === 'col' ? 'tableColumnMenu' : 'tableRowMenu', 'show'))
           }
         }
       }
 
       window.addEventListener('mousemove', onMouseMove)
       window.addEventListener('mouseup', onMouseUp)
-      window.addEventListener('keydown', onKeyDown, true)
+      window.addEventListener('keydown', onKeyDown, { capture: true })
+      window.addEventListener('tiptap:cancel-drag', handleCancelDrag)
     },
     [editor, tableRect, columnGrips, rowGrips, updateTableRect, currentTableEl],
   )
 
-  const onAddColumnAtEnd = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      try {
-        const tableNode = tableRect?.pos !== undefined && tableRect.pos >= 0 ? editor.state.doc.nodeAt(tableRect.pos) : null
-        if (tableNode) {
-          const map = TableMap.get(tableNode)
-          const lastColCellPos = tableRect!.pos + 1 + map.map[map.width - 1]
-          editor.chain().focus().setTextSelection(lastColCellPos + 1).addColumnAfter().run()
-          setTimeout(updateTableRect, 50)
-          return
-        }
-      } catch {}
-      editor.chain().focus().addColumnAfter().run()
-      setTimeout(updateTableRect, 50)
-    },
-    [editor, tableRect, updateTableRect],
-  )
+  const onAddColumnAtEnd = useCallback((e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation()
+    try {
+      const tableNode = tableRect?.pos !== undefined && tableRect.pos >= 0 ? editor.state.doc.nodeAt(tableRect.pos) : null
+      if (tableNode) {
+        const map = TableMap.get(tableNode)
+        editor.chain().focus().setTextSelection(tableRect!.pos + 1 + map.map[map.width - 1] + 1).addColumnAfter().run()
+        setTimeout(updateTableRect, 50); return
+      }
+    } catch {}
+    editor.chain().focus().addColumnAfter().run()
+    setTimeout(updateTableRect, 50)
+  }, [editor, tableRect, updateTableRect])
 
-  const onAddRowAtEnd = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      try {
-        const tableNode = tableRect?.pos !== undefined && tableRect.pos >= 0 ? editor.state.doc.nodeAt(tableRect.pos) : null
-        if (tableNode) {
-          const map = TableMap.get(tableNode)
-          const lastRowCellPos = tableRect!.pos + 1 + map.map[(map.height - 1) * map.width]
-          editor.chain().focus().setTextSelection(lastRowCellPos + 1).addRowAfter().run()
-          setTimeout(updateTableRect, 50)
-          return
-        }
-      } catch {}
-      editor.chain().focus().addRowAfter().run()
-      setTimeout(updateTableRect, 50)
-    },
-    [editor, tableRect, updateTableRect],
-  )
+  const onAddRowAtEnd = useCallback((e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation()
+    try {
+      const tableNode = tableRect?.pos !== undefined && tableRect.pos >= 0 ? editor.state.doc.nodeAt(tableRect.pos) : null
+      if (tableNode) {
+        const map = TableMap.get(tableNode)
+        editor.chain().focus().setTextSelection(tableRect!.pos + 1 + map.map[(map.height - 1) * map.width] + 1).addRowAfter().run()
+        setTimeout(updateTableRect, 50); return
+      }
+    } catch {}
+    editor.chain().focus().addRowAfter().run()
+    setTimeout(updateTableRect, 50)
+  }, [editor, tableRect, updateTableRect])
 
-  if (!tableRect || !isHovered || !editor.isEditable || isScrolling || typeof document === 'undefined') {
-    return null
+  if (!tableRect || !isHovered || !editor.isEditable || isScrolling || typeof document === 'undefined') return null
+
+  const tableNode = tableRect.pos >= 0 ? editor.state.doc.nodeAt(tableRect.pos) : null
+  let selCol: { start: number; end: number } | null = null
+  let selRow: { start: number; end: number } | null = null
+
+  if (tableNode && isCellSelection(editor.state.selection)) {
+    try {
+      const map = TableMap.get(tableNode)
+      const selStart = (editor.state.selection as any).$anchorCell.start(-1)
+      const selRect = map.rectBetween((editor.state.selection as any).$anchorCell.pos - selStart, (editor.state.selection as any).$headCell.pos - selStart)
+      if (selRect.bottom - selRect.top === map.height) selCol = { start: selRect.left, end: selRect.right - 1 }
+      if (selRect.right - selRect.left === map.width) selRow = { start: selRect.top, end: selRect.bottom - 1 }
+    } catch {}
   }
 
   const activeColGrip = hoveredColIndex !== null ? columnGrips[hoveredColIndex] : null
   const activeRowGrip = hoveredRowIndex !== null ? rowGrips[hoveredRowIndex] : null
 
-  const isLastColHovered = hoveredColIndex !== null && columnGrips.length > 0 && hoveredColIndex === columnGrips.length - 1
-  const isLastRowHovered = hoveredRowIndex !== null && rowGrips.length > 0 && hoveredRowIndex === rowGrips.length - 1
+  let mergedCol: { left: number; width: number; startIdx: number } | null = null
+  if (selCol && columnGrips[selCol.start] && columnGrips[selCol.end]) {
+    const s = columnGrips[selCol.start], e = columnGrips[selCol.end]
+    mergedCol = { left: s.left, width: e.left + e.width - s.left, startIdx: selCol.start }
+  }
 
-  const isColGripVisible =
-    activeColGrip &&
-    (!tableRect.wrapperLeft ||
-      (activeColGrip.left + activeColGrip.width > tableRect.wrapperLeft &&
-        activeColGrip.left < (tableRect.wrapperRight ?? Infinity)))
+  let mergedRow: { top: number; height: number; startIdx: number } | null = null
+  if (selRow && rowGrips[selRow.start] && rowGrips[selRow.end]) {
+    const s = rowGrips[selRow.start], e = rowGrips[selRow.end]
+    mergedRow = { top: s.top, height: e.top + e.height - s.top, startIdx: selRow.start }
+  }
+
+  const isColVisible = (g: { left: number; width: number }) =>
+    !tableRect.wrapperLeft || (g.left + g.width > tableRect.wrapperLeft && g.left < (tableRect.wrapperRight ?? Infinity))
+
+  const isLastCol = hoveredColIndex !== null && columnGrips.length > 0 && hoveredColIndex === columnGrips.length - 1
+  const isLastRow = hoveredRowIndex !== null && rowGrips.length > 0 && hoveredRowIndex === rowGrips.length - 1
+
+  const pillClass = "fixed z-[15] rounded-full backdrop-blur-md shadow-2xs transition-all flex items-center justify-center p-0 cursor-pointer select-none"
+  const singlePillClass = `${pillClass} bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-violet-500/90 border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white`
+  const mergedPillClass = `${pillClass} bg-indigo-600/35 hover:bg-indigo-600/50 active:bg-indigo-600/90 dark:bg-violet-500/35 dark:hover:bg-violet-500/50 dark:active:bg-violet-500/90 border border-indigo-500/40 dark:border-violet-400/40 text-indigo-700 dark:text-violet-200 active:text-white`
 
   return createPortal(
     <div id="table-add-buttons-portal" className="pointer-events-auto" style={{ zIndex: 15, position: 'relative' }}>
       <ContainingBlockAnchor ref={anchorRef} />
 
-      {/* 1. Single Top Column Grip Bar (AC ⑦: z-[15], offset compensated) */}
-      {activeColGrip && isColGripVisible && (
-        <button
-          key={`active-col-grip-${activeColGrip.index}`}
-          type="button"
-          onMouseDown={handleGripMouseDown('col', activeColGrip.index)}
-          className="fixed z-[15] h-[12px] rounded-full bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white shadow-2xs transition-all flex items-center justify-center p-0 cursor-pointer select-none"
-          style={{
-            top: tableRect.top - 15 - offset.y,
-            left: activeColGrip.left - offset.x,
-            width: activeColGrip.width,
-            zIndex: 15,
-          }}
-          title={`Click to select, drag to move column ${activeColGrip.index + 1}`}
-        >
-          <div className="flex items-center gap-0.5">
-            <span className="w-1 h-1 rounded-full bg-current opacity-70" />
-            <span className="w-1 h-1 rounded-full bg-current opacity-70" />
-            <span className="w-1 h-1 rounded-full bg-current opacity-70" />
-          </div>
+      {/* 1. Column Grip (Merged Stretched Pill or Single Hovered Pill) */}
+      {mergedCol && isColVisible(mergedCol) ? (
+        <button key={`m-col-${mergedCol.startIdx}`} type="button" onMouseDown={handleGripMouseDown('col', mergedCol.startIdx)}
+          className={`${mergedPillClass} h-[12px]`}
+          style={{ top: tableRect.top - 15 - offset.y, left: mergedCol.left - offset.x, width: mergedCol.width, zIndex: 15 }}
+          title="Click for options, drag to move selected columns">
+          <div className="flex items-center gap-0.5"><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /></div>
         </button>
-      )}
-
-      {/* 2. Single Left Row Grip Bar (AC ⑦: z-[15], offset compensated) */}
-      {activeRowGrip && (
-        <button
-          key={`active-row-grip-${activeRowGrip.index}`}
-          type="button"
-          onMouseDown={handleGripMouseDown('row', activeRowGrip.index)}
-          className="fixed z-[15] w-[12px] rounded-full bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white shadow-2xs transition-all flex items-center justify-center p-0 cursor-pointer select-none"
-          style={{
-            top: activeRowGrip.top - offset.y,
-            left: tableRect.left - 15 - offset.x,
-            height: activeRowGrip.height,
-            zIndex: 15,
-          }}
-          title={`Click to select, drag to move row ${activeRowGrip.index + 1}`}
-        >
-          <div className="flex flex-col items-center gap-0.5">
-            <span className="w-1 h-1 rounded-full bg-current opacity-70" />
-            <span className="w-1 h-1 rounded-full bg-current opacity-70" />
-            <span className="w-1 h-1 rounded-full bg-current opacity-70" />
-          </div>
+      ) : activeColGrip && isColVisible(activeColGrip) ? (
+        <button key={`col-${activeColGrip.index}`} type="button" onMouseDown={handleGripMouseDown('col', activeColGrip.index)}
+          className={`${singlePillClass} h-[12px]`}
+          style={{ top: tableRect.top - 15 - offset.y, left: activeColGrip.left - offset.x, width: activeColGrip.width, zIndex: 15 }}
+          title={`Click to select, drag to move column ${activeColGrip.index + 1}`}>
+          <div className="flex items-center gap-0.5"><span className="w-1 h-1 rounded-full bg-current opacity-70" /><span className="w-1 h-1 rounded-full bg-current opacity-70" /><span className="w-1 h-1 rounded-full bg-current opacity-70" /></div>
         </button>
-      )}
+      ) : null}
 
-      {/* 3. Right Column & Bottom Row Add Buttons */}
-      <TableAddBar
-        tableRect={tableRect}
-        activeRowRect={activeRowGrip ? { top: activeRowGrip.top, height: activeRowGrip.height } : null}
-        activeColRect={activeColGrip ? { left: activeColGrip.left, width: activeColGrip.width } : null}
-        showRightBar={showRightAddBar || isLastColHovered}
-        showBottomBar={showBottomAddBar || isLastRowHovered}
-        containerOffset={offset}
-        onAddColumn={onAddColumnAtEnd}
-        onAddRow={onAddRowAtEnd}
-        onHoverKeepAlive={() => {
-          clearHoverTimer()
-          setIsHovered(true)
-        }}
-      />
+      {/* 2. Row Grip (Merged Stretched Pill or Single Hovered Pill) */}
+      {mergedRow ? (
+        <button key={`m-row-${mergedRow.startIdx}`} type="button" onMouseDown={handleGripMouseDown('row', mergedRow.startIdx)}
+          className={`${mergedPillClass} w-[12px]`}
+          style={{ top: mergedRow.top - offset.y, left: tableRect.left - 15 - offset.x, height: mergedRow.height, zIndex: 15 }}
+          title="Click for options, drag to move selected rows">
+          <div className="flex flex-col items-center gap-0.5"><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /></div>
+        </button>
+      ) : activeRowGrip ? (
+        <button key={`row-${activeRowGrip.index}`} type="button" onMouseDown={handleGripMouseDown('row', activeRowGrip.index)}
+          className={`${singlePillClass} w-[12px]`}
+          style={{ top: activeRowGrip.top - offset.y, left: tableRect.left - 15 - offset.x, height: activeRowGrip.height, zIndex: 15 }}
+          title={`Click to select, drag to move row ${activeRowGrip.index + 1}`}>
+          <div className="flex flex-col items-center gap-0.5"><span className="w-1 h-1 rounded-full bg-current opacity-70" /><span className="w-1 h-1 rounded-full bg-current opacity-70" /><span className="w-1 h-1 rounded-full bg-current opacity-70" /></div>
+        </button>
+      ) : null}
+
+      {/* 3. Right & Bottom Add Buttons */}
+      <TableAddBar tableRect={tableRect} activeRowRect={activeRowGrip ? { top: activeRowGrip.top, height: activeRowGrip.height } : null} activeColRect={activeColGrip ? { left: activeColGrip.left, width: activeColGrip.width } : null} showRightBar={showRightAddBar || isLastCol} showBottomBar={showBottomAddBar || isLastRow} containerOffset={offset} onAddColumn={onAddColumnAtEnd} onAddRow={onAddRowAtEnd} onHoverKeepAlive={() => { clearHoverTimer(); setIsHovered(true) }} />
 
       {/* 4. Drag & Resize Visual Overlays */}
-      <TableDragOverlays
-        dragGhost={dragGhost}
-        dragIndicator={dragIndicator}
-        resizingGuideX={resizingGuideX}
-        tableRectLeft={tableRect.left}
-        tableRectTop={tableRect.top}
-        tableRectWidth={tableRect.width}
-        tableRectHeight={tableRect.height}
-        containerOffset={offset}
-      />
+      <TableDragOverlays dragGhost={dragGhost} dragIndicator={dragIndicator} resizingGuideX={resizingGuideX} tableRectLeft={tableRect.left} tableRectTop={tableRect.top} tableRectWidth={tableRect.width} tableRectHeight={tableRect.height} containerOffset={offset} />
     </div>,
     (appendTo?.current as HTMLElement) || (typeof document !== 'undefined' ? document.body : (null as any)),
   )
