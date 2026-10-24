@@ -42,6 +42,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
   node,
   updateAttributes,
   extension,
+  selected,
 }) => {
   const { src: rawSrc, align = 'center', width = '100%', caption = '' } = node.attrs
   const { onImageClick, convertSrc } = extension.options
@@ -56,10 +57,36 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
   const [isDragOver, setIsDragOver] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [isEditingCaption, setIsEditingCaption] = useState(false)
+  const [isNodeSelected, setIsNodeSelected] = useState(Boolean(selected))
 
   const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const captionInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const syncSelection = () => {
+      try {
+        const pos = typeof getPos === 'function' ? getPos() : -1
+        const { from, to } = editor.state.selection
+        setIsNodeSelected(
+          Boolean(selected) || (pos >= 0 && from === pos && to === pos + node.nodeSize),
+        )
+      } catch {
+        setIsNodeSelected(Boolean(selected))
+      }
+    }
+    syncSelection()
+    editor.on('selectionUpdate', syncSelection)
+    editor.on('transaction', syncSelection)
+    editor.on('focus', syncSelection)
+    editor.on('blur', syncSelection)
+    return () => {
+      editor.off('selectionUpdate', syncSelection)
+      editor.off('transaction', syncSelection)
+      editor.off('focus', syncSelection)
+      editor.off('blur', syncSelection)
+    }
+  }, [editor, getPos, node.nodeSize, selected])
 
   useEffect(() => {
     setIsLoading(true)
@@ -223,17 +250,18 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
     !(editorEditable || isExternalImage) ? 'active:scale-[0.99]' : '',
   )
 
-  // Show hover UI purely when editable and hovered/resizing (0ms dismiss on mouseleave)
-  const isInteracting = editorEditable && (isHovered || isResizing)
+  // Show hover UI when editable and hovered/resizing, and track focused/selected state
+  const isFocused = Boolean(editorEditable && (selected || isNodeSelected || isEditingCaption))
+  const isInteracting = editorEditable && (isHovered || isResizing || isFocused)
 
   const PILL_HANDLE_CLASS =
     'w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150 bg-white/60 dark:bg-white/45 backdrop-blur-md border border-white/90 dark:border-white/70 shadow-[0_2px_12px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.95)] hover:bg-white/85 dark:hover:bg-white/75 hover:scale-y-105'
 
   return (
-    <NodeViewWrapper className="w-full my-4">
+    <NodeViewWrapper className="w-full my-4 overflow-visible">
       <div
         ref={containerRef}
-        className={wrapperClassName}
+        className={cn(wrapperClassName, 'overflow-visible')}
         style={{
           width: width || '100%',
           position: 'relative',
@@ -244,11 +272,16 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
         }}
         onMouseLeave={() => setIsHovered(false)}
       >
-        {/* Main image container: overflow-visible so the -inset-[10px] ring is fully visible */}
-        <div className="relative group/image w-full flex flex-col p-0 m-0 leading-none">
-          {/* Inner image frame: clipped with rounded-lg */}
+        {/* Main image container: overflow-visible so the focus ring & hover ring are never clipped */}
+        <div className="relative group/image w-full flex flex-col p-0 m-0 leading-none overflow-visible">
+          {/* Inner image frame: clipped with rounded-lg + crisp indigo focus ring when selected */}
           <div
-            className="relative rounded-lg overflow-hidden w-full flex flex-col p-0 m-0 leading-none bg-black/[0.02] dark:bg-white/[0.02]"
+            onClick={editorEditable ? () => editor.commands.setNodeSelection(getPos()) : undefined}
+            className={cn(
+              'relative rounded-lg overflow-hidden w-full flex flex-col p-0 m-0 leading-none bg-black/[0.02] dark:bg-white/[0.02] transition-shadow duration-150',
+              isFocused &&
+                'ring-2 ring-indigo-500 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900 shadow-[0_0_0_4px_rgba(99,102,241,0.18)]',
+            )}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -355,12 +388,12 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
             )}
           </div>
 
-          {/* Notion-style 10px Padded Symmetric Glass Ring Overlay (Dismissed immediately on mouseleave) */}
+          {/* Notion-style 10px Padded Symmetric Glass Ring Overlay on hover when not focused */}
           {!hasError && !isLoading && !isUploading && (
             <div
               className={cn(
                 'pointer-events-none absolute -inset-[10px] rounded-xl ring-2 ring-black/20 dark:ring-white/30 bg-black/[0.02] dark:bg-white/[0.03] transition-opacity duration-150 z-10',
-                isInteracting ? 'opacity-100' : 'opacity-0',
+                (isHovered || isResizing) && !isFocused ? 'opacity-100' : 'opacity-0',
               )}
             />
           )}

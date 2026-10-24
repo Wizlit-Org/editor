@@ -100,17 +100,6 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     switch (data.type) {
       case 'image_data':
         return [
-          plainTextOpt,
-          {
-            id: 'image-external',
-            label: '외부 이미지',
-            description: '원본 이미지 데이터를 변환 없이 본문에 바로 삽입합니다',
-            icon: 'Image',
-            insert: () => {
-              restoreSelection()
-              insertImage(editor, data.text)
-            },
-          },
           {
             id: 'image-upload',
             label: '이미지 업로드',
@@ -349,7 +338,9 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
                 isDark ? 'text-zinc-400' : 'text-zinc-500'
               }`}
             >
-              ←/→ 형식 전환 · Enter 삽입 · Esc 취소
+              {options.length > 1
+                ? '←/→ 형식 전환 · Enter 삽입 · Esc 취소'
+                : 'Enter 삽입 · Esc 취소'}
             </span>
             <button
               type="button"
