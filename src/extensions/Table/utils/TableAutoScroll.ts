@@ -21,8 +21,8 @@ export function startAutoScroll(options: {
     tableWrapper,
     scrollContainer = typeof window !== 'undefined' ? window : null,
     onTick,
-    threshold = 60,
-    maxSpeed = 18,
+    threshold = 50,
+    maxSpeed = 12,
   } = options
 
   let currentX = -1
@@ -48,29 +48,29 @@ export function startAutoScroll(options: {
 
     let scrolled = false
 
-    // 1. Horizontal auto-scroll on tableWrapper
+    // 1. Horizontal auto-scroll on tableWrapper (Smooth damped acceleration)
     if (tableWrapper && currentX >= 0) {
       const wRect = tableWrapper.getBoundingClientRect()
       if (currentX < wRect.left + threshold && tableWrapper.scrollLeft > 0) {
         const ratio = Math.max(0, (wRect.left + threshold - currentX) / threshold)
-        const delta = Math.max(2, Math.round(ratio * maxSpeed))
+        const delta = Math.max(1, Math.round(Math.pow(ratio, 1.4) * maxSpeed))
         tableWrapper.scrollLeft -= delta
         scrolled = true
       } else if (currentX > wRect.right - threshold && tableWrapper.scrollLeft < tableWrapper.scrollWidth - tableWrapper.clientWidth - 1) {
         const ratio = Math.max(0, (currentX - (wRect.right - threshold)) / threshold)
-        const delta = Math.max(2, Math.round(ratio * maxSpeed))
+        const delta = Math.max(1, Math.round(Math.pow(ratio, 1.4) * maxSpeed))
         tableWrapper.scrollLeft += delta
         scrolled = true
       }
     }
 
-    // 2. Vertical auto-scroll on scrollContainer
+    // 2. Vertical auto-scroll on scrollContainer (Smooth damped acceleration)
     if (scrollContainer && currentY >= 0) {
       const cRect = getContainerRect()
       if (cRect) {
         if (currentY < cRect.top + threshold) {
           const ratio = Math.max(0, (cRect.top + threshold - currentY) / threshold)
-          const delta = Math.max(2, Math.round(ratio * maxSpeed))
+          const delta = Math.max(1, Math.round(Math.pow(ratio, 1.4) * maxSpeed))
           if (scrollContainer === window) {
             window.scrollBy(0, -delta)
           } else {
@@ -79,7 +79,7 @@ export function startAutoScroll(options: {
           scrolled = true
         } else if (currentY > cRect.bottom - threshold) {
           const ratio = Math.max(0, (currentY - (cRect.bottom - threshold)) / threshold)
-          const delta = Math.max(2, Math.round(ratio * maxSpeed))
+          const delta = Math.max(1, Math.round(Math.pow(ratio, 1.4) * maxSpeed))
           if (scrollContainer === window) {
             window.scrollBy(0, delta)
           } else {

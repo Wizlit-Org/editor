@@ -97,6 +97,46 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       const wrapperEl = currentTableEl ? (currentTableEl.closest('.tableWrapper') as HTMLElement | null) : null
       const scrollContainer = (appendTo?.current as HTMLElement) || (typeof window !== 'undefined' ? window : null)
 
+      const getLiveGrips = () => {
+        if (!currentTableEl) return { cols: columnGrips, rows: rowGrips, rect: tableRect }
+        const r = currentTableEl.getBoundingClientRect()
+        const trs = Array.from(currentTableEl.querySelectorAll('tbody > tr, tr')) as HTMLTableRowElement[]
+        const map = TableMap.get(tableNode)
+
+        const cols: { index: number; left: number; width: number }[] = []
+        for (let c = 0; c < map.width; c++) {
+          let foundCell: HTMLElement | null = null
+          for (let rIdx = 0; rIdx < trs.length; rIdx++) {
+            const cellPos = map.map[rIdx * map.width + c]
+            const rect = map.findCell(cellPos)
+            if (rect.right - rect.left === 1) {
+              const el = trs[rIdx]?.children[rect.left] as HTMLElement | undefined
+              if (el) { foundCell = el; break }
+            }
+          }
+          if (foundCell) {
+            const cr = foundCell.getBoundingClientRect()
+            cols.push({ index: c, left: cr.left, width: cr.width })
+          } else if (trs[0]?.children[c]) {
+            const cr = (trs[0].children[c] as HTMLElement).getBoundingClientRect()
+            cols.push({ index: c, left: cr.left, width: cr.width })
+          } else if (columnGrips[c]) {
+            cols.push(columnGrips[c])
+          }
+        }
+
+        const rows = trs.map((tr, idx) => {
+          const rr = tr.getBoundingClientRect()
+          return { index: idx, top: rr.top, height: rr.height }
+        })
+
+        return {
+          cols: cols.length > 0 ? cols : columnGrips,
+          rows: rows.length > 0 ? rows : rowGrips,
+          rect: { ...tableRect, top: r.top, left: r.left, width: r.width, height: r.height },
+        }
+      }
+
       const handleDragMoveAtCoords = (clientX: number, clientY: number) => {
         const dist = Math.hypot(clientX - startX, clientY - startY)
         if (dist > 4) {
@@ -105,15 +145,17 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
             isDragging = true
           }
 
+          const { cols: liveCols, rows: liveRows, rect: liveRect } = getLiveGrips()
+
           if (!isGripSelected) {
             document.body.style.cursor = 'cell'
             if (type === 'col') {
-              let hCol = columnGrips.find(g => clientX >= g.left && clientX <= g.left + g.width)
-              if (!hCol && columnGrips.length > 0) hCol = clientX < columnGrips[0].left ? columnGrips[0] : columnGrips[columnGrips.length - 1]
+              let hCol = liveCols.find(g => clientX >= g.left && clientX <= g.left + g.width)
+              if (!hCol && liveCols.length > 0) hCol = clientX < liveCols[0].left ? liveCols[0] : liveCols[liveCols.length - 1]
               if (hCol) editor.view.dispatch(selectColRange(editor.state.tr, Math.min(index, hCol.index), Math.max(index, hCol.index), tableRect.pos))
             } else {
-              let hRow = rowGrips.find(g => clientY >= g.top && clientY <= g.top + g.height)
-              if (!hRow && rowGrips.length > 0) hRow = clientY < rowGrips[0].top ? rowGrips[0] : rowGrips[rowGrips.length - 1]
+              let hRow = liveRows.find(g => clientY >= g.top && clientY <= g.top + g.height)
+              if (!hRow && liveRows.length > 0) hRow = clientY < liveRows[0].top ? liveRows[0] : liveRows[liveRows.length - 1]
               if (hRow) editor.view.dispatch(selectRowRange(editor.state.tr, Math.min(index, hRow.index), Math.max(index, hRow.index), tableRect.pos))
             }
             return
@@ -128,13 +170,13 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
           }
 
           if (type === 'col') {
-            let bCol = columnGrips.find(g => clientX >= g.left && clientX <= g.left + g.width)
-            if (!bCol && columnGrips.length > 0) bCol = clientX < columnGrips[0].left ? columnGrips[0] : columnGrips[columnGrips.length - 1]
+            let bCol = liveCols.find(g => clientX >= g.left && clientX <= g.left + g.width)
+            if (!bCol && liveCols.length > 0) bCol = clientX < liveCols[0].left ? liveCols[0] : liveCols[liveCols.length - 1]
             if (bCol) {
               const targetIdx = clientX > bCol.left + bCol.width / 2 ? bCol.index + 1 : bCol.index
               pendingTargetIdx = targetIdx
               const isNoOp = targetIdx >= start && targetIdx <= end + 1
-              const isHeaderBlocked = isHeaderStraddling(tableNode, 'col', index, Math.min(columnGrips.length - 1, targetIdx))
+              const isHeaderBlocked = isHeaderStraddling(tableNode, 'col', index, Math.min(liveCols.length - 1, targetIdx))
               const isSplitBlocked = isTargetSplittingMergedCell(tableNode, 'col', targetIdx)
               const isBlocked = isHeaderBlocked || isSplitBlocked
               const label = isHeaderBlocked
@@ -148,18 +190,18 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
               if (isNoOp || isBlocked) {
                 setDragIndicator(null)
               } else {
-                const lineX = targetIdx < columnGrips.length ? columnGrips[targetIdx].left : columnGrips[columnGrips.length - 1].left + columnGrips[columnGrips.length - 1].width
-                setDragIndicator({ type: 'col', left: lineX - 1, top: tableRect.top, width: 2, height: tableRect.height, isBlocked: false })
+                const lineX = targetIdx < liveCols.length ? liveCols[targetIdx].left : liveCols[liveCols.length - 1].left + liveCols[liveCols.length - 1].width
+                setDragIndicator({ type: 'col', left: lineX - 1, top: liveRect.top, width: 2, height: liveRect.height, isBlocked: false })
               }
             }
           } else {
-            let bRow = rowGrips.find(g => clientY >= g.top && clientY <= g.top + g.height)
-            if (!bRow && rowGrips.length > 0) bRow = clientY < rowGrips[0].top ? rowGrips[0] : rowGrips[rowGrips.length - 1]
+            let bRow = liveRows.find(g => clientY >= g.top && clientY <= g.top + g.height)
+            if (!bRow && liveRows.length > 0) bRow = clientY < liveRows[0].top ? liveRows[0] : liveRows[liveRows.length - 1]
             if (bRow) {
               const targetIdx = clientY > bRow.top + bRow.height / 2 ? bRow.index + 1 : bRow.index
               pendingTargetIdx = targetIdx
               const isNoOp = targetIdx >= start && targetIdx <= end + 1
-              const isHeaderBlocked = isHeaderStraddling(tableNode, 'row', index, Math.min(rowGrips.length - 1, targetIdx))
+              const isHeaderBlocked = isHeaderStraddling(tableNode, 'row', index, Math.min(liveRows.length - 1, targetIdx))
               const isSplitBlocked = isTargetSplittingMergedCell(tableNode, 'row', targetIdx)
               const isBlocked = isHeaderBlocked || isSplitBlocked
               const label = isHeaderBlocked
@@ -173,8 +215,8 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
               if (isNoOp || isBlocked) {
                 setDragIndicator(null)
               } else {
-                const lineY = targetIdx < rowGrips.length ? rowGrips[targetIdx].top : rowGrips[rowGrips.length - 1].top + rowGrips[rowGrips.length - 1].height
-                setDragIndicator({ type: 'row', left: tableRect.left, top: lineY - 1, width: tableRect.width, height: 2, isBlocked: false })
+                const lineY = targetIdx < liveRows.length ? liveRows[targetIdx].top : liveRows[liveRows.length - 1].top + liveRows[liveRows.length - 1].height
+                setDragIndicator({ type: 'row', left: liveRect.left, top: lineY - 1, width: liveRect.width, height: 2, isBlocked: false })
               }
             }
           }
