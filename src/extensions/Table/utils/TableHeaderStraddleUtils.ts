@@ -164,6 +164,11 @@ export function extractCellTextSnippets(
  * Checks if the row selection [startRow..endRow] contains any merged cells (rowspan > 1 or colspan > 1).
  * If true, row move is strictly blocked.
  */
+/**
+ * Checks if any merged cell straddles (crosses) the row selection boundary [startRow..endRow].
+ * If a merged cell is entirely contained within the selection, it is allowed to move!
+ * Only blocked if a merged cell partially sticks out (rect.top < minR || rect.bottom - 1 > maxR).
+ */
 export function hasMergedCellsInRowSelection(tableNode: Node, startRow: number, endRow: number): boolean {
   try {
     const map = TableMap.get(tableNode)
@@ -174,7 +179,7 @@ export function hasMergedCellsInRowSelection(tableNode: Node, startRow: number, 
       for (let c = 0; c < map.width; c++) {
         const cellPos = map.map[r * map.width + c]
         const rect = map.findCell(cellPos)
-        if (rect.bottom - rect.top > 1 || rect.right - rect.left > 1 || rect.top < minR || rect.bottom > maxR + 1) {
+        if (rect.top < minR || rect.bottom - 1 > maxR) {
           return true
         }
       }
@@ -186,8 +191,9 @@ export function hasMergedCellsInRowSelection(tableNode: Node, startRow: number, 
 }
 
 /**
- * Checks if the col selection [startCol..endCol] contains any merged cells (rowspan > 1 or colspan > 1).
- * If true, column move is strictly blocked.
+ * Checks if any merged cell straddles (crosses) the col selection boundary [startCol..endCol].
+ * If a merged cell is entirely contained within the selection, it is allowed to move!
+ * Only blocked if a merged cell partially sticks out (rect.left < minC || rect.right - 1 > maxC).
  */
 export function hasMergedCellsInColSelection(tableNode: Node, startCol: number, endCol: number): boolean {
   try {
@@ -199,7 +205,7 @@ export function hasMergedCellsInColSelection(tableNode: Node, startCol: number, 
       for (let r = 0; r < map.height; r++) {
         const cellPos = map.map[r * map.width + c]
         const rect = map.findCell(cellPos)
-        if (rect.right - rect.left > 1 || rect.bottom - rect.top > 1 || rect.left < minC || rect.right > maxC + 1) {
+        if (rect.left < minC || rect.right - 1 > maxC) {
           return true
         }
       }
@@ -212,6 +218,7 @@ export function hasMergedCellsInColSelection(tableNode: Node, startCol: number, 
 
 /**
  * Checks if the current selection contains at least one merged cell (for batch split).
+ * Inspects all cells in the selection rectangle via TableMap.cellsInRect.
  */
 export function hasMergedCellsInSelection(editor: Editor): boolean {
   const { selection } = editor.state
@@ -219,6 +226,26 @@ export function hasMergedCellsInSelection(editor: Editor): boolean {
   if (!table) return false
 
   if (isCellSelection(selection)) {
+    try {
+      const map = TableMap.get(table.node)
+      const selStart = selection.$anchorCell.start(-1)
+      const rect = map.rectBetween(
+        selection.$anchorCell.pos - selStart,
+        selection.$headCell.pos - selStart,
+      )
+      const cells = map.cellsInRect(rect)
+      for (const cellPos of cells) {
+        const cellRect = map.findCell(cellPos)
+        if (cellRect.right - cellRect.left > 1 || cellRect.bottom - cellRect.top > 1) {
+          return true
+        }
+        const cellNode = table.node.nodeAt(cellPos)
+        if (cellNode && ((cellNode.attrs.colspan && cellNode.attrs.colspan > 1) || (cellNode.attrs.rowspan && cellNode.attrs.rowspan > 1))) {
+          return true
+        }
+      }
+    } catch {}
+
     let hasMerged = false
     selection.forEachCell((node: any) => {
       if ((node.attrs.colspan && node.attrs.colspan > 1) || (node.attrs.rowspan && node.attrs.rowspan > 1)) {

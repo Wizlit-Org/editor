@@ -104,11 +104,19 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
 
     updateTableScrollStates()
 
+    const dom = editor.view?.dom
     const wrappers = Array.from(
-      editor.view?.dom?.querySelectorAll('.tableWrapper') || [],
+      dom?.querySelectorAll('.tableWrapper') || [],
     ) as HTMLElement[]
 
     wrappers.forEach(w => w.addEventListener('scroll', scheduledUpdate, { passive: true }))
+
+    let ro: ResizeObserver | null = null
+    if (typeof ResizeObserver !== 'undefined' && dom) {
+      ro = new ResizeObserver(() => scheduledUpdate())
+      ro.observe(dom)
+      wrappers.forEach(w => ro!.observe(w))
+    }
 
     editor.on('selectionUpdate', scheduledUpdate)
     editor.on('transaction', scheduledUpdate)
@@ -120,6 +128,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
         window.cancelAnimationFrame(rafId)
       }
       wrappers.forEach(w => w.removeEventListener('scroll', scheduledUpdate))
+      ro?.disconnect()
       editor.off('selectionUpdate', scheduledUpdate)
       editor.off('transaction', scheduledUpdate)
       window.removeEventListener('scroll', scheduledUpdate, { capture: true })
@@ -142,73 +151,84 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
   return createPortal(
     <>
       <ContainingBlockAnchor ref={anchorRef} />
-      {tables.map(t => (
-        <React.Fragment key={t.id}>
-          {/* Left Edge Fade Shadow Indicator */}
-          <div
-            className={`fixed pointer-events-none z-[20] transition-opacity duration-200 bg-gradient-to-r from-black/15 dark:from-black/40 to-transparent ${
-              t.showLeft ? 'opacity-100' : 'opacity-0'
-            }`}
-            style={{
-              top: t.rect.top - offset.y,
-              left: t.rect.left - offset.x,
-              width: '28px',
-              height: t.rect.height,
-            }}
-          />
+      {tables.map(t => {
+        const visibleTop = Math.max(t.rect.top, 0)
+        const visibleBottom = Math.min(t.rect.bottom, window.innerHeight)
+        const isVisibleInViewport = visibleBottom > visibleTop
+        const centerY = isVisibleInViewport
+          ? (visibleTop + visibleBottom) / 2 - 16 - offset.y
+          : t.rect.top + t.rect.height / 2 - 16 - offset.y
 
-          {/* Right Edge Fade Shadow Indicator */}
-          <div
-            className={`fixed pointer-events-none z-[20] transition-opacity duration-200 bg-gradient-to-l from-black/15 dark:from-black/40 to-transparent ${
-              t.showRight ? 'opacity-100' : 'opacity-0'
-            }`}
-            style={{
-              top: t.rect.top - offset.y,
-              left: t.rect.left + t.rect.width - 28 - offset.x,
-              width: '28px',
-              height: t.rect.height,
-            }}
-          />
+        return (
+          <React.Fragment key={t.id}>
+            {/* Left Edge Fade Shadow Indicator & Edit mode glass blur */}
+            <div
+              className={`fixed pointer-events-none z-[14] transition-opacity duration-200 bg-gradient-to-r from-black/15 dark:from-black/40 to-transparent ${
+                editor.isEditable ? 'backdrop-blur-[2px]' : ''
+              } ${
+                t.showLeft ? 'opacity-100' : 'opacity-0'
+              }`}
+              style={{
+                top: t.rect.top - offset.y,
+                left: t.rect.left - offset.x,
+                width: '28px',
+                height: t.rect.height,
+              }}
+            />
 
-          {/* Left Scroll Arrow Button */}
-          <button
-            type="button"
-            onClick={() => handleScrollLeft(t.wrapper)}
-            title="Scroll table left"
-            aria-label="Scroll table left"
-            className={`fixed z-[40] w-8 h-8 rounded-full bg-white/90 dark:bg-[#202020]/90 backdrop-blur-md border border-black/10 dark:border-white/15 shadow-md flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 hover:bg-white dark:hover:bg-[#2c2c2c] text-zinc-700 dark:text-zinc-200 ${
-              t.showLeft
-                ? 'opacity-100 pointer-events-auto'
-                : 'opacity-0 pointer-events-none'
-            }`}
-            style={{
-              top: t.rect.top + t.rect.height / 2 - 16 - offset.y,
-              left: t.rect.left + 8 - offset.x,
-            }}
-          >
-            <Icon name="ChevronLeft" className="w-4 h-4" />
-          </button>
+            {/* Right Edge Fade Shadow Indicator */}
+            <div
+              className={`fixed pointer-events-none z-[14] transition-opacity duration-200 bg-gradient-to-l from-black/15 dark:from-black/40 to-transparent ${
+                t.showRight ? 'opacity-100' : 'opacity-0'
+              }`}
+              style={{
+                top: t.rect.top - offset.y,
+                left: t.rect.left + t.rect.width - 28 - offset.x,
+                width: '28px',
+                height: t.rect.height,
+              }}
+            />
 
-          {/* Right Scroll Arrow Button */}
-          <button
-            type="button"
-            onClick={() => handleScrollRight(t.wrapper)}
-            title="Scroll table right"
-            aria-label="Scroll table right"
-            className={`fixed z-[40] w-8 h-8 rounded-full bg-white/90 dark:bg-[#202020]/90 backdrop-blur-md border border-black/10 dark:border-white/15 shadow-md flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 hover:bg-white dark:hover:bg-[#2c2c2c] text-zinc-700 dark:text-zinc-200 ${
-              t.showRight
-                ? 'opacity-100 pointer-events-auto'
-                : 'opacity-0 pointer-events-none'
-            }`}
-            style={{
-              top: t.rect.top + t.rect.height / 2 - 16 - offset.y,
-              left: t.rect.left + t.rect.width - 40 - offset.x,
-            }}
-          >
-            <Icon name="ChevronRight" className="w-4 h-4" />
-          </button>
-        </React.Fragment>
-      ))}
+            {/* Left Scroll Arrow Button */}
+            <button
+              type="button"
+              onClick={() => handleScrollLeft(t.wrapper)}
+              title="Scroll table left"
+              aria-label="Scroll table left"
+              className={`fixed z-[40] w-8 h-8 rounded-full bg-white/90 dark:bg-[#202020]/90 backdrop-blur-md border border-black/10 dark:border-white/15 shadow-md flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 hover:bg-white dark:hover:bg-[#2c2c2c] text-zinc-700 dark:text-zinc-200 ${
+                t.showLeft && isVisibleInViewport
+                  ? 'opacity-100 pointer-events-auto'
+                  : 'opacity-0 pointer-events-none'
+              }`}
+              style={{
+                top: centerY,
+                left: t.rect.left + 8 - offset.x,
+              }}
+            >
+              <Icon name="ChevronLeft" className="w-4 h-4" />
+            </button>
+
+            {/* Right Scroll Arrow Button */}
+            <button
+              type="button"
+              onClick={() => handleScrollRight(t.wrapper)}
+              title="Scroll table right"
+              aria-label="Scroll table right"
+              className={`fixed z-[40] w-8 h-8 rounded-full bg-white/90 dark:bg-[#202020]/90 backdrop-blur-md border border-black/10 dark:border-white/15 shadow-md flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 hover:bg-white dark:hover:bg-[#2c2c2c] text-zinc-700 dark:text-zinc-200 ${
+                t.showRight && isVisibleInViewport
+                  ? 'opacity-100 pointer-events-auto'
+                  : 'opacity-0 pointer-events-none'
+              }`}
+              style={{
+                top: centerY,
+                left: t.rect.left + t.rect.width - 40 - offset.x,
+              }}
+            >
+              <Icon name="ChevronRight" className="w-4 h-4" />
+            </button>
+          </React.Fragment>
+        )
+      })}
     </>,
     (appendTo?.current as HTMLElement) || (typeof document !== 'undefined' ? document.body : (null as any)),
   )

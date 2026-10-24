@@ -123,7 +123,8 @@ export const moveRowUp = (editor: Editor, rowIndex: number) => {
   const targetIdx = findJumpMoveIndex(table.node, 'row', range.min, 'prev')
   if (targetIdx >= 0) {
     if (isHeaderStraddling(table.node, 'row', range.min, targetIdx)) return
-    moveTableRow(editor, table.pos, range.min, targetIdx)
+    const count = range.max - range.min + 1
+    moveTableRow(editor, table.pos, range.min, targetIdx, count)
   }
 }
 
@@ -132,9 +133,10 @@ export const moveRowDown = (editor: Editor, rowIndex: number) => {
   if (!table) return
   const range = getSelectedRowRange(editor)
   if (hasMergedCellsInRowSelection(table.node, range.min, range.max)) return
-  const targetIdx = findJumpMoveIndex(table.node, 'row', range.min, 'next')
+  const targetIdx = findJumpMoveIndex(table.node, 'row', range.max, 'next')
   if (targetIdx >= 0) {
-    if (isHeaderStraddling(table.node, 'row', range.min, targetIdx)) return
-    moveTableRow(editor, table.pos, range.min, targetIdx)
+    if (isHeaderStraddling(table.node, 'row', range.max, targetIdx)) return
+    const count = range.max - range.min + 1
+    moveTableRow(editor, table.pos, range.min, targetIdx, count)
   }
 }

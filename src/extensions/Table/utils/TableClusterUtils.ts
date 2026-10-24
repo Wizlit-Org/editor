@@ -265,35 +265,47 @@ export function deleteColCluster(editor: Editor, minCol: number, maxCol: number)
 }
 
 /**
- * Selects row range [minRow, maxRow] in transaction.
+ * Selects row range [minRow, maxRow] in transaction using ProseMirror built-in rowSelection.
  */
-export function selectRowRange(tr: Transaction, minRow: number, maxRow: number): Transaction {
-  const table = findTable(tr.selection)
+export function selectRowRange(tr: Transaction, minRow: number, maxRow: number, tablePos?: number): Transaction {
+  let table = findTable(tr.selection)
+  if (!table && tablePos !== undefined && tablePos >= 0) {
+    const node = tr.doc.nodeAt(tablePos)
+    if (node && node.type.name === 'table') {
+      table = { node, pos: tablePos, start: tablePos + 1 } as any
+    }
+  }
   if (!table) return tr
 
   const map = TableMap.get(table.node)
   const safeMin = Math.max(0, Math.min(minRow, maxRow))
   const safeMax = Math.min(map.height - 1, Math.max(minRow, maxRow))
 
-  const head = table.start + map.map[safeMin * map.width]
-  const anchor = table.start + map.map[safeMax * map.width + (map.width - 1)]
-  return tr.setSelection(new CellSelection(tr.doc.resolve(anchor), tr.doc.resolve(head)))
+  const anchorPos = table.start + map.map[safeMin * map.width]
+  const headPos = table.start + map.map[safeMax * map.width]
+  return tr.setSelection(CellSelection.rowSelection(tr.doc.resolve(anchorPos), tr.doc.resolve(headPos)))
 }
 
 /**
- * Selects col range [minCol, maxCol] in transaction.
+ * Selects col range [minCol, maxCol] in transaction using ProseMirror built-in colSelection.
  */
-export function selectColRange(tr: Transaction, minCol: number, maxCol: number): Transaction {
-  const table = findTable(tr.selection)
+export function selectColRange(tr: Transaction, minCol: number, maxCol: number, tablePos?: number): Transaction {
+  let table = findTable(tr.selection)
+  if (!table && tablePos !== undefined && tablePos >= 0) {
+    const node = tr.doc.nodeAt(tablePos)
+    if (node && node.type.name === 'table') {
+      table = { node, pos: tablePos, start: tablePos + 1 } as any
+    }
+  }
   if (!table) return tr
 
   const map = TableMap.get(table.node)
   const safeMin = Math.max(0, Math.min(minCol, maxCol))
   const safeMax = Math.min(map.width - 1, Math.max(minCol, maxCol))
 
-  const head = table.start + map.map[safeMin]
-  const anchor = table.start + map.map[(map.height - 1) * map.width + safeMax]
-  return tr.setSelection(new CellSelection(tr.doc.resolve(anchor), tr.doc.resolve(head)))
+  const anchorPos = table.start + map.map[safeMin]
+  const headPos = table.start + map.map[safeMax]
+  return tr.setSelection(CellSelection.colSelection(tr.doc.resolve(anchorPos), tr.doc.resolve(headPos)))
 }
 
 /**

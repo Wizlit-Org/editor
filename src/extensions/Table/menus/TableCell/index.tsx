@@ -1,8 +1,8 @@
 import React, { useCallback, useState, useEffect, useRef, JSX } from 'react'
 import { createPortal } from 'react-dom'
 import * as Popover from '@radix-ui/react-popover'
-import { CellSelection, splitCell } from '@tiptap/pm/tables'
-import { isCellSelection } from '../../utils'
+import { CellSelection, splitCell, TableMap } from '@tiptap/pm/tables'
+import { findTable, isCellSelection } from '../../utils'
 import { isSelectionStraddlingHeader, hasMergedCellsInSelection } from '../../utils/TableHeaderStraddleUtils'
 import { useContainingBlockOffset, ContainingBlockAnchor } from '../../utils/containingBlock'
 import { Icon } from '@/components/ui/Icon'
@@ -85,14 +85,34 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
       setSelectionRect(prev => (prev && prev.top === minTop && prev.left === minLeft && prev.width === maxRight - minLeft && prev.height === maxBottom - minTop ? prev : { top: minTop, left: minLeft, width: maxRight - minLeft, height: maxBottom - minTop }))
 
       const tableWrapper = cells[0].closest('.tableWrapper') as HTMLElement | null
+      let isVisibleInWrapper = true
       if (tableWrapper) {
         const wrapperRect = tableWrapper.getBoundingClientRect()
         const isHorizontallyVisible = maxRight >= wrapperRect.left && maxRight <= wrapperRect.right + 10
         const isVerticallyVisible = minTop < window.innerHeight && maxBottom > 0
-        setIsButtonVisible(isHorizontallyVisible && isVerticallyVisible && isWithinContainer)
-      } else {
-        setIsButtonVisible(isWithinContainer)
+        isVisibleInWrapper = isHorizontallyVisible && isVerticallyVisible
       }
+
+      const dotX = maxRight
+      const dotY = minTop + (maxBottom - minTop) / 2
+      let hasCollision = false
+      if (typeof document !== 'undefined') {
+        const collisionTargets = document.querySelectorAll(
+          '.table-of-contents, [data-bottom-text-menu], [data-text-menu], [role="dialog"], [data-radix-popper-content-wrapper], .glass-menu'
+        )
+        for (const el of Array.from(collisionTargets)) {
+          if (menuOpen && anchorRef.current && el.contains(anchorRef.current)) continue
+          const r = (el as HTMLElement).getBoundingClientRect()
+          if (r.width > 0 && r.height > 0) {
+            if (dotX >= r.left - 4 && dotX <= r.right + 4 && dotY >= r.top - 4 && dotY <= r.bottom + 4) {
+              hasCollision = true
+              break
+            }
+          }
+        }
+      }
+
+      setIsButtonVisible(isVisibleInWrapper && isWithinContainer && !hasCollision)
     } else {
       setSelectionRect(prev => (prev === null ? prev : null))
       setIsButtonVisible(prev => (prev === false ? prev : false))
@@ -204,27 +224,56 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   }, [editor])
 
   const onSplitCell = useCallback(() => {
-    const { view } = editor
+    const { state, view } = editor
     if (!view) return
-    const { selection } = view.state
-    if (isCellSelection(selection)) {
-      const cellPositions: number[] = []
-      selection.forEachCell((node: any, pos: number) => {
-        if ((node.attrs.colspan && node.attrs.colspan > 1) || (node.attrs.rowspan && node.attrs.rowspan > 1)) cellPositions.push(pos)
-      })
-      if (cellPositions.length > 0) {
-        cellPositions.sort((a, b) => b - a)
-        for (const pos of cellPositions) {
-          try {
-            const tr = view.state.tr.setSelection(new CellSelection(view.state.doc.resolve(pos), view.state.doc.resolve(pos)))
-            view.dispatch(tr)
-            splitCell(view.state, view.dispatch)
-          } catch {}
+    const table = findTable(state.selection)
+    if (table) {
+      const map = TableMap.get(table.node)
+      let rect: { left: number; right: number; top: number; bottom: number } | null = null
+      if (isCellSelection(state.selection)) {
+        const start = state.selection.$anchorCell.start(-1)
+        rect = map.rectBetween(state.selection.$anchorCell.pos - start, state.selection.$headCell.pos - start)
+      } else {
+        const $pos = state.selection.$from
+        for (let d = $pos.depth; d > 0; d--) {
+          const n = $pos.node(d)
+          if (n.type.spec.tableRole === 'cell' || n.type.spec.tableRole === 'header_cell') {
+            const cellPos = $pos.before(d) - table.start
+            rect = map.findCell(cellPos)
+            break
+          }
         }
-        setMenuOpen(false); return
+      }
+
+      if (rect) {
+        const cellOffsets = map.cellsInRect(rect)
+        const cellPositions: number[] = []
+        const seen = new Set<number>()
+        for (const offset of cellOffsets) {
+          if (seen.has(offset)) continue
+          seen.add(offset)
+          const node = table.node.nodeAt(offset)
+          if (node && ((node.attrs.colspan && node.attrs.colspan > 1) || (node.attrs.rowspan && node.attrs.rowspan > 1))) {
+            cellPositions.push(table.start + offset)
+          }
+        }
+
+        if (cellPositions.length > 0) {
+          cellPositions.sort((a, b) => b - a)
+          for (const pos of cellPositions) {
+            try {
+              const tr = view.state.tr.setSelection(new CellSelection(view.state.doc.resolve(pos), view.state.doc.resolve(pos)))
+              view.dispatch(tr)
+              splitCell(view.state, view.dispatch)
+            } catch {}
+          }
+          setMenuOpen(false)
+          return
+        }
       }
     }
-    editor.chain().focus().splitCell().run(); setMenuOpen(false)
+    editor.chain().focus().splitCell().run()
+    setMenuOpen(false)
   }, [editor])
 
   const onClearContents = useCallback(() => { editor.chain().focus().deleteSelection().run(); setMenuOpen(false) }, [editor])
@@ -264,18 +313,18 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         <>
           <ContainingBlockAnchor ref={anchorRef} />
           {/* 1. Selection Perimeter Continuous 2px Outline */}
-          <div className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[18] border-2 border-indigo-500/85 dark:border-violet-400/85 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
-            style={{ top: selectionRect.top - offset.y, left: selectionRect.left - offset.x, width: selectionRect.width, height: selectionRect.height, zIndex: 18 }} />
+          <div className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[15] border-2 border-indigo-500/85 dark:border-violet-400/85 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
+            style={{ top: selectionRect.top - offset.y, left: selectionRect.left - offset.x, width: selectionRect.width, height: selectionRect.height, zIndex: 15 }} />
 
           {/* 2. Expandable 4-dot Circle Trigger & Popover Menu */}
           {isButtonVisible && (
-            <div className="fixed z-[20] -translate-y-1/2 flex items-center"
-              style={{ top: selectionRect.top + selectionRect.height / 2 - offset.y, left: selectionRect.left + selectionRect.width - offset.x, zIndex: 20 }}>
+            <div className="fixed z-[16] -translate-y-1/2 flex items-center"
+              style={{ top: selectionRect.top + selectionRect.height / 2 - offset.y, left: selectionRect.left + selectionRect.width - offset.x, zIndex: 16 }}>
               <Popover.Root open={menuOpen} onOpenChange={open => { if (open) window.dispatchEvent(new CustomEvent('tiptap:close-menus', { detail: 'tableCell' })); setMenuOpen(open) }}>
                 <Popover.Anchor asChild>
                   <button type="button" onPointerDown={handlePointerDown} onClick={e => { e.preventDefault(); e.stopPropagation() }}
                     onMouseEnter={() => setIsBtnHovered(true)} onMouseLeave={() => setIsBtnHovered(false)}
-                    className={`rounded-full bg-indigo-600 dark:bg-violet-500 text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-[20] select-none ${isExpanded ? 'w-4 h-4 -ml-2' : 'w-2 h-2 -ml-1'}`}
+                    className={`rounded-full bg-indigo-600 dark:bg-violet-500 text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-[16] select-none ${isExpanded ? 'w-4 h-4 -ml-2' : 'w-2 h-2 -ml-1'}`}
                     title="Click for options, drag to adjust cell selection" aria-label="Table cells option">
                     <svg className={`w-2.5 h-2.5 fill-current transition-opacity duration-150 ${isExpanded ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`} viewBox="0 0 16 16">
                       <circle cx="5" cy="5" r="1.5" /><circle cx="11" cy="5" r="1.5" /><circle cx="5" cy="11" r="1.5" /><circle cx="11" cy="11" r="1.5" />

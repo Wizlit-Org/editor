@@ -8,7 +8,13 @@ export { getClusterRowRange as getMergedRowRange, getClusterColRange as getMerge
  * Move / Swap column from sourceIndex to targetIndex in the table at tablePos.
  * Strictly enforces TableMap coordinate mapping (no row.child(colIndex) calls) to support merged cells flawlessly.
  */
-export function moveTableColumn(editor: Editor, tablePos: number, fromIndex: number, toIndex: number): boolean {
+export function moveTableColumn(
+  editor: Editor,
+  tablePos: number,
+  fromIndex: number,
+  toIndex: number,
+  count: number = 1,
+): boolean {
   if (fromIndex === toIndex || tablePos < 0) return false
   const { state, view } = editor
   const tableNode = state.doc.nodeAt(tablePos)
@@ -29,12 +35,18 @@ export function moveTableColumn(editor: Editor, tablePos: number, fromIndex: num
     })
 
     const bundle = getClusterColRange(tableNode, fromIndex)
+    const actualStart = count > 1 ? fromIndex : bundle.start
+    const actualCount = count > 1 ? count : bundle.count
+
+    if (toIndex >= actualStart && toIndex < actualStart + actualCount) {
+      return false
+    }
 
     // Build reordered column indices array
     const originalCols: number[] = []
     for (let c = 0; c < map.width; c++) originalCols.push(c)
-    const movedCols = originalCols.splice(bundle.start, bundle.count)
-    const insertIdx = toIndex > bundle.start ? Math.max(0, toIndex - bundle.count + 1) : toIndex
+    const movedCols = originalCols.splice(actualStart, actualCount)
+    const insertIdx = toIndex > actualStart ? Math.max(0, toIndex - actualCount + 1) : toIndex
     originalCols.splice(insertIdx, 0, ...movedCols)
     const newColOrder = originalCols
 
@@ -76,7 +88,13 @@ export function moveTableColumn(editor: Editor, tablePos: number, fromIndex: num
  * Move / Swap row from sourceIndex to targetIndex in the table at tablePos.
  * Bundles merged rows and preserves tableHeader / tableCell structure based on dynamic slot positions.
  */
-export function moveTableRow(editor: Editor, tablePos: number, fromIndex: number, toIndex: number): boolean {
+export function moveTableRow(
+  editor: Editor,
+  tablePos: number,
+  fromIndex: number,
+  toIndex: number,
+  count: number = 1,
+): boolean {
   if (fromIndex === toIndex || tablePos < 0) return false
   const { state, view } = editor
   const tableNode = state.doc.nodeAt(tablePos)
@@ -97,12 +115,19 @@ export function moveTableRow(editor: Editor, tablePos: number, fromIndex: number
     })
 
     const bundle = getClusterRowRange(tableNode, fromIndex)
+    const actualStart = count > 1 ? fromIndex : bundle.start
+    const actualCount = count > 1 ? count : bundle.count
+
+    if (toIndex >= actualStart && toIndex < actualStart + actualCount) {
+      return false
+    }
+
     const rows: any[] = []
     tableNode.forEach(row => rows.push(row))
 
-    if (bundle.start < rows.length) {
-      const movedRows = rows.splice(bundle.start, bundle.count)
-      const insertIdx = toIndex > bundle.start ? Math.max(0, toIndex - bundle.count + 1) : toIndex
+    if (actualStart < rows.length) {
+      const movedRows = rows.splice(actualStart, actualCount)
+      const insertIdx = toIndex > actualStart ? Math.max(0, toIndex - actualCount + 1) : toIndex
       rows.splice(insertIdx, 0, ...movedRows)
     }
 
