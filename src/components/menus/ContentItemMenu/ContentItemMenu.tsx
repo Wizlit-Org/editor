@@ -333,6 +333,7 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
   return (
     <DragHandle
       pluginKey="ContentItemMenu"
+      className="drag-handle z-[60]"
       editor={editor}
       nested={false}
       onNodeChange={handleNodeChange}

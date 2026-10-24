@@ -123,3 +123,10 @@
     }
   }
 }
+
+/* Drag handle wrapper and handle z-index layering above table blur overlay */
+div:has(> .drag-handle),
+.drag-handle {
+  z-index: 60 !important;
+}
+
