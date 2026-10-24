@@ -46,6 +46,7 @@ interface TableDragOverlaysProps {
   tableRectTop: number
   tableRectWidth: number
   tableRectHeight: number
+  containerOffset?: { x: number; y: number }
 }
 
 export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
@@ -54,7 +55,11 @@ export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
   resizingGuideX,
   tableRectTop,
   tableRectHeight,
+  containerOffset = { x: 0, y: 0 },
 }) => {
+  const ox = containerOffset.x
+  const oy = containerOffset.y
+
   return (
     <>
       {/* 1. Drop Position Indicator Guide: Single clean 2px indigo line (AC ⑥) */}
@@ -62,8 +67,8 @@ export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
         <div
           className="fixed pointer-events-none z-[25] bg-indigo-500 dark:bg-indigo-400 shadow-[0_0_6px_rgba(99,102,241,0.6)] rounded-full transition-all duration-75"
           style={{
-            left: dragIndicator.left,
-            top: dragIndicator.top,
+            left: dragIndicator.left - ox,
+            top: dragIndicator.top - oy,
             width: dragIndicator.width,
             height: dragIndicator.height,
             zIndex: 25,
@@ -79,7 +84,7 @@ export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
               ? 'bg-rose-950/95 border border-rose-500/80 text-rose-200 shadow-rose-950/50'
               : 'bg-zinc-900/95 dark:bg-zinc-800/95 border border-white/10 text-white shadow-black/40'
           }`}
-          style={{ left: dragGhost.x, top: dragGhost.y, zIndex: 30 }}
+          style={{ left: dragGhost.x - ox, top: dragGhost.y - oy, zIndex: 30 }}
         >
           <span className={`w-1.5 h-1.5 rounded-full ${dragGhost.isBlocked ? 'bg-rose-400' : 'bg-indigo-400'}`} />
           <span>{dragGhost.label}</span>
@@ -91,8 +96,8 @@ export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
         <div
           className="fixed pointer-events-none bg-indigo-500 dark:bg-indigo-400 z-[25] shadow-[0_0_6px_rgba(99,102,241,0.6)] rounded-full"
           style={{
-            left: resizingGuideX - 1,
-            top: tableRectTop,
+            left: resizingGuideX - 1 - ox,
+            top: tableRectTop - oy,
             width: 2,
             height: tableRectHeight,
             zIndex: 25,

@@ -37,6 +37,8 @@ export function useTableGrips(editor: Editor) {
 
   const hoverTimerRef = useRef<NodeJS.Timeout | null>(null)
   const scrollTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const animFrameRef = useRef<number | null>(null)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const clearHoverTimer = useCallback(() => {
     if (hoverTimerRef.current) {
@@ -95,9 +97,26 @@ export function useTableGrips(editor: Editor) {
     const tableNode = tablePos >= 0 ? editor.state.doc.nodeAt(tablePos) : null
     if (tableNode && tablePos >= 0) {
       const map = TableMap.get(tableNode)
-      const rows = Array.from(currentTableEl.querySelectorAll('tr')) as HTMLElement[]
+      const trs = Array.from(currentTableEl.querySelectorAll('tbody > tr, tr')) as HTMLTableRowElement[]
 
-      // Calculate exact column grips using TableMap coordinates
+      // Build 1:1 map of table cell positions to actual DOM elements
+      const cellDomMap = new Map<number, HTMLElement>()
+      trs.forEach((tr, rIdx) => {
+        let cellDOMIdx = 0
+        for (let c = 0; c < map.width; c++) {
+          const cellPos = map.map[rIdx * map.width + c]
+          const rect = map.findCell(cellPos)
+          if (rect.top === rIdx && rect.left === c) {
+            const cellEl = tr.children[cellDOMIdx] as HTMLElement | undefined
+            if (cellEl) {
+              cellDomMap.set(cellPos, cellEl)
+              cellDOMIdx++
+            }
+          }
+        }
+      })
+
+      // Calculate exact column grips using TableMap coordinates and actual DOM positions
       const colItems: GripItem[] = []
       for (let c = 0; c < map.width; c++) {
         let colLeft = 0
@@ -110,11 +129,10 @@ export function useTableGrips(editor: Editor) {
           const cellPos = map.map[rIdx * map.width + c]
           const rect = map.findCell(cellPos)
           if (rect.right - rect.left === 1) {
-            const docCellPos = tablePos + 1 + cellPos
-            const dom = editor.view.nodeDOM(docCellPos) as HTMLElement | null
-            if (dom instanceof HTMLElement) {
-              foundCellEl = dom
-              colPos = docCellPos
+            const el = cellDomMap.get(cellPos) || (editor.view?.nodeDOM(tablePos + 1 + cellPos) as HTMLElement | null)
+            if (el instanceof HTMLElement) {
+              foundCellEl = el
+              colPos = tablePos + 1 + cellPos
               break
             }
           }
@@ -130,9 +148,9 @@ export function useTableGrips(editor: Editor) {
           const rect = map.findCell(cellPos)
           const docCellPos = tablePos + 1 + cellPos
           colPos = docCellPos
-          const dom = editor.view.nodeDOM(docCellPos) as HTMLElement | null
-          if (dom instanceof HTMLElement) {
-            const cr = dom.getBoundingClientRect()
+          const el = cellDomMap.get(cellPos) || (editor.view?.nodeDOM(docCellPos) as HTMLElement | null)
+          if (el instanceof HTMLElement) {
+            const cr = el.getBoundingClientRect()
             const span = Math.max(1, rect.right - rect.left)
             const unitWidth = cr.width / span
             colLeft = cr.left + (c - rect.left) * unitWidth
@@ -154,7 +172,7 @@ export function useTableGrips(editor: Editor) {
       // Calculate exact row grips (1:1 with each <tr>)
       const rowItems: GripItem[] = []
       for (let rIdx = 0; rIdx < map.height; rIdx++) {
-        const rowEl = rows[rIdx]
+        const rowEl = trs[rIdx]
         const rr = rowEl ? rowEl.getBoundingClientRect() : null
         const cellPos = map.map[rIdx * map.width]
         const rowPos = tablePos + 1 + cellPos
@@ -171,6 +189,61 @@ export function useTableGrips(editor: Editor) {
       setRowGrips(rowItems)
     }
   }, [currentTableEl, editor])
+
+  // 3-tier debounce/rAF trigger for instantaneous layout reflow tracking (AC ②)
+  const triggerUpdate = useCallback(() => {
+    updateTableRect()
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
+    animFrameRef.current = requestAnimationFrame(() => {
+      updateTableRect()
+      animFrameRef.current = null
+    })
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    timeoutRef.current = setTimeout(() => {
+      updateTableRect()
+      timeoutRef.current = null
+    }, 30)
+  }, [updateTableRect])
+
+  // Subscribe to editor transactions and updates (Ctrl+Z / Undo / Redo / Move sync)
+  useEffect(() => {
+    if (!editor) return
+
+    editor.on('transaction', triggerUpdate)
+    editor.on('update', triggerUpdate)
+
+    return () => {
+      editor.off('transaction', triggerUpdate)
+      editor.off('update', triggerUpdate)
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [editor, triggerUpdate])
+
+  // Observe active table DOM resize and mutations (colgroup, style, cell dimensions)
+  useEffect(() => {
+    if (!currentTableEl) return
+
+    const ro = new ResizeObserver(() => {
+      triggerUpdate()
+    })
+    ro.observe(currentTableEl)
+
+    const mo = new MutationObserver(() => {
+      triggerUpdate()
+    })
+    mo.observe(currentTableEl, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style', 'width', 'colwidth', 'class'],
+    })
+
+    return () => {
+      ro.disconnect()
+      mo.disconnect()
+    }
+  }, [currentTableEl, triggerUpdate])
 
   useEffect(() => {
     if (!editor?.view?.dom) return
@@ -202,38 +275,35 @@ export function useTableGrips(editor: Editor) {
           clearHoverTimer()
           setIsHovered(true)
 
-          // Detect which single column and row are hovered
-          const td = target.closest('td, th') as HTMLElement | null
-          let activeCol = hoveredColIndex
-          let activeRow = hoveredRowIndex
-          if (td) {
-            const tr = td.parentElement as HTMLTableRowElement | null
-            if (tr) {
-              const rowIdx = Array.from(currentTableEl.querySelectorAll('tr')).indexOf(tr)
-              const colIdx = Array.from(tr.children).indexOf(td)
-              if (rowIdx >= 0) {
-                setHoveredRowIndex(rowIdx)
-                activeRow = rowIdx
-              }
-              if (colIdx >= 0) {
-                setHoveredColIndex(colIdx)
-                activeCol = colIdx
-              }
+          // Coordinate-based hover detection (100% immune to merged cell index offset)
+          let activeCol: number | null = null
+          for (const g of columnGrips) {
+            if (e.clientX >= g.left && e.clientX <= g.left + g.width) {
+              activeCol = g.index
+              break
             }
           }
+          if (activeCol !== null) setHoveredColIndex(activeCol)
 
-          const totalRows = currentTableEl.querySelectorAll('tr').length
-          const totalCols = currentTableEl.querySelector('tr')?.children.length ?? 0
+          let activeRow: number | null = null
+          for (const g of rowGrips) {
+            if (e.clientY >= g.top && e.clientY <= g.top + g.height) {
+              activeRow = g.index
+              break
+            }
+          }
+          if (activeRow !== null) setHoveredRowIndex(activeRow)
 
-          // Right column add bar visibility:
-          // Visible only when hovering the last column, or mouse near right edge (within 24px), or hovering the bar itself
+          const totalRows = rowGrips.length > 0 ? rowGrips.length : currentTableEl.querySelectorAll('tr').length
+          const totalCols = columnGrips.length > 0 ? columnGrips.length : currentTableEl.querySelector('tr')?.children.length ?? 0
+
+          // Right column add bar visibility
           const isLastCol = activeCol !== null && totalCols > 0 && activeCol === totalCols - 1
           const isNearRightEdge = e.clientX >= r.right - 24 && e.clientX <= r.right + 24
           const inRightBar = Boolean(target.closest('[aria-label="Add column at end"]'))
           setShowRightAddBar(Boolean(isLastCol || isNearRightEdge || inRightBar))
 
-          // Bottom row add bar visibility:
-          // Visible only when hovering the last row, or mouse near bottom edge (within 24px), or hovering the bar itself
+          // Bottom row add bar visibility
           const isLastRow = activeRow !== null && totalRows > 0 && activeRow === totalRows - 1
           const isNearBottomEdge = e.clientY >= r.bottom - 24 && e.clientY <= r.bottom + 24
           const inBottomBar = Boolean(target.closest('[aria-label="Add row at end"]'))
@@ -276,7 +346,7 @@ export function useTableGrips(editor: Editor) {
       window.removeEventListener('scroll', handleScroll, { capture: true })
       window.removeEventListener('resize', handleScroll)
     }
-  }, [currentTableEl, editor, updateTableRect, clearHoverTimer])
+  }, [currentTableEl, editor, updateTableRect, clearHoverTimer, columnGrips, rowGrips])
 
   useEffect(() => {
     updateTableRect()

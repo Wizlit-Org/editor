@@ -4,6 +4,7 @@ import * as Popover from '@radix-ui/react-popover'
 import { CellSelection, splitCell } from '@tiptap/pm/tables'
 import { isCellSelection } from '../../utils'
 import { isSelectionStraddlingHeader, hasMergedCellsInSelection } from '../../utils/TableHeaderStraddleUtils'
+import { useContainingBlockOffset, ContainingBlockAnchor } from '../../utils/containingBlock'
 import { Icon } from '@/components/ui/Icon'
 import { MenuProps } from '@/components/menus/types'
 import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
@@ -32,6 +33,8 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   const [isScrolling, setIsScrolling] = useState(false)
   const isDraggingHandleRef = useRef(false)
   const scrollTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const offset = useContainingBlockOffset(anchorRef)
 
   useEffect(() => {
     setMounted(true)
@@ -347,12 +350,14 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
     <>
       {createPortal(
         <>
+          <ContainingBlockAnchor ref={anchorRef} />
+
           {/* 1. Selection Perimeter Continuous 2px Outline (Notion Style point border) */}
           <div
             className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[18] border-2 border-indigo-500/85 dark:border-violet-400/85 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
             style={{
-              top: selectionRect.top,
-              left: selectionRect.left,
+              top: selectionRect.top - offset.y,
+              left: selectionRect.left - offset.x,
               width: selectionRect.width,
               height: selectionRect.height,
               zIndex: 18,
@@ -364,8 +369,8 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
             <div
               className="fixed z-[20] -translate-y-1/2 flex items-center"
               style={{
-                top: selectionRect.top + selectionRect.height / 2,
-                left: selectionRect.left + selectionRect.width,
+                top: selectionRect.top + selectionRect.height / 2 - offset.y,
+                left: selectionRect.left + selectionRect.width - offset.x,
                 zIndex: 20,
               }}
             >

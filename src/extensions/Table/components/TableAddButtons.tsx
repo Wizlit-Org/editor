@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react'
+import React, { useCallback, useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Editor } from '@tiptap/react'
 import { TableMap } from '@tiptap/pm/tables'
@@ -9,6 +9,7 @@ import { moveTableColumn, moveTableRow } from '../utils/TableDndUtils'
 import { isCellSelection } from '../utils'
 import { selectColRange, selectRowRange, focusTableGrip, isGripInCurrentSelection } from '../utils/TableClusterUtils'
 import { hasMergedCellsInRowSelection, hasMergedCellsInColSelection, isHeaderStraddling } from '../utils/TableHeaderStraddleUtils'
+import { useContainingBlockOffset, ContainingBlockAnchor } from '../utils/containingBlock'
 
 export interface TableAddButtonsProps {
   editor: Editor
@@ -31,6 +32,9 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
     clearHoverTimer,
     updateTableRect,
   } = useTableGrips(editor)
+
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const offset = useContainingBlockOffset(anchorRef)
 
   const [dragIndicator, setDragIndicator] = useState<DragIndicatorData | null>(null)
   const [dragGhost, setDragGhost] = useState<DragGhostData | null>(null)
@@ -349,14 +353,21 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
 
   return createPortal(
     <div id="table-add-buttons-portal" className="pointer-events-auto" style={{ zIndex: 15, position: 'relative' }}>
-      {/* 1. Single Top Column Grip Bar (AC ⑦: z-[15]) */}
+      <ContainingBlockAnchor ref={anchorRef} />
+
+      {/* 1. Single Top Column Grip Bar (AC ⑦: z-[15], offset compensated) */}
       {activeColGrip && isColGripVisible && (
         <button
           key={`active-col-grip-${activeColGrip.index}`}
           type="button"
           onMouseDown={handleGripMouseDown('col', activeColGrip.index)}
           className="fixed z-[15] h-[12px] rounded-full bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white shadow-2xs transition-all flex items-center justify-center p-0 cursor-pointer select-none"
-          style={{ top: tableRect.top - 15, left: activeColGrip.left, width: activeColGrip.width, zIndex: 15 }}
+          style={{
+            top: tableRect.top - 15 - offset.y,
+            left: activeColGrip.left - offset.x,
+            width: activeColGrip.width,
+            zIndex: 15,
+          }}
           title={`Click to select, drag to move column ${activeColGrip.index + 1}`}
         >
           <div className="flex items-center gap-0.5">
@@ -367,14 +378,19 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         </button>
       )}
 
-      {/* 2. Single Left Row Grip Bar (AC ⑦: z-[15]) */}
+      {/* 2. Single Left Row Grip Bar (AC ⑦: z-[15], offset compensated) */}
       {activeRowGrip && (
         <button
           key={`active-row-grip-${activeRowGrip.index}`}
           type="button"
           onMouseDown={handleGripMouseDown('row', activeRowGrip.index)}
           className="fixed z-[15] w-[12px] rounded-full bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white shadow-2xs transition-all flex items-center justify-center p-0 cursor-pointer select-none"
-          style={{ top: activeRowGrip.top, left: tableRect.left - 15, height: activeRowGrip.height, zIndex: 15 }}
+          style={{
+            top: activeRowGrip.top - offset.y,
+            left: tableRect.left - 15 - offset.x,
+            height: activeRowGrip.height,
+            zIndex: 15,
+          }}
           title={`Click to select, drag to move row ${activeRowGrip.index + 1}`}
         >
           <div className="flex flex-col items-center gap-0.5">
@@ -392,6 +408,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         activeColRect={activeColGrip ? { left: activeColGrip.left, width: activeColGrip.width } : null}
         showRightBar={showRightAddBar || isLastColHovered}
         showBottomBar={showBottomAddBar || isLastRowHovered}
+        containerOffset={offset}
         onAddColumn={onAddColumnAtEnd}
         onAddRow={onAddRowAtEnd}
         onHoverKeepAlive={() => {
@@ -409,6 +426,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         tableRectTop={tableRect.top}
         tableRectWidth={tableRect.width}
         tableRectHeight={tableRect.height}
+        containerOffset={offset}
       />
     </div>,
     (appendTo?.current as HTMLElement) || (typeof document !== 'undefined' ? document.body : (null as any)),

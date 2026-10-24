@@ -14,6 +14,7 @@ interface TableAddBarProps {
   activeColRect?: { left: number; width: number } | null
   showRightBar?: boolean
   showBottomBar?: boolean
+  containerOffset?: { x: number; y: number }
   onAddColumn: (e: React.MouseEvent) => void
   onAddRow: (e: React.MouseEvent) => void
   onHoverKeepAlive: () => void
@@ -25,6 +26,7 @@ export const TableAddBar: React.FC<TableAddBarProps> = ({
   activeColRect,
   showRightBar = true,
   showBottomBar = true,
+  containerOffset = { x: 0, y: 0 },
   onAddColumn,
   onAddRow,
   onHoverKeepAlive,
@@ -35,6 +37,9 @@ export const TableAddBar: React.FC<TableAddBarProps> = ({
   const bottomBarLeft = activeColRect ? activeColRect.left : tableRect.left
   const bottomBarWidth = activeColRect ? Math.max(activeColRect.width, 24) : 28
 
+  const ox = containerOffset.x
+  const oy = containerOffset.y
+
   return (
     <>
       {/* 1. Right Column Add Button: Sized to current row height */}
@@ -42,8 +47,8 @@ export const TableAddBar: React.FC<TableAddBarProps> = ({
         <div
           className="fixed z-[30] flex items-center justify-center transition-all duration-150 rounded-full cursor-pointer group bg-zinc-500/10 hover:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:text-white dark:hover:text-white shadow-2xs"
           style={{
-            top: rightBarTop,
-            left: tableRect.right + 4,
+            top: rightBarTop - oy,
+            left: tableRect.right + 4 - ox,
             height: rightBarHeight,
             width: 14,
             zIndex: 30,
@@ -62,8 +67,8 @@ export const TableAddBar: React.FC<TableAddBarProps> = ({
         <div
           className="fixed z-[30] flex items-center justify-center transition-all duration-150 rounded-full cursor-pointer group bg-zinc-500/10 hover:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:text-white dark:hover:text-white shadow-2xs"
           style={{
-            top: tableRect.bottom + 4,
-            left: bottomBarLeft,
+            top: tableRect.bottom + 4 - oy,
+            left: bottomBarLeft - ox,
             width: bottomBarWidth,
             height: 14,
             zIndex: 30,

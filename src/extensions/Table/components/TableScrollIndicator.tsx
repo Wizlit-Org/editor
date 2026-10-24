@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Editor } from '@tiptap/react'
 import { Icon } from '@/components/ui/Icon'
+import { useContainingBlockOffset, ContainingBlockAnchor } from '../utils/containingBlock'
 
 interface TableScrollIndicatorProps {
   editor: Editor
@@ -36,6 +37,8 @@ const isSameTables = (prev: TableShadowState[], next: TableShadowState[]): boole
 
 export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ editor, appendTo }) => {
   const [tables, setTables] = useState<TableShadowState[]>([])
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const offset = useContainingBlockOffset(anchorRef)
 
   const updateTableScrollStates = useCallback(() => {
     if (!editor.view?.dom) {
@@ -138,6 +141,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
 
   return createPortal(
     <>
+      <ContainingBlockAnchor ref={anchorRef} />
       {tables.map(t => (
         <React.Fragment key={t.id}>
           {/* Left Edge Fade Shadow Indicator */}
@@ -146,8 +150,8 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
               t.showLeft ? 'opacity-100' : 'opacity-0'
             }`}
             style={{
-              top: t.rect.top,
-              left: t.rect.left,
+              top: t.rect.top - offset.y,
+              left: t.rect.left - offset.x,
               width: '28px',
               height: t.rect.height,
             }}
@@ -159,8 +163,8 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
               t.showRight ? 'opacity-100' : 'opacity-0'
             }`}
             style={{
-              top: t.rect.top,
-              left: t.rect.left + t.rect.width - 28,
+              top: t.rect.top - offset.y,
+              left: t.rect.left + t.rect.width - 28 - offset.x,
               width: '28px',
               height: t.rect.height,
             }}
@@ -178,8 +182,8 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
                 : 'opacity-0 pointer-events-none'
             }`}
             style={{
-              top: t.rect.top + t.rect.height / 2 - 16,
-              left: t.rect.left + 8,
+              top: t.rect.top + t.rect.height / 2 - 16 - offset.y,
+              left: t.rect.left + 8 - offset.x,
             }}
           >
             <Icon name="ChevronLeft" className="w-4 h-4" />
@@ -197,8 +201,8 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
                 : 'opacity-0 pointer-events-none'
             }`}
             style={{
-              top: t.rect.top + t.rect.height / 2 - 16,
-              left: t.rect.left + t.rect.width - 40,
+              top: t.rect.top + t.rect.height / 2 - 16 - offset.y,
+              left: t.rect.left + t.rect.width - 40 - offset.x,
             }}
           >
             <Icon name="ChevronRight" className="w-4 h-4" />
