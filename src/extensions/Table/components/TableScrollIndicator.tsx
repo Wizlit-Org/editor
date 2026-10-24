@@ -210,7 +210,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
 
         return (
           <React.Fragment key={t.id}>
-            {/* Left Edge Fade Shadow / Frosted Glass Blur Indicator */}
+            {/* Left Edge Fade Shadow / Frosted Glass Blur Indicator (Extended vertically to cover col pills at top - 15px) */}
             <div
               onMouseDown={e => { e.preventDefault(); e.stopPropagation() }}
               onClick={e => { e.preventDefault(); e.stopPropagation() }}
@@ -223,13 +223,13 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
                 zIndex: 12,
                 transition: 'opacity 0.2s ease',
                 opacity: t.showLeft ? 1 : 0,
-                top: t.rect.top - offset.y,
+                top: t.rect.top - 24 - offset.y,
                 left: visibleLeft - offset.x,
                 width: `${blurWidth}px`,
-                height: t.rect.height,
+                height: t.rect.height + 24,
                 background: 'transparent',
-                backdropFilter: 'blur(4px)',
-                WebkitBackdropFilter: 'blur(4px)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
                 maskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
                 WebkitMaskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
               }}

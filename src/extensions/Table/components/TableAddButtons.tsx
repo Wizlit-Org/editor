@@ -228,6 +228,14 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         const target = pendingTargetIdx
         cleanUpDrag()
         if (wasDragging) {
+          const swallowClick = (evt: MouseEvent) => {
+            evt.preventDefault()
+            evt.stopPropagation()
+            evt.stopImmediatePropagation()
+          }
+          window.addEventListener('click', swallowClick, { capture: true, once: true })
+          setTimeout(() => window.removeEventListener('click', swallowClick, { capture: true }), 100)
+
           if (isGripSelected && !hasMerged && target >= 0 && !(target >= start && target <= end + 1)) {
             const destIdx = target > end + 1 ? target - 1 : target
             if (
@@ -236,6 +244,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
             ) {
               if (type === 'col') moveTableColumn(editor, tableRect.pos, start, destIdx, count)
               else moveTableRow(editor, tableRect.pos, start, destIdx, count)
+              try { editor.commands.focus(undefined, { scrollIntoView: false }) } catch {}
               setTimeout(updateTableRect, 50)
             }
           }
