@@ -1,7 +1,7 @@
 import { Editor } from '@tiptap/core'
 import { TableMap } from '@tiptap/pm/tables'
 import { getClusterRowRange, getClusterColRange, selectColRange, selectRowRange } from './TableClusterUtils'
-import { isTargetSplittingMergedCell } from './TableHeaderStraddleUtils'
+import { isTargetSplittingMergedCell, isHeaderStraddling } from './TableHeaderStraddleUtils'
 
 export { getClusterRowRange as getMergedRowRange, getClusterColRange as getMergedColRange } from './TableClusterUtils'
 
@@ -45,6 +45,9 @@ export function moveTableColumn(
     if (isTargetSplittingMergedCell(tableNode, 'col', toIndex)) {
       return false
     }
+    if (isHeaderStraddling(tableNode, 'col', fromIndex, toIndex)) {
+      return false
+    }
 
     // Build reordered column indices array
     const originalCols: number[] = []
@@ -69,21 +72,7 @@ export function moveTableColumn(
           if (cellNode) {
             const isHeader = (hasHeaderRow && r === 0) || (hasHeaderCol && newColIdx === 0)
             const targetType = isHeader ? headerType : cellType
-
-            const origColspan = cellNode.attrs.colspan || 1
-            if (hasHeaderCol && newColIdx === 0 && origColspan > 1) {
-              // Auto-split cross-boundary merge: slot 0 gets header cell with colspan: 1 (rowspan preserved)
-              cells.push(targetType.create({ ...cellNode.attrs, colspan: 1 }, cellNode.content))
-
-              // Remainder into slot 1, preserving remaining colspan and rowspan
-              const isCol1Header = hasHeaderRow && r === 0
-              const col1Type = isCol1Header ? headerType : cellType
-              const defaultPara = state.schema.nodes.paragraph.createAndFill()
-              const content = defaultPara ? [defaultPara] : []
-              cells.push(col1Type.create({ ...cellNode.attrs, colspan: origColspan - 1 }, content))
-            } else {
-              cells.push(targetType.create(cellNode.attrs, cellNode.content))
-            }
+            cells.push(targetType.create(cellNode.attrs, cellNode.content))
           }
         }
       })
@@ -145,6 +134,9 @@ export function moveTableRow(
     if (isTargetSplittingMergedCell(tableNode, 'row', toIndex)) {
       return false
     }
+    if (isHeaderStraddling(tableNode, 'row', fromIndex, toIndex)) {
+      return false
+    }
 
     const rows: any[] = []
     tableNode.forEach(row => rows.push(row))
@@ -154,76 +146,6 @@ export function moveTableRow(
       const movedRows = rows.splice(actualStart, actualCount)
       insertIdx = toIndex > actualStart ? Math.max(0, toIndex - actualCount + 1) : toIndex
       rows.splice(insertIdx, 0, ...movedRows)
-    }
-
-    // Auto-split merged cells crossing the header/body boundary at row 0
-    if (hasHeaderRow && rows.length > 1) {
-      const row0 = rows[0]
-      let hasCrossSpan = false
-      row0.forEach((cell: any) => {
-        if ((cell.attrs.rowspan || 1) > 1) hasCrossSpan = true
-      })
-
-      if (hasCrossSpan) {
-        const splitCellsToInsert: { colStart: number; colspan: number; remainingRowspan: number; origCell: any }[] = []
-        const newRow0Cells: any[] = []
-        let col = 0
-        row0.forEach((cell: any) => {
-          const colspan = cell.attrs.colspan || 1
-          const rowspan = cell.attrs.rowspan || 1
-          if (rowspan > 1) {
-            splitCellsToInsert.push({
-              colStart: col,
-              colspan,
-              remainingRowspan: rowspan - 1,
-              origCell: cell,
-            })
-            newRow0Cells.push(headerType.create({ ...cell.attrs, rowspan: 1 }, cell.content))
-          } else {
-            newRow0Cells.push(cell)
-          }
-          col += colspan
-        })
-        rows[0] = row0.type.create(row0.attrs, newRow0Cells)
-
-        // Reconstruct row 1 with inserted split cells
-        const row1 = rows[1]
-        const existingRow1Cells: any[] = []
-        row1.forEach((cell: any) => existingRow1Cells.push(cell))
-        let existingIdx = 0
-
-        const newRow1Cells: any[] = []
-        let c = 0
-        while (c < map.width) {
-          const splitInfo = splitCellsToInsert.find(s => s.colStart === c)
-          if (splitInfo) {
-            const isHeader = hasHeaderCol && c === 0
-            const targetType = isHeader ? headerType : cellType
-            const defaultPara = state.schema.nodes.paragraph.createAndFill()
-            const content = defaultPara ? [defaultPara] : []
-            newRow1Cells.push(
-              targetType.create(
-                {
-                  ...splitInfo.origCell.attrs,
-                  rowspan: splitInfo.remainingRowspan,
-                  colspan: splitInfo.colspan,
-                },
-                content,
-              ),
-            )
-            c += splitInfo.colspan
-          } else {
-            if (existingIdx < existingRow1Cells.length) {
-              const exCell = existingRow1Cells[existingIdx++]
-              newRow1Cells.push(exCell)
-              c += (exCell.attrs.colspan || 1)
-            } else {
-              break
-            }
-          }
-        }
-        rows[1] = row1.type.create(row1.attrs, newRow1Cells)
-      }
     }
 
     const colSpansRemaining: number[] = new Array(map.width).fill(0)

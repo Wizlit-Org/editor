@@ -51,13 +51,95 @@ export function hasHeaderCol(tableNode: Node): boolean {
  * Merged cells crossing header/body boundaries are auto-split when dropped into slot 0.
  * Header internal merges are 100% preserved. Therefore, moves into slot 0 are no longer blocked.
  */
+/**
+ * Checks if row at rowIndex has any cell with rowspan > 1 (straddling row boundary).
+ */
+export function hasRowStraddlingMerge(tableNode: Node, rowIndex = 0): boolean {
+  try {
+    const map = TableMap.get(tableNode)
+    if (rowIndex < 0 || rowIndex >= map.height) return false
+    for (let c = 0; c < map.width; c++) {
+      const cellPos = map.map[rowIndex * map.width + c]
+      const rect = map.findCell(cellPos)
+      if (rect.bottom - rect.top > 1) {
+        return true
+      }
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Checks if column at colIndex has any cell with colspan > 1 (straddling col boundary).
+ */
+export function hasColStraddlingMerge(tableNode: Node, colIndex = 0): boolean {
+  try {
+    const map = TableMap.get(tableNode)
+    if (colIndex < 0 || colIndex >= map.width) return false
+    for (let r = 0; r < map.height; r++) {
+      const cellPos = map.map[r * map.width + colIndex]
+      const rect = map.findCell(cellPos)
+      if (rect.right - rect.left > 1) {
+        return true
+      }
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Checks if moving a row or column bundle from sourceIndex to targetIndex would straddle the header/body boundary.
+ *
+ * Rules (117-v-63: BLOCK_MOVE_DROP_TO_HEADER_ON_STRADDLE):
+ * - If targetIndex is 0 (or bundle lands on slot 0) and the moved row/col has a straddling merge (rowspan > 1 for rows, colspan > 1 for cols), block!
+ * - If sourceIndex is 0 and moving slot 0 away leaves a row/col at slot 0 that has a straddling merge, block!
+ */
 export function isHeaderStraddling(
-  _tableNode: Node,
-  _type: 'col' | 'row',
-  _sourceIndex: number,
-  _targetIndex: number,
+  tableNode: Node,
+  type: 'col' | 'row',
+  sourceIndex: number,
+  targetIndex: number,
 ): boolean {
-  return false
+  try {
+    const map = TableMap.get(tableNode)
+    if (type === 'row') {
+      if (!hasHeaderRow(tableNode)) return false
+      const cluster = getClusterRowRange(tableNode, sourceIndex)
+      if (targetIndex === 0) {
+        for (let r = cluster.start; r < cluster.start + cluster.count; r++) {
+          if (hasRowStraddlingMerge(tableNode, r)) return true
+        }
+      }
+      if (sourceIndex === 0 && targetIndex > 0) {
+        const nextRowIdx = cluster.count
+        if (nextRowIdx < map.height && hasRowStraddlingMerge(tableNode, nextRowIdx)) {
+          return true
+        }
+      }
+      return false
+    } else {
+      if (!hasHeaderCol(tableNode)) return false
+      const cluster = getClusterColRange(tableNode, sourceIndex)
+      if (targetIndex === 0) {
+        for (let c = cluster.start; c < cluster.start + cluster.count; c++) {
+          if (hasColStraddlingMerge(tableNode, c)) return true
+        }
+      }
+      if (sourceIndex === 0 && targetIndex > 0) {
+        const nextColIdx = cluster.count
+        if (nextColIdx < map.width && hasColStraddlingMerge(tableNode, nextColIdx)) {
+          return true
+        }
+      }
+      return false
+    }
+  } catch {
+    return false
+  }
 }
 
 /**

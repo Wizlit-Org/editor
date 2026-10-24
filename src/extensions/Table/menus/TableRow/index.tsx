@@ -1,5 +1,5 @@
 import { BubbleMenu as BaseBubbleMenu } from '@tiptap/react/menus'
-import React, { useCallback, useState, useEffect, useRef, JSX } from 'react'
+import React, { useCallback, useState, useEffect, useRef, useMemo, JSX } from 'react'
 import { isRowGripSelected } from './utils'
 import { Icon } from '@/components/ui/Icon'
 import { MenuProps, ShouldShowProps } from '@/components/menus/types'
@@ -18,6 +18,7 @@ import { getRowAnchorVirtualElement } from '../useTableMenuPosition'
 import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
 import { DeleteRowIcon } from '../../components/TableActionIcons'
 import { scrollTargetCellIntoView } from '../../utils/TableAutoScroll'
+import { hasRowStraddlingMerge } from '../../utils/TableHeaderStraddleUtils'
 import { cn } from '@/lib/utils'
 
 const TABLE_ROW_MENU_OPTIONS = {
@@ -132,7 +133,14 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
     duplicateRow(editor, idx)
   }, [editor])
 
+  const isRowHeaderBlocked = useMemo(() => {
+    const table = findTable(editor.state.selection)
+    return table ? hasRowStraddlingMerge(table.node, 0) : false
+  }, [editor.state.selection])
+
   const onToggleHeaderRow = useCallback(() => {
+    const table = findTable(editor.state.selection)
+    if (table && hasRowStraddlingMerge(table.node, 0)) return
     editor.chain().focus().toggleHeaderRow().run()
   }, [editor])
 
@@ -186,7 +194,13 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
 
         {isFirstRow && (
           <>
-            <button type="button" onClick={onToggleHeaderRow} className={itemClass}>
+            <button
+              type="button"
+              onClick={onToggleHeaderRow}
+              disabled={isRowHeaderBlocked}
+              title={isRowHeaderBlocked ? '병합 셀이 있어 헤더 행을 설정할 수 없습니다' : undefined}
+              className={cn(itemClass, isRowHeaderBlocked && 'opacity-50 cursor-not-allowed hover:bg-transparent')}
+            >
               <Icon name="Table" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
               <span>Header row</span>
             </button>

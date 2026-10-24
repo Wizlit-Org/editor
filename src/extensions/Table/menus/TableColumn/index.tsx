@@ -1,5 +1,5 @@
 import { BubbleMenu as BaseBubbleMenu } from '@tiptap/react/menus'
-import React, { useCallback, useState, useEffect, useRef, JSX } from 'react'
+import React, { useCallback, useState, useEffect, useRef, useMemo, JSX } from 'react'
 import { isColumnGripSelected } from './utils'
 import { Icon } from '@/components/ui/Icon'
 import { MenuProps, ShouldShowProps } from '@/components/menus/types'
@@ -19,6 +19,7 @@ import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
 import { getColumnAnchorVirtualElement } from '../useTableMenuPosition'
 import { DeleteColumnIcon } from '../../components/TableActionIcons'
 import { scrollTargetCellIntoView } from '../../utils/TableAutoScroll'
+import { hasColStraddlingMerge } from '../../utils/TableHeaderStraddleUtils'
 
 import { cn } from '@/lib/utils'
 
@@ -155,7 +156,14 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
     setIsMenuOpen(false)
   }, [editor])
 
+  const isColHeaderBlocked = useMemo(() => {
+    const table = findTable(editor.state.selection)
+    return table ? hasColStraddlingMerge(table.node, 0) : false
+  }, [editor.state.selection])
+
   const onToggleHeaderColumn = useCallback(() => {
+    const table = findTable(editor.state.selection)
+    if (table && hasColStraddlingMerge(table.node, 0)) return
     editor.chain().focus().toggleHeaderColumn().run()
   }, [editor])
 
@@ -198,7 +206,13 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
 
         {isFirstCol && (
           <>
-            <button type="button" onClick={onToggleHeaderColumn} className={itemClass}>
+            <button
+              type="button"
+              onClick={onToggleHeaderColumn}
+              disabled={isColHeaderBlocked}
+              title={isColHeaderBlocked ? '병합 셀이 있어 헤더 열을 설정할 수 없습니다' : undefined}
+              className={cn(itemClass, isColHeaderBlocked && 'opacity-50 cursor-not-allowed hover:bg-transparent')}
+            >
               <Icon name="Table" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
               <span>Header column</span>
             </button>
