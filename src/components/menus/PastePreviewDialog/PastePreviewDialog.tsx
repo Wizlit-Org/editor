@@ -1,16 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Editor } from '@tiptap/react'
 import { Icon } from '@/components/ui/Icon'
 import { SmartPasteEventDetail } from '../SmartPasteMenu/types'
-import {
-  insertCodeBlock,
-  insertHyperlink,
-  insertImage,
-  insertMarkdownList,
-  insertPlainText,
-  insertYoutube,
-} from '../SmartPasteMenu/utils'
+import { insertCodeBlock, insertHyperlink, insertImage, insertMarkdownList, insertPlainText, insertYoutube } from '../SmartPasteMenu/utils'
 import { LivePreviewCanvas } from './LivePreviewCanvas'
 
 export interface PastePreviewDialogProps {
@@ -32,6 +25,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
   const [isEntered, setIsEntered] = useState<boolean>(false)
   const [isExiting, setIsExiting] = useState<boolean>(false)
   const [descAnim, setDescAnim] = useState<boolean>(true)
+  const dialogRef = useRef<HTMLDivElement>(null)
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof document !== 'undefined') {
       return (
@@ -59,16 +53,48 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     }
   }, [data, editor])
 
+  // Freeze background editor & trap IME / input events while dialog is active
+  useEffect(() => {
+    if (!data) return
+    const prevEditable = editor?.isEditable ?? true
+    const editorDom = editor?.view?.dom as HTMLElement | undefined
+    editorDom?.blur()
+    dialogRef.current?.focus()
+
+    if (prevEditable && editor && !editor.isDestroyed) {
+      editor.setEditable(false)
+    }
+
+    const trapInput = (e: Event) => {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
+    window.addEventListener('beforeinput', trapInput, true)
+    window.addEventListener('compositionstart', trapInput, true)
+
+    return () => {
+      window.removeEventListener('beforeinput', trapInput, true)
+      window.removeEventListener('compositionstart', trapInput, true)
+      if (prevEditable && editor && !editor.isDestroyed) {
+        editor.setEditable(true)
+      }
+    }
+  }, [data, editor])
+
   const handleClose = useCallback(() => {
     if (isExiting) return
     setIsExiting(true)
     setTimeout(() => {
+      if (editor && !editor.isDestroyed && !editor.isEditable) {
+        editor.setEditable(true)
+      }
       setIsEntered(false)
       setIsExiting(false)
       setData(null)
       setSelectedId('')
     }, 200)
-  }, [isExiting])
+  }, [editor, isExiting])
 
   // Trigger smooth entrance animation when dialog opens
   useEffect(() => {
@@ -149,32 +175,23 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
         ]
       case 'youtube_url': {
         const videoId = data.meta?.videoId || ''
-        return [
-          plainTextOpt, linkOpt,
-          {
-            id: 'youtube-video', label: '유튜브', description: '본문에서 바로 재생 가능한 유튜브 동영상 플레이어로 삽입합니다', icon: 'Youtube', isPrimary: true,
-            insert: () => { restoreSelection(); if (videoId) insertYoutube(editor, videoId); else insertHyperlink(editor, data.text) },
-          },
-        ]
+        return [plainTextOpt, linkOpt, {
+          id: 'youtube-video', label: '유튜브', description: '본문에서 바로 재생 가능한 유튜브 동영상 플레이어로 삽입합니다', icon: 'Youtube', isPrimary: true,
+          insert: () => { restoreSelection(); if (videoId) insertYoutube(editor, videoId); else insertHyperlink(editor, data.text) },
+        }]
       }
       case 'web_url':
         return [plainTextOpt, { ...linkOpt, isPrimary: true }]
       case 'code':
-        return [
-          plainTextOpt,
-          {
-            id: 'code-block', label: '코드', description: '구문 강조가 적용된 코드 블록으로 삽입합니다', icon: 'Code', isPrimary: true,
-            insert: () => { restoreSelection(); insertCodeBlock(editor, data.text) },
-          },
-        ]
+        return [plainTextOpt, {
+          id: 'code-block', label: '코드', description: '구문 강조가 적용된 코드 블록으로 삽입합니다', icon: 'Code', isPrimary: true,
+          insert: () => { restoreSelection(); insertCodeBlock(editor, data.text) },
+        }]
       case 'list':
-        return [
-          plainTextOpt,
-          {
-            id: 'list-items', label: '목록', description: '줄바꿈 항목들을 정리된 에디터 목록으로 변환하여 삽입합니다', icon: 'List', isPrimary: true,
-            insert: () => { restoreSelection(); insertMarkdownList(editor, data.text) },
-          },
-        ]
+        return [plainTextOpt, {
+          id: 'list-items', label: '목록', description: '줄바꿈 항목들을 정리된 에디터 목록으로 변환하여 삽입합니다', icon: 'List', isPrimary: true,
+          insert: () => { restoreSelection(); insertMarkdownList(editor, data.text) },
+        }]
       default:
         return [plainTextOpt]
     }
@@ -189,13 +206,16 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     if (isExiting) return
     setIsExiting(true)
     setTimeout(() => {
+      if (editor && !editor.isDestroyed && !editor.isEditable) {
+        editor.setEditable(true)
+      }
       if (currentOption) currentOption.insert()
       setIsEntered(false)
       setIsExiting(false)
       setData(null)
       setSelectedId('')
     }, 200)
-  }, [currentOption, isExiting])
+  }, [currentOption, editor, isExiting])
 
   // Listen ONLY to tiptap:smart-paste (NEVER close on tiptap:close-menus scroll events)
   useEffect(() => {
@@ -254,15 +274,11 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
   const renderKbd = (keyText: string) => (
     <kbd
       style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        minWidth: '18px', height: '18px', padding: '0 4.5px', borderRadius: '5px',
-        fontSize: '10.5px', fontWeight: 600, lineHeight: 1,
-        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '18px', height: '18px', padding: '0 4.5px', borderRadius: '5px',
+        fontSize: '10.5px', fontWeight: 600, lineHeight: 1, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
         backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.07)',
         border: isDark ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid rgba(0, 0, 0, 0.12)',
-        boxShadow: isDark
-          ? '0 1px 2px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-          : '0 1px 2px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+        boxShadow: isDark ? '0 1px 2px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1)' : '0 1px 2px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
         color: isDark ? '#fafafa' : '#0f172a',
       }}
     >
@@ -272,6 +288,8 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
 
   return createPortal(
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label="붙여넣기 형식 선택"
@@ -279,7 +297,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
       onScrollCapture={e => e.stopPropagation()}
       onClick={handleClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 1450,
+        position: 'fixed', inset: 0, zIndex: 1450, outline: 'none',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
         padding: '32px 24px 28px', userSelect: 'none',
         pointerEvents: isExiting ? 'none' : 'auto',
@@ -311,24 +329,19 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
       >
         {/* 1단: 상단 위 제목 및 선택된 삽입 방식 1줄 설명 */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-          <span
-            style={{
-              fontSize: '19px', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2,
-              color: isDark ? '#fafafa' : '#0f172a',
-              textShadow: isDark ? '0 2px 10px rgba(0,0,0,0.45)' : '0 1px 2px rgba(255,255,255,0.8)',
-            }}
-          >
+          <span style={{
+            fontSize: '19px', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2,
+            color: isDark ? '#fafafa' : '#0f172a',
+            textShadow: isDark ? '0 2px 10px rgba(0,0,0,0.45)' : '0 1px 2px rgba(255,255,255,0.8)',
+          }}>
             붙여넣기 형식 선택
           </span>
-          <p
-            style={{
-              margin: 0, fontSize: '13px', fontWeight: 500, lineHeight: 1.4,
-              color: isDark ? 'rgba(228, 228, 231, 0.85)' : 'rgba(51, 65, 85, 0.88)',
-              opacity: descAnim ? 1 : 0,
-              transform: descAnim ? 'translateY(0px)' : 'translateY(3px)',
-              transition: descAnim ? 'opacity 200ms ease-out, transform 200ms ease-out' : 'none',
-            }}
-          >
+          <p style={{
+            margin: 0, fontSize: '13px', fontWeight: 500, lineHeight: 1.4,
+            color: isDark ? 'rgba(228, 228, 231, 0.85)' : 'rgba(51, 65, 85, 0.88)',
+            opacity: descAnim ? 1 : 0, transform: descAnim ? 'translateY(0px)' : 'translateY(3px)',
+            transition: descAnim ? 'opacity 200ms ease-out, transform 200ms ease-out' : 'none',
+          }}>
             {currentOption?.description || '에디터에 삽입될 실제 모습입니다'}
           </p>
         </div>
