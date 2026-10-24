@@ -243,10 +243,10 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
         backgroundImage: isDark
           ? 'radial-gradient(circle at 50% 18%, rgba(79, 70, 229, 0.14) 0%, rgba(9, 9, 11, 0.78) 70%)'
           : 'radial-gradient(circle at 50% 18%, rgba(224, 231, 255, 0.55) 0%, rgba(255, 255, 255, 0.72) 70%)',
-        backdropFilter: isEntered ? 'blur(28px) saturate(180%)' : 'blur(0px) saturate(100%)',
-        WebkitBackdropFilter: isEntered ? 'blur(28px) saturate(180%)' : 'blur(0px) saturate(100%)',
+        backdropFilter: isEntered ? 'blur(24px) saturate(160%)' : 'blur(0px) saturate(100%)',
+        WebkitBackdropFilter: isEntered ? 'blur(24px) saturate(160%)' : 'blur(0px) saturate(100%)',
         transition:
-          'opacity 280ms cubic-bezier(0.16, 1, 0.3, 1), backdrop-filter 280ms cubic-bezier(0.16, 1, 0.3, 1), -webkit-backdrop-filter 280ms cubic-bezier(0.16, 1, 0.3, 1)',
+          'opacity 260ms cubic-bezier(0.16, 1, 0.3, 1), backdrop-filter 260ms cubic-bezier(0.16, 1, 0.3, 1), -webkit-backdrop-filter 260ms cubic-bezier(0.16, 1, 0.3, 1)',
       }}
       className="fixed inset-0 z-[1450] flex flex-col items-center justify-between select-none"
     >
@@ -258,7 +258,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
           textAlign: 'center', gap: '12px', flexShrink: 0, maxWidth: '94vw',
           opacity: isEntered ? 1 : 0,
           transform: isEntered ? 'translateY(0px) scale(1)' : 'translateY(-10px) scale(0.96)',
-          transition: 'opacity 300ms cubic-bezier(0.16, 1, 0.3, 1), transform 300ms cubic-bezier(0.16, 1, 0.3, 1)',
+          transition: 'opacity 260ms cubic-bezier(0.16, 1, 0.3, 1), transform 260ms cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
         {/* 1단: 상단 위 제목 및 선택된 삽입 방식 1줄 설명 */}
@@ -347,8 +347,8 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
           flex: 1, width: '100%', minHeight: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
           opacity: isEntered ? 1 : 0,
-          transform: isEntered ? 'scale(1)' : 'scale(0.95)',
-          transition: 'opacity 320ms cubic-bezier(0.16, 1, 0.3, 1), transform 320ms cubic-bezier(0.16, 1, 0.3, 1)',
+          transform: isEntered ? 'scale(1)' : 'scale(0.96)',
+          transition: 'opacity 260ms cubic-bezier(0.16, 1, 0.3, 1), transform 260ms cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
         <LivePreviewCanvas data={data} selectedId={selectedId} isDark={isDark} />
@@ -362,7 +362,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
           gap: '12px', flexShrink: 0, maxWidth: '95vw',
           opacity: isEntered ? 1 : 0,
           transform: isEntered ? 'translateY(0px) scale(1)' : 'translateY(10px) scale(0.96)',
-          transition: 'opacity 300ms cubic-bezier(0.16, 1, 0.3, 1), transform 300ms cubic-bezier(0.16, 1, 0.3, 1)',
+          transition: 'opacity 260ms cubic-bezier(0.16, 1, 0.3, 1), transform 260ms cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
         {/* 4단 (삽입+취소 버튼 바로 위): 단축키 안내 글라스 캡슐 배지 */}

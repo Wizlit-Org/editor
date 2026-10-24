@@ -348,13 +348,13 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
           width: isBlockMedia ? 'min(672px, 90vw)' : 'fit-content',
           maxWidth: 'min(672px, 90vw)',
           opacity: animReady ? 1 : 0,
-          filter: animReady ? 'blur(0px)' : 'blur(6px)',
+          filter: animReady ? 'blur(0px)' : 'blur(4px)',
           transform: `${scale < 1 ? `scale(${scale}) ` : ''}${
-            animReady ? 'translateY(0px) scale(1)' : 'translateY(10px) scale(0.96)'
+            animReady ? 'translateY(0px) scale(1)' : 'translateY(6px) scale(0.97)'
           }`,
           transformOrigin: 'center center',
           transition: animReady
-            ? 'opacity 260ms cubic-bezier(0.16, 1, 0.3, 1), transform 260ms cubic-bezier(0.16, 1, 0.3, 1), filter 260ms cubic-bezier(0.16, 1, 0.3, 1)'
+            ? 'opacity 220ms cubic-bezier(0.16, 1, 0.3, 1), transform 220ms cubic-bezier(0.16, 1, 0.3, 1), filter 220ms cubic-bezier(0.16, 1, 0.3, 1)'
             : 'none',
           backgroundColor: 'transparent',
         }}
