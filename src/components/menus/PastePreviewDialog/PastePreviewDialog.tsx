@@ -30,6 +30,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
   const [data, setData] = useState<SmartPasteEventDetail | null>(null)
   const [selectedId, setSelectedId] = useState<string>('')
   const [isEntered, setIsEntered] = useState<boolean>(false)
+  const [isExiting, setIsExiting] = useState<boolean>(false)
   const [descAnim, setDescAnim] = useState<boolean>(true)
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof document !== 'undefined') {
@@ -59,19 +60,32 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
   }, [data, editor])
 
   const handleClose = useCallback(() => {
-    setIsEntered(false)
-    setData(null)
-    setSelectedId('')
-  }, [])
+    if (isExiting) return
+    setIsExiting(true)
+    setTimeout(() => {
+      setIsEntered(false)
+      setIsExiting(false)
+      setData(null)
+      setSelectedId('')
+    }, 200)
+  }, [isExiting])
 
   // Trigger smooth entrance animation when dialog opens
   useEffect(() => {
-    if (!data) { setIsEntered(false); return }
+    if (!data) {
+      setIsEntered(false)
+      setIsExiting(false)
+      return
+    }
+    setIsExiting(false)
     let raf2 = 0
     const raf1 = window.requestAnimationFrame(() => {
       raf2 = window.requestAnimationFrame(() => setIsEntered(true))
     })
-    return () => { window.cancelAnimationFrame(raf1); if (raf2) window.cancelAnimationFrame(raf2) }
+    return () => {
+      window.cancelAnimationFrame(raf1)
+      if (raf2) window.cancelAnimationFrame(raf2)
+    }
   }, [data])
 
   // Subtle crossfade on description text when selectedId changes
@@ -113,10 +127,8 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
           id: 'image-upload', label: '이미지 업로드', description: '이미지를 서버에 업로드하여 영구 보관합니다', icon: 'Upload', isPrimary: true,
           insert: () => {
             restoreSelection()
-            const uploadBase64Cmd = (editor.commands as any).uploadImageByBase64
-            if (typeof uploadBase64Cmd === 'function') {
-              if (!uploadBase64Cmd({ base64: data.text, pos: targetPos })) insertImage(editor, data.text)
-            } else insertImage(editor, data.text)
+            const cmd = (editor.commands as any).uploadImageByBase64
+            if (typeof cmd === 'function' ? !cmd({ base64: data.text, pos: targetPos }) : true) insertImage(editor, data.text)
           },
         }]
       case 'image_url':
@@ -130,10 +142,8 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
             id: 'image-upload', label: '이미지 업로드', description: '이미지를 서버에 업로드하여 영구 보관합니다', icon: 'Upload', isPrimary: true,
             insert: () => {
               restoreSelection()
-              const uploadCmd = (editor.commands as any).uploadImageByUrl
-              if (typeof uploadCmd === 'function') {
-                if (!uploadCmd({ url: data.text, pos: targetPos })) insertImage(editor, data.text)
-              } else insertImage(editor, data.text)
+              const cmd = (editor.commands as any).uploadImageByUrl
+              if (typeof cmd === 'function' ? !cmd({ url: data.text, pos: targetPos }) : true) insertImage(editor, data.text)
             },
           },
         ]
@@ -176,9 +186,16 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
   )
 
   const handleConfirm = useCallback(() => {
-    if (currentOption) currentOption.insert()
-    handleClose()
-  }, [currentOption, handleClose])
+    if (isExiting) return
+    setIsExiting(true)
+    setTimeout(() => {
+      if (currentOption) currentOption.insert()
+      setIsEntered(false)
+      setIsExiting(false)
+      setData(null)
+      setSelectedId('')
+    }, 200)
+  }, [currentOption, isExiting])
 
   // Listen ONLY to tiptap:smart-paste (NEVER close on tiptap:close-menus scroll events)
   useEffect(() => {
@@ -199,8 +216,9 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
 
   // Keyboard navigation: Tab / Shift+Tab / Left / Right to cycle, Enter to confirm, Escape to cancel
   useEffect(() => {
-    if (!data) return
+    if (!data || isExiting) return
     const onKeyDown = (e: KeyboardEvent) => {
+      if (isExiting) return
       const curIdx = options.findIndex(o => o.id === selectedId)
       if (e.key === 'Tab') {
         e.preventDefault(); e.stopPropagation()
@@ -220,11 +238,35 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     }
     window.addEventListener('keydown', onKeyDown, true)
     return () => window.removeEventListener('keydown', onKeyDown, true)
-  }, [data, options, selectedId, handleConfirm, handleClose])
+  }, [data, isExiting, options, selectedId, handleConfirm, handleClose])
 
   if (!data || options.length === 0 || typeof document === 'undefined') {
     return null
   }
+
+  const isVisible = isEntered && !isExiting
+  const animTiming = isExiting
+    ? '200ms cubic-bezier(0.16, 1, 0.3, 1)'
+    : '260ms cubic-bezier(0.16, 1, 0.3, 1)'
+
+  const renderKbd = (keyText: string) => (
+    <kbd
+      style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        minWidth: '18px', height: '18px', padding: '0 4.5px', borderRadius: '5px',
+        fontSize: '10.5px', fontWeight: 600, lineHeight: 1,
+        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.07)',
+        border: isDark ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid rgba(0, 0, 0, 0.12)',
+        boxShadow: isDark
+          ? '0 1px 2px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+          : '0 1px 2px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+        color: isDark ? '#fafafa' : '#0f172a',
+      }}
+    >
+      {keyText}
+    </kbd>
+  )
 
   return createPortal(
     <div
@@ -238,15 +280,15 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
         position: 'fixed', inset: 0, zIndex: 1450,
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
         padding: '32px 24px 28px', userSelect: 'none',
-        opacity: isEntered ? 1 : 0,
+        pointerEvents: isExiting ? 'none' : 'auto',
+        opacity: isVisible ? 1 : 0,
         backgroundColor: isDark ? 'rgba(9, 9, 11, 0.68)' : 'rgba(248, 250, 252, 0.66)',
         backgroundImage: isDark
           ? 'radial-gradient(circle at 50% 18%, rgba(79, 70, 229, 0.14) 0%, rgba(9, 9, 11, 0.78) 70%)'
           : 'radial-gradient(circle at 50% 18%, rgba(224, 231, 255, 0.55) 0%, rgba(255, 255, 255, 0.72) 70%)',
-        backdropFilter: isEntered ? 'blur(24px) saturate(160%)' : 'blur(0px) saturate(100%)',
-        WebkitBackdropFilter: isEntered ? 'blur(24px) saturate(160%)' : 'blur(0px) saturate(100%)',
-        transition:
-          'opacity 260ms cubic-bezier(0.16, 1, 0.3, 1), backdrop-filter 260ms cubic-bezier(0.16, 1, 0.3, 1), -webkit-backdrop-filter 260ms cubic-bezier(0.16, 1, 0.3, 1)',
+        backdropFilter: isVisible ? 'blur(24px) saturate(160%)' : 'blur(0px) saturate(100%)',
+        WebkitBackdropFilter: isVisible ? 'blur(24px) saturate(160%)' : 'blur(0px) saturate(100%)',
+        transition: `opacity ${animTiming}, backdrop-filter ${animTiming}, -webkit-backdrop-filter ${animTiming}`,
       }}
       className="fixed inset-0 z-[1450] flex flex-col items-center justify-between select-none"
     >
@@ -256,9 +298,13 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
         style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           textAlign: 'center', gap: '12px', flexShrink: 0, maxWidth: '94vw',
-          opacity: isEntered ? 1 : 0,
-          transform: isEntered ? 'translateY(0px) scale(1)' : 'translateY(-10px) scale(0.96)',
-          transition: 'opacity 260ms cubic-bezier(0.16, 1, 0.3, 1), transform 260ms cubic-bezier(0.16, 1, 0.3, 1)',
+          opacity: isVisible ? 1 : 0,
+          transform: isVisible
+            ? 'translateY(0px) scale(1)'
+            : isExiting
+              ? 'translateY(-8px) scale(0.96)'
+              : 'translateY(-10px) scale(0.96)',
+          transition: `opacity ${animTiming}, transform ${animTiming}`,
         }}
       >
         {/* 1단: 상단 위 제목 및 선택된 삽입 방식 1줄 설명 */}
@@ -317,16 +363,10 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
                   height: '34px', padding: '0 15px', borderRadius: '12px', fontSize: '12.5px', fontWeight: 600,
                   cursor: 'pointer', flexShrink: 0,
                   backgroundColor: isSelected ? 'rgba(79, 70, 229, 0.82)' : 'transparent',
-                  backgroundImage: isSelected
-                    ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.92) 0%, rgba(79, 70, 229, 0.78) 100%)'
-                    : 'none',
+                  backgroundImage: isSelected ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.92) 0%, rgba(79, 70, 229, 0.78) 100%)' : 'none',
                   color: isSelected ? '#ffffff' : isDark ? '#d4d4d8' : '#334155',
-                  border: isSelected
-                    ? '1px solid rgba(165, 180, 252, 0.55)'
-                    : '1px solid transparent',
-                  boxShadow: isSelected
-                    ? '0 6px 16px -2px rgba(79, 70, 229, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.45)'
-                    : 'none',
+                  border: isSelected ? '1px solid rgba(165, 180, 252, 0.55)' : '1px solid transparent',
+                  boxShadow: isSelected ? '0 6px 16px -2px rgba(79, 70, 229, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.45)' : 'none',
                   transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)',
                 }}
               >
@@ -346,9 +386,9 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
         style={{
           flex: 1, width: '100%', minHeight: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-          opacity: isEntered ? 1 : 0,
-          transform: isEntered ? 'scale(1)' : 'scale(0.96)',
-          transition: 'opacity 260ms cubic-bezier(0.16, 1, 0.3, 1), transform 260ms cubic-bezier(0.16, 1, 0.3, 1)',
+          opacity: isVisible ? 1 : 0,
+          transform: isVisible ? 'scale(1)' : 'scale(0.96)',
+          transition: `opacity ${animTiming}, transform ${animTiming}`,
         }}
       >
         <LivePreviewCanvas data={data} selectedId={selectedId} isDark={isDark} />
@@ -360,9 +400,13 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
         style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           gap: '12px', flexShrink: 0, maxWidth: '95vw',
-          opacity: isEntered ? 1 : 0,
-          transform: isEntered ? 'translateY(0px) scale(1)' : 'translateY(10px) scale(0.96)',
-          transition: 'opacity 260ms cubic-bezier(0.16, 1, 0.3, 1), transform 260ms cubic-bezier(0.16, 1, 0.3, 1)',
+          opacity: isVisible ? 1 : 0,
+          transform: isVisible
+            ? 'translateY(0px) scale(1)'
+            : isExiting
+              ? 'translateY(8px) scale(0.96)'
+              : 'translateY(10px) scale(0.96)',
+          transition: `opacity ${animTiming}, transform ${animTiming}`,
         }}
       >
         {/* 4단 (삽입+취소 버튼 바로 위): 단축키 안내 글라스 캡슐 배지 */}
@@ -371,18 +415,38 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             padding: '5px 14px', borderRadius: '9999px',
             fontSize: '11.5px', fontWeight: 500, lineHeight: 1.2,
-            color: isDark ? 'rgba(212, 212, 216, 0.85)' : 'rgba(71, 85, 105, 0.9)',
-            backgroundColor: isDark ? 'rgba(24, 24, 27, 0.46)' : 'rgba(255, 255, 255, 0.52)',
-            backdropFilter: 'blur(16px) saturate(180%)', WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-            border: isDark ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid rgba(255, 255, 255, 0.85)',
+            color: isDark ? 'rgba(212, 212, 216, 0.88)' : 'rgba(71, 85, 105, 0.92)',
+            backgroundColor: isDark ? 'rgba(24, 24, 27, 0.48)' : 'rgba(255, 255, 255, 0.54)',
+            backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+            border: isDark ? '1px solid rgba(255, 255, 255, 0.14)' : '1px solid rgba(255, 255, 255, 0.88)',
             boxShadow: isDark
-              ? '0 4px 14px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.1)'
-              : '0 4px 14px rgba(15, 23, 42, 0.06), inset 0 1px 0 0 rgba(255, 255, 255, 0.9)',
+              ? '0 4px 16px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.12)'
+              : '0 4px 16px rgba(15, 23, 42, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.9)',
           }}
         >
-          {options.length > 1
-            ? '←/→ 또는 Tab 형식 전환 · Enter 삽입 · Esc 취소'
-            : 'Enter 삽입 · Esc 취소'}
+          {options.length > 1 ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              {renderKbd('←')}
+              {renderKbd('→')}
+              <span>또는</span>
+              {renderKbd('Tab')}
+              <span>옵션 전환</span>
+              <span style={{ opacity: 0.45, margin: '0 3px' }}>·</span>
+              {renderKbd('↵')}
+              <span>삽입</span>
+              <span style={{ opacity: 0.45, margin: '0 3px' }}>·</span>
+              {renderKbd('Esc')}
+              <span>취소</span>
+            </span>
+          ) : (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              {renderKbd('↵')}
+              <span>삽입</span>
+              <span style={{ opacity: 0.45, margin: '0 3px' }}>·</span>
+              {renderKbd('Esc')}
+              <span>취소</span>
+            </span>
+          )}
         </div>
 
         {/* 5단 (하단 중앙): [취소] + [삽입 ↵] 프로스티드 글라스 버튼 */}
@@ -394,15 +458,11 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
               height: '38px', padding: '0 20px', borderRadius: '9999px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
               backgroundColor: isDark ? 'rgba(39, 39, 42, 0.55)' : 'rgba(255, 255, 255, 0.62)',
-              backgroundImage: isDark
-                ? 'linear-gradient(135deg, rgba(63, 63, 70, 0.58) 0%, rgba(24, 24, 27, 0.48) 100%)'
-                : 'linear-gradient(135deg, rgba(255, 255, 255, 0.78) 0%, rgba(241, 245, 249, 0.52) 100%)',
+              backgroundImage: isDark ? 'linear-gradient(135deg, rgba(63, 63, 70, 0.58) 0%, rgba(24, 24, 27, 0.48) 100%)' : 'linear-gradient(135deg, rgba(255, 255, 255, 0.78) 0%, rgba(241, 245, 249, 0.52) 100%)',
               backdropFilter: 'blur(20px) saturate(190%)', WebkitBackdropFilter: 'blur(20px) saturate(190%)',
               color: isDark ? '#f4f4f5' : '#334155',
               border: isDark ? '1px solid rgba(255, 255, 255, 0.18)' : '1px solid rgba(255, 255, 255, 0.9)',
-              boxShadow: isDark
-                ? '0 8px 20px -4px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.25), inset 0 1px 0 0 rgba(255, 255, 255, 0.18)'
-                : '0 8px 20px -4px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(148, 163, 184, 0.22), inset 0 1px 0 0 rgba(255, 255, 255, 0.95)',
+              boxShadow: isDark ? '0 8px 20px -4px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.25), inset 0 1px 0 0 rgba(255, 255, 255, 0.18)' : '0 8px 20px -4px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(148, 163, 184, 0.22), inset 0 1px 0 0 rgba(255, 255, 255, 0.95)',
               transition: 'all 180ms cubic-bezier(0.16, 1, 0.3, 1)',
             }}
             className="hover:scale-[1.03] active:scale-95"
@@ -421,8 +481,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
               backdropFilter: 'blur(20px) saturate(190%)', WebkitBackdropFilter: 'blur(20px) saturate(190%)',
               color: '#ffffff',
               border: '1px solid rgba(165, 180, 252, 0.58)',
-              boxShadow:
-                '0 10px 26px -4px rgba(79, 70, 229, 0.52), 0 0 0 1px rgba(79, 70, 229, 0.25), inset 0 1px 0 0 rgba(255, 255, 255, 0.48)',
+              boxShadow: '0 10px 26px -4px rgba(79, 70, 229, 0.52), 0 0 0 1px rgba(79, 70, 229, 0.25), inset 0 1px 0 0 rgba(255, 255, 255, 0.48)',
               transition: 'all 180ms cubic-bezier(0.16, 1, 0.3, 1)',
             }}
             className="hover:scale-[1.03] active:scale-95"
