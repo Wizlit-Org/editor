@@ -69,7 +69,21 @@ export function moveTableColumn(
           if (cellNode) {
             const isHeader = (hasHeaderRow && r === 0) || (hasHeaderCol && newColIdx === 0)
             const targetType = isHeader ? headerType : cellType
-            cells.push(targetType.create(cellNode.attrs, cellNode.content))
+
+            const origColspan = cellNode.attrs.colspan || 1
+            if (hasHeaderCol && newColIdx === 0 && origColspan > 1) {
+              // Auto-split cross-boundary merge: slot 0 gets header cell with colspan: 1 (rowspan preserved)
+              cells.push(targetType.create({ ...cellNode.attrs, colspan: 1 }, cellNode.content))
+
+              // Remainder into slot 1, preserving remaining colspan and rowspan
+              const isCol1Header = hasHeaderRow && r === 0
+              const col1Type = isCol1Header ? headerType : cellType
+              const defaultPara = state.schema.nodes.paragraph.createAndFill()
+              const content = defaultPara ? [defaultPara] : []
+              cells.push(col1Type.create({ ...cellNode.attrs, colspan: origColspan - 1 }, content))
+            } else {
+              cells.push(targetType.create(cellNode.attrs, cellNode.content))
+            }
           }
         }
       })
@@ -135,19 +149,105 @@ export function moveTableRow(
     const rows: any[] = []
     tableNode.forEach(row => rows.push(row))
 
+    let insertIdx = toIndex
     if (actualStart < rows.length) {
       const movedRows = rows.splice(actualStart, actualCount)
-      const insertIdx = toIndex > actualStart ? Math.max(0, toIndex - actualCount + 1) : toIndex
+      insertIdx = toIndex > actualStart ? Math.max(0, toIndex - actualCount + 1) : toIndex
       rows.splice(insertIdx, 0, ...movedRows)
     }
 
+    // Auto-split merged cells crossing the header/body boundary at row 0
+    if (hasHeaderRow && rows.length > 1) {
+      const row0 = rows[0]
+      let hasCrossSpan = false
+      row0.forEach((cell: any) => {
+        if ((cell.attrs.rowspan || 1) > 1) hasCrossSpan = true
+      })
+
+      if (hasCrossSpan) {
+        const splitCellsToInsert: { colStart: number; colspan: number; remainingRowspan: number; origCell: any }[] = []
+        const newRow0Cells: any[] = []
+        let col = 0
+        row0.forEach((cell: any) => {
+          const colspan = cell.attrs.colspan || 1
+          const rowspan = cell.attrs.rowspan || 1
+          if (rowspan > 1) {
+            splitCellsToInsert.push({
+              colStart: col,
+              colspan,
+              remainingRowspan: rowspan - 1,
+              origCell: cell,
+            })
+            newRow0Cells.push(headerType.create({ ...cell.attrs, rowspan: 1 }, cell.content))
+          } else {
+            newRow0Cells.push(cell)
+          }
+          col += colspan
+        })
+        rows[0] = row0.type.create(row0.attrs, newRow0Cells)
+
+        // Reconstruct row 1 with inserted split cells
+        const row1 = rows[1]
+        const existingRow1Cells: any[] = []
+        row1.forEach((cell: any) => existingRow1Cells.push(cell))
+        let existingIdx = 0
+
+        const newRow1Cells: any[] = []
+        let c = 0
+        while (c < map.width) {
+          const splitInfo = splitCellsToInsert.find(s => s.colStart === c)
+          if (splitInfo) {
+            const isHeader = hasHeaderCol && c === 0
+            const targetType = isHeader ? headerType : cellType
+            const defaultPara = state.schema.nodes.paragraph.createAndFill()
+            const content = defaultPara ? [defaultPara] : []
+            newRow1Cells.push(
+              targetType.create(
+                {
+                  ...splitInfo.origCell.attrs,
+                  rowspan: splitInfo.remainingRowspan,
+                  colspan: splitInfo.colspan,
+                },
+                content,
+              ),
+            )
+            c += splitInfo.colspan
+          } else {
+            if (existingIdx < existingRow1Cells.length) {
+              const exCell = existingRow1Cells[existingIdx++]
+              newRow1Cells.push(exCell)
+              c += (exCell.attrs.colspan || 1)
+            } else {
+              break
+            }
+          }
+        }
+        rows[1] = row1.type.create(row1.attrs, newRow1Cells)
+      }
+    }
+
+    const colSpansRemaining: number[] = new Array(map.width).fill(0)
     const normalizedRows: any[] = []
     rows.forEach((rowNode, rIdx) => {
       const normalizedCells: any[] = []
-      rowNode.forEach((cell: any, _: any, cIdx: number) => {
-        const isHeader = (hasHeaderRow && rIdx === 0) || (hasHeaderCol && cIdx === 0)
+      let col = 0
+      rowNode.forEach((cell: any) => {
+        while (col < map.width && colSpansRemaining[col] > 0) {
+          colSpansRemaining[col]--
+          col++
+        }
+        const isHeader = (hasHeaderRow && rIdx === 0) || (hasHeaderCol && col === 0)
         const targetType = isHeader ? headerType : cellType
         normalizedCells.push(targetType.create(cell.attrs, cell.content))
+
+        const rowspan = cell.attrs.rowspan || 1
+        const colspan = cell.attrs.colspan || 1
+        if (rowspan > 1) {
+          for (let k = 0; k < colspan; k++) {
+            colSpansRemaining[col + k] = rowspan - 1
+          }
+        }
+        col += colspan
       })
       normalizedRows.push(rowNode.type.create(rowNode.attrs, normalizedCells))
     })

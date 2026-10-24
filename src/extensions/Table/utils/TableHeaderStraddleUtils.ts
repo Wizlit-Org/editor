@@ -47,43 +47,17 @@ export function hasHeaderCol(tableNode: Node): boolean {
  * - If hasHeaderCol and moving cols:
  *   A merged col cluster (count > 1) cannot span both col 0 (header) and col >= 1 (body).
  *   Target destination span will be [targetStart, targetStart + count - 1].
- *   If targetStart <= 0 && targetStart + count - 1 >= 1, it straddles!
+ * With HEADER_CROSS_SPAN_AUTO_SPLIT:
+ * Merged cells crossing header/body boundaries are auto-split when dropped into slot 0.
+ * Header internal merges are 100% preserved. Therefore, moves into slot 0 are no longer blocked.
  */
 export function isHeaderStraddling(
-  tableNode: Node,
-  type: 'col' | 'row',
-  sourceIndex: number,
-  targetIndex: number,
+  _tableNode: Node,
+  _type: 'col' | 'row',
+  _sourceIndex: number,
+  _targetIndex: number,
 ): boolean {
-  try {
-    if (type === 'row') {
-      if (!hasHeaderRow(tableNode)) return false
-      const cluster = getClusterRowRange(tableNode, sourceIndex)
-      if (cluster.count <= 1) {
-        return false
-      }
-      const targetStart = targetIndex
-      const targetEnd = targetIndex + cluster.count - 1
-      if (targetStart <= 0 && targetEnd >= 1) {
-        return true
-      }
-      return false
-    } else {
-      if (!hasHeaderCol(tableNode)) return false
-      const cluster = getClusterColRange(tableNode, sourceIndex)
-      if (cluster.count <= 1) {
-        return false
-      }
-      const targetStart = targetIndex
-      const targetEnd = targetIndex + cluster.count - 1
-      if (targetStart <= 0 && targetEnd >= 1) {
-        return true
-      }
-      return false
-    }
-  } catch {
-    return false
-  }
+  return false
 }
 
 /**

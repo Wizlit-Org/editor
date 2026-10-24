@@ -205,17 +205,34 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
         const visibleRight = Math.min(t.rect.left + t.rect.width, containerRect.right)
 
         const editorContentLeft = editor.view?.dom ? editor.view.dom.getBoundingClientRect().left : visibleLeft
-        const gutterWidth = Math.max(0, Math.round(editorContentLeft - visibleLeft))
-        const blurWidth = gutterWidth + 48
+        const blurLeft = Math.max(visibleLeft, editorContentLeft)
+        const blurWidth = 48
 
         return (
           <React.Fragment key={t.id}>
-            {/* Left Edge Fade Shadow / Frosted Glass Blur Indicator (Extended vertically to cover col pills at top - 15px and bottom add button at bottom + 18px) */}
+            {/* Left Edge Fade Shadow / Frosted Glass Blur Indicator (Clipped to editorContentLeft to prevent gutter drag handle mousemove interception) */}
             <div
               onMouseDown={e => { e.preventDefault(); e.stopPropagation() }}
               onClick={e => { e.preventDefault(); e.stopPropagation() }}
               onDoubleClick={e => { e.preventDefault(); e.stopPropagation() }}
               onPointerDown={e => { e.preventDefault(); e.stopPropagation() }}
+              onMouseMove={e => {
+                const currentTarget = e.currentTarget as HTMLElement
+                currentTarget.style.pointerEvents = 'none'
+                const el = document.elementFromPoint(e.clientX, e.clientY)
+                currentTarget.style.pointerEvents = 'auto'
+                if (el && el !== currentTarget) {
+                  el.dispatchEvent(new MouseEvent('mousemove', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window,
+                    clientX: e.clientX,
+                    clientY: e.clientY,
+                    screenX: e.screenX,
+                    screenY: e.screenY,
+                  }))
+                }
+              }}
               style={{
                 position: 'fixed',
                 pointerEvents: t.showLeft ? 'auto' : 'none',
@@ -224,14 +241,14 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
                 transition: 'opacity 0.2s ease',
                 opacity: t.showLeft ? 1 : 0,
                 top: t.rect.top - 24 - offset.y,
-                left: visibleLeft - offset.x,
+                left: blurLeft - offset.x,
                 width: `${blurWidth}px`,
                 height: t.rect.height + 48,
                 background: 'transparent',
                 backdropFilter: 'blur(8px)',
                 WebkitBackdropFilter: 'blur(8px)',
-                maskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
-                WebkitMaskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
+                maskImage: 'linear-gradient(to right, black 0px, rgba(0,0,0,0.6) 24px, transparent 48px)',
+                WebkitMaskImage: 'linear-gradient(to right, black 0px, rgba(0,0,0,0.6) 24px, transparent 48px)',
               }}
             />
 
