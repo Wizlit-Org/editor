@@ -37,18 +37,18 @@ export function findPlaceholder(state: EditorState, id: string): PlaceholderInfo
 
 const createPlaceholderWidget = (id: string) => {
   const wrapper = document.createElement('div')
-  wrapper.className = 'w-full my-4 select-none'
+  wrapper.className = 'w-full my-3 select-none pointer-events-none'
   wrapper.setAttribute('data-upload-placeholder-id', id)
   wrapper.innerHTML = `
-    <div class="w-full min-h-[150px] rounded-xl bg-indigo-500/[0.06] dark:bg-indigo-400/[0.08] backdrop-blur-md flex flex-col items-center justify-center border-2 border-dashed border-indigo-500/35 dark:border-indigo-400/35 gap-3 p-6 z-[2] shadow-sm">
+    <div class="w-full aspect-video min-h-[180px] max-h-[360px] rounded-lg bg-black/[0.03] dark:bg-white/[0.04] backdrop-blur-md animate-pulse flex flex-col items-center justify-center border border-dashed border-indigo-500/35 dark:border-indigo-400/35 gap-2.5 p-6 z-[2]">
       <div class="w-10 h-10 rounded-full bg-indigo-500/15 dark:bg-indigo-400/20 flex items-center justify-center">
         <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-300 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
         </svg>
       </div>
-      <div class="flex flex-col items-center gap-1 text-center">
-        <span class="text-xs font-semibold text-indigo-950 dark:text-indigo-100">이미지 업로드 중...</span>
-        <span class="text-[11px] text-zinc-500 dark:text-zinc-400">자동으로 압축하여 본문에 삽입하고 있습니다</span>
+      <div class="flex flex-col items-center gap-0.5 text-center">
+        <span data-upload-stage="true" class="text-xs font-semibold text-zinc-700 dark:text-zinc-200">이미지 최적화 및 업로드 준비 중...</span>
+        <span data-upload-subtext="true" class="text-[11px] text-zinc-400 dark:text-zinc-500">잠시만 기다려주세요</span>
       </div>
     </div>
   `
@@ -253,10 +253,14 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
             set = set.map(tr.mapping, tr.doc)
             const action = tr.getMeta(uploadPluginKey) as UploadPlaceholderAction | undefined
             if (action?.add) {
+              // Mount widget OUTSIDE any hidden nodeDeco (at replaceRange.from) so display:none on empty <p> never hides the skeleton widget
+              const widgetPos = action.add.replaceRange
+                ? action.add.replaceRange.from
+                : action.add.pos
               const widget = Decoration.widget(
-                action.add.pos,
+                widgetPos,
                 () => createPlaceholderWidget(action.add!.id),
-                { id: action.add.id, key: action.add.id, stopEvent: () => true },
+                { id: action.add.id, key: action.add.id, side: -1, stopEvent: () => true },
               )
               const decos = [widget]
               if (action.add.replaceRange) {

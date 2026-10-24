@@ -100,6 +100,17 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     switch (data.type) {
       case 'image_data':
         return [
+          plainTextOpt,
+          {
+            id: 'image-external',
+            label: '외부 이미지',
+            description: '원본 이미지 데이터를 변환 없이 본문에 바로 삽입합니다',
+            icon: 'Image',
+            insert: () => {
+              restoreSelection()
+              insertImage(editor, data.text)
+            },
+          },
           {
             id: 'image-upload',
             label: '이미지 업로드',
@@ -116,16 +127,6 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
               } else {
                 insertImage(editor, data.text)
               }
-            },
-          },
-          {
-            id: 'image-external',
-            label: '외부 이미지',
-            description: '원본 이미지 데이터를 변환 없이 본문에 바로 삽입합니다',
-            icon: 'Image',
-            insert: () => {
-              restoreSelection()
-              insertImage(editor, data.text)
             },
           },
         ]

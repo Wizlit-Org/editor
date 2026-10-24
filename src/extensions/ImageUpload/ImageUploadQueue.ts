@@ -197,6 +197,18 @@ export class UploadQueue {
     this.listeners.forEach(fn => fn(statuses))
   }
 
+  private updatePlaceholderStage(id: string, title: string, subtext?: string) {
+    if (typeof document === 'undefined') return
+    const el = document.querySelector(`[data-upload-placeholder-id="${CSS.escape(id)}"]`)
+    if (!el) return
+    const stageEl = el.querySelector('[data-upload-stage="true"]')
+    if (stageEl) stageEl.textContent = title
+    if (subtext !== undefined) {
+      const subEl = el.querySelector('[data-upload-subtext="true"]')
+      if (subEl) subEl.textContent = subtext
+    }
+  }
+
   /**
    * Enqueue a new image upload (either File or remote sourceUrl).
    * Mounts the skeleton placeholder decoration synchronously at 0ms,
@@ -214,21 +226,30 @@ export class UploadQueue {
     const baseLabel = item.file?.name || 'remote-image.jpg'
     const id = item.id || `${baseLabel}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
-    // 1) Synchronously dispatch placeholder widget at 0ms so user sees immediate feedback
+    // 1) Synchronously dispatch placeholder widget at 0ms at block-level boundary so it is NEVER hidden inside <p>
+    let widgetPos = item.pos
     let replaceRange: { from: number; to: number } | undefined = undefined
     if (this.editor && this.editor.view) {
       const doc = this.editor.state.doc
       const safePos = Math.max(0, Math.min(item.pos, doc.content.size))
       const $pos = doc.resolve(safePos)
-      if ($pos.parent && $pos.parent.isTextblock && $pos.parent.content.size === 0) {
-        replaceRange = {
-          from: $pos.before(),
-          to: $pos.after(),
+      if ($pos.parent && $pos.parent.isTextblock && $pos.depth >= 1) {
+        if ($pos.parent.content.size === 0) {
+          replaceRange = {
+            from: $pos.before(),
+            to: $pos.after(),
+          }
+          widgetPos = $pos.before()
+        } else {
+          // Non-empty paragraph: place widget at block boundary ($pos.after()) so it renders as a full-width block sibling
+          widgetPos = $pos.after()
         }
+      } else {
+        widgetPos = safePos
       }
 
       const tr = this.editor.state.tr.setMeta(uploadPluginKey, {
-        add: { id, pos: safePos, replaceRange },
+        add: { id, pos: widgetPos, replaceRange },
       })
       this.editor.view.dispatch(tr)
     }
@@ -244,10 +265,17 @@ export class UploadQueue {
     this.queue.push(queueItem)
     this.emit()
 
-    // 2) Defer heavy fetch/compression by 1 frame (16ms) so the skeleton renders immediately at 0ms
-    setTimeout(() => {
-      this.process()
-    }, 16)
+    // 2) Yield 1 animation frame so the browser paints the 0ms skeleton before heavy compression/fetch starts
+    const runNext = () => {
+      setTimeout(() => {
+        this.process()
+      }, 0)
+    }
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(runNext)
+    } else {
+      setTimeout(() => this.process(), 16)
+    }
   }
 
   remove(id: string) {
@@ -320,6 +348,7 @@ export class UploadQueue {
         status: 'uploading',
         compressedSize: processed.size,
       })
+      this.updatePlaceholderStage(id!, '이미지 업로드 중...', '서버에 안전하게 업로드하고 있습니다')
       this.emit()
 
       const url = await item.upload(processed, controller.signal)

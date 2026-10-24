@@ -76,7 +76,16 @@ export const detectPasteType = (
 }
 
 export const insertPlainText = (editor: Editor, text: string) => {
-  editor.chain().focus().insertContent(text).run()
+  const lines = text.split('\n')
+  if (lines.length <= 1) {
+    editor.chain().focus().insertContent({ type: 'text', text }).run()
+    return
+  }
+  const paragraphs = lines.map(line => ({
+    type: 'paragraph',
+    content: line ? [{ type: 'text', text: line }] : [],
+  }))
+  editor.chain().focus().insertContent(paragraphs).run()
 }
 
 export const insertHyperlink = (editor: Editor, url: string) => {

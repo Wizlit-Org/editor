@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { EditorContent, useEditor } from '@tiptap/react'
 import type { JSONContent } from '@tiptap/core'
 import {
@@ -32,9 +32,13 @@ export const buildPreviewDoc = (
 ): JSONContent => {
   const rawText = data.text || ''
 
-  // 1) Plain text
+  // 1) Plain text (Safely truncate massive Base64 or multi-megabyte strings for preview rendering)
   if (selectedId === 'plain-text') {
-    const lines = rawText.split('\n')
+    const displayRaw =
+      rawText.length > 600
+        ? `${rawText.slice(0, 360)} … ${rawText.slice(-120)} (총 ${rawText.length.toLocaleString()}자 텍스트)`
+        : rawText
+    const lines = displayRaw.split('\n')
     return {
       type: 'doc',
       content: lines.map(line => ({
@@ -208,6 +212,10 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
   selectedId,
   isDark = true,
 }) => {
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState<number>(1)
+
   const previewDoc = useMemo(() => buildPreviewDoc(data, selectedId), [data, selectedId])
 
   const previewEditor = useEditor(
@@ -219,18 +227,75 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
       content: previewDoc,
       editorProps: {
         attributes: {
-          class: '!min-h-0 focus:outline-none pointer-events-auto',
+          class: '!min-h-0 !p-0 !m-0 focus:outline-none pointer-events-auto break-all',
         },
       },
     },
     [],
   )
 
+  const recomputeScale = useCallback(() => {
+    const viewportEl = viewportRef.current
+    const contentEl = contentRef.current
+    if (!viewportEl || !contentEl) return
+
+    // Available inner area inside the fixed 280px height viewport (minus vertical/horizontal padding)
+    const availH = Math.max(120, viewportEl.clientHeight - 32)
+    const availW = Math.max(200, viewportEl.clientWidth - 48)
+
+    const naturalH = Math.max(1, contentEl.scrollHeight || contentEl.offsetHeight)
+    const naturalW = Math.max(1, contentEl.offsetWidth || 672)
+
+    const nextScale = Math.min(1, availH / naturalH, availW / naturalW)
+    const rounded = Math.max(0.18, Math.round(nextScale * 1000) / 1000)
+    setScale(prev => (Math.abs(prev - rounded) > 0.005 ? rounded : prev))
+  }, [])
+
   useEffect(() => {
     if (previewEditor && !previewEditor.isDestroyed) {
+      setScale(1)
       previewEditor.commands.setContent(previewDoc, { emitUpdate: false })
+      requestAnimationFrame(() => {
+        recomputeScale()
+      })
     }
-  }, [previewEditor, previewDoc])
+  }, [previewEditor, previewDoc, recomputeScale])
+
+  useEffect(() => {
+    const contentEl = contentRef.current
+    const viewportEl = viewportRef.current
+    if (!contentEl || !viewportEl) return
+
+    recomputeScale()
+
+    const ro = new ResizeObserver(() => {
+      recomputeScale()
+    })
+    ro.observe(contentEl)
+    ro.observe(viewportEl)
+
+    const mo = new MutationObserver(() => {
+      recomputeScale()
+    })
+    mo.observe(contentEl, { childList: true, subtree: true, attributes: true })
+
+    const handleAssetLoad = () => {
+      recomputeScale()
+      setTimeout(recomputeScale, 50)
+    }
+    contentEl.addEventListener('load', handleAssetLoad, true)
+
+    const t1 = setTimeout(recomputeScale, 60)
+    const t2 = setTimeout(recomputeScale, 220)
+
+    return () => {
+      ro.disconnect()
+      mo.disconnect()
+      contentEl.removeEventListener('load', handleAssetLoad, true)
+      clearTimeout(t1)
+      clearTimeout(t2)
+    }
+  }, [recomputeScale, selectedId, data])
 
   const themeCanvasClass = isDark
     ? 'dark theme-dark notion-dark-canvas'
@@ -238,16 +303,27 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
 
   return (
     <div
+      ref={viewportRef}
       onScrollCapture={e => e.stopPropagation()}
       onWheelCapture={e => e.stopPropagation()}
-      className={`h-[340px] min-h-[340px] max-h-[340px] w-full overflow-y-auto overflow-x-hidden px-6 py-5 ${themeCanvasClass} ${
+      className={`h-[280px] min-h-[280px] max-h-[280px] w-full overflow-hidden px-6 py-4 flex items-start justify-center ${themeCanvasClass} ${
         isDark
           ? 'bg-[#191919] text-[#e3e3e3]'
           : 'bg-white text-[#222325]'
       } [&_figure]:!my-0 [&_.node-imageBlock]:!my-0 [&_[data-node-view-wrapper]]:!my-0`}
     >
-      {/* Exact 1:1 Editor Column Width (42rem = 672px) and Natural Aspect Ratio (No max-h image distortion) */}
-      <EditorContent editor={previewEditor} className="w-full max-w-[42rem] mx-auto focus:outline-none" />
+      {/* 1:1 Editor Column Width (672px = 42rem) Auto-Scaled to Fit Fixed Viewport Without Scrollbars */}
+      <div
+        ref={contentRef}
+        style={{
+          width: '672px',
+          transform: scale < 1 ? `scale(${scale})` : 'none',
+          transformOrigin: 'top center',
+        }}
+        className="shrink-0 transition-transform duration-100 ease-out"
+      >
+        <EditorContent editor={previewEditor} className="w-full focus:outline-none" />
+      </div>
     </div>
   )
 }
