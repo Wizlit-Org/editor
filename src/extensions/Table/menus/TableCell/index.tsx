@@ -7,6 +7,7 @@ import { expandRectToMergedCells } from '../../utils/TableClusterUtils'
 import { isSelectionStraddlingHeader, hasMergedCellsInSelection } from '../../utils/TableHeaderStraddleUtils'
 import { useContainingBlockOffset, ContainingBlockAnchor } from '../../utils/containingBlock'
 import { startAutoScroll } from '../../utils/TableAutoScroll'
+import { tableGripPluginKey } from '../../Table'
 import { Icon } from '@/components/ui/Icon'
 import { MenuProps } from '@/components/menus/types'
 import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
@@ -97,6 +98,63 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   }, [editor])
 
   const updateSelectionRect = useCallback(() => {
+    const gripSel = tableGripPluginKey.getState(editor.state)
+    const table = findTable(editor.state.selection)
+
+    if (gripSel && table && gripSel.tablePos === table.pos) {
+      const dom = editor.view.nodeDOM(table.pos) as HTMLElement | null
+      const tableEl =
+        dom && dom.nodeType === 1 ? (dom.tagName === 'TABLE' ? dom : dom.querySelector('table')) : null
+      if (tableEl) {
+        const tRect = tableEl.getBoundingClientRect()
+        let minTop = tRect.top
+        let maxBottom = tRect.bottom
+        let minLeft = tRect.left
+        let maxRight = tRect.right
+
+        if (gripSel.type === 'row') {
+          const trs = Array.from(tableEl.querySelectorAll('tbody > tr, tr')) as HTMLTableRowElement[]
+          if (trs.length > 0) {
+            const topRow = trs[Math.min(gripSel.min, trs.length - 1)]
+            const bottomRow = trs[Math.min(gripSel.max, trs.length - 1)]
+            if (topRow && bottomRow) {
+              minTop = topRow.getBoundingClientRect().top
+              maxBottom = bottomRow.getBoundingClientRect().bottom
+            }
+          }
+        } else {
+          const map = TableMap.get(table.node)
+          const leftCellOffset = map.map[Math.min(gripSel.min, map.width - 1)]
+          const rightCellOffset = map.map[Math.min(gripSel.max, map.width - 1)]
+          const leftCellEl = (editor.view.nodeDOM(table.start + leftCellOffset) as HTMLElement | null) || tableEl.querySelector(`td:nth-child(${gripSel.min + 1}), th:nth-child(${gripSel.min + 1})`) as HTMLElement | null
+          const rightCellEl = (editor.view.nodeDOM(table.start + rightCellOffset) as HTMLElement | null) || tableEl.querySelector(`td:nth-child(${gripSel.max + 1}), th:nth-child(${gripSel.max + 1})`) as HTMLElement | null
+          if (leftCellEl && rightCellEl) {
+            minLeft = leftCellEl.getBoundingClientRect().left
+            maxRight = rightCellEl.getBoundingClientRect().right
+          }
+        }
+
+        const container = (appendTo?.current as HTMLElement) || null
+        let isWithinContainer = true
+        if (container) {
+          const cRect = container.getBoundingClientRect()
+          const dotY = minTop + (maxBottom - minTop) / 2
+          isWithinContainer = dotY >= cRect.top && dotY <= cRect.bottom
+        }
+
+        const tableWrapper = tableEl.closest('.tableWrapper') as HTMLElement | null
+        let isVisibleInWrapper = true
+        if (tableWrapper) {
+          const wrapperRect = tableWrapper.getBoundingClientRect()
+          isVisibleInWrapper = maxRight >= wrapperRect.left - 8 && maxRight <= wrapperRect.right + 15
+        }
+
+        setSelectionRect({ top: minTop, left: minLeft, width: maxRight - minLeft, height: maxBottom - minTop })
+        setIsButtonVisible(isVisibleInWrapper && isWithinContainer)
+        return
+      }
+    }
+
     const cells = getActiveCells()
     if (cells.length > 0) {
       let minTop = Infinity, maxBottom = -Infinity, maxRight = -Infinity, minLeft = Infinity
@@ -381,7 +439,16 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   const dangerClass = "w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-red-600 dark:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 select-none cursor-pointer"
   const isExpanded = isBtnHovered || menuOpen
 
-  const shouldRender = mounted && (!isScrolling || isDraggingHandleRef.current) && typeof document !== 'undefined' && selectionRect && !editor.view?.dragging && (isCellSelected || editor.isActive('tableCell') || editor.isActive('tableHeader'))
+  const shouldRender =
+    mounted &&
+    (!isScrolling || isDraggingHandleRef.current) &&
+    typeof document !== 'undefined' &&
+    selectionRect &&
+    !editor.view?.dragging &&
+    (isCellSelected ||
+      editor.isActive('tableCell') ||
+      editor.isActive('tableHeader') ||
+      Boolean(tableGripPluginKey.getState(editor.state)))
   if (!shouldRender) return <></>
 
   return (

@@ -4,7 +4,7 @@ import { EditorView } from '@tiptap/pm/view'
 import { TableMap } from '@tiptap/pm/tables'
 
 import { isCellSelection, isTableSelected } from '../../utils'
-import { Table } from '../..'
+import { Table, tableGripPluginKey } from '../..'
 
 export const isRowGripSelected = ({
   editor,
@@ -30,6 +30,12 @@ export const isRowGripSelected = ({
   // 2. Suppress if full table is selected
   if (isTableSelected(selection)) {
     return false
+  }
+
+  // Check explicit grip selection state first (100% reliable even with merged cells)
+  const gripSel = tableGripPluginKey.getState(state)
+  if (gripSel && gripSel.type === 'row') {
+    return true
   }
 
   // 3. Row selection is active if all columns are selected across 1 or more rows (single, merged, or multi-row)

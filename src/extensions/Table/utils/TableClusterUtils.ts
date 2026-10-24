@@ -3,6 +3,7 @@ import { TableMap, CellSelection } from '@tiptap/pm/tables'
 import { Node } from '@tiptap/pm/model'
 import { Transaction, TextSelection } from '@tiptap/pm/state'
 import { findTable, selectColumn, selectRow, isCellSelection } from '../utils'
+import { tableGripPluginKey } from '../Table'
 
 /**
  * Returns transitive-closure row range [start, count] including all interconnected merged cells (rowspan > 1).
@@ -284,7 +285,12 @@ export function selectRowRange(tr: Transaction, minRow: number, maxRow: number, 
 
   const anchorPos = table.start + map.map[safeMin * map.width]
   const headPos = table.start + map.map[safeMax * map.width]
-  return tr.setSelection(CellSelection.rowSelection(tr.doc.resolve(anchorPos), tr.doc.resolve(headPos))).setMeta('isGripSelection', true)
+  const gripMeta = { tablePos: table.pos, type: 'row' as const, min: safeMin, max: safeMax }
+  return tr
+    .setSelection(CellSelection.rowSelection(tr.doc.resolve(anchorPos), tr.doc.resolve(headPos)))
+    .setMeta('isGripSelection', true)
+    .setMeta('gripSelection', gripMeta)
+    .setMeta(tableGripPluginKey, gripMeta)
 }
 
 /**
@@ -307,7 +313,12 @@ export function selectColRange(tr: Transaction, minCol: number, maxCol: number, 
 
   const anchorPos = table.start + map.map[safeMin]
   const headPos = table.start + map.map[safeMax]
-  return tr.setSelection(CellSelection.colSelection(tr.doc.resolve(anchorPos), tr.doc.resolve(headPos))).setMeta('isGripSelection', true)
+  const gripMeta = { tablePos: table.pos, type: 'col' as const, min: safeMin, max: safeMax }
+  return tr
+    .setSelection(CellSelection.colSelection(tr.doc.resolve(anchorPos), tr.doc.resolve(headPos)))
+    .setMeta('isGripSelection', true)
+    .setMeta('gripSelection', gripMeta)
+    .setMeta(tableGripPluginKey, gripMeta)
 }
 
 /**
@@ -319,6 +330,17 @@ export function isGripInCurrentSelection(
   index: number,
   activeTablePos?: number,
 ): boolean {
+  const gripSel = tableGripPluginKey.getState(editor.state)
+  if (gripSel) {
+    if (activeTablePos !== undefined && activeTablePos >= 0 && gripSel.tablePos !== activeTablePos) {
+      return false
+    }
+    if (gripSel.type === type) {
+      return index >= gripSel.min && index <= gripSel.max
+    }
+    return false
+  }
+
   const { selection } = editor.state
   const table = findTable(selection)
   if (!table || !isCellSelection(selection)) return false

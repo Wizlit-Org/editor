@@ -4,17 +4,45 @@ import { CellSelection, TableMap } from '@tiptap/pm/tables'
 import { findTable, isCellSelection } from './utils'
 import { expandRectToMergedCells } from './utils/TableClusterUtils'
 
+export interface TableGripSelectionState {
+  tablePos: number
+  type: 'col' | 'row'
+  min: number
+  max: number
+}
+
+export const tableGripPluginKey = new PluginKey<TableGripSelectionState | null>('tableGripPlugin')
+
 export const Table = TiptapTable.extend({
   addProseMirrorPlugins() {
     return [
       ...(this.parent?.() || []),
       new Plugin({
+        key: tableGripPluginKey,
+        state: {
+          init() {
+            return null
+          },
+          apply(tr, prev) {
+            const meta = tr.getMeta(tableGripPluginKey) || tr.getMeta('gripSelection')
+            if (meta !== undefined) {
+              return meta
+            }
+            if (tr.selectionSet && !tr.getMeta('isGripSelection') && !tr.getMeta('gripSelection')) {
+              return null
+            }
+            return prev
+          },
+        },
+      }),
+      new Plugin({
         key: new PluginKey('tableMergedSelectionExpander'),
         appendTransaction(transactions, oldState, newState) {
           // If transaction marked as grip selection, or not CellSelection, do not expand
-          const isGripSelection = transactions.some(tr => tr.getMeta('isGripSelection'))
+          const gripSel = tableGripPluginKey.getState(newState)
+          const isGripSelection = transactions.some(tr => tr.getMeta('isGripSelection') || tr.getMeta('gripSelection'))
           const { selection, doc } = newState
-          if (isGripSelection || !isCellSelection(selection)) return null
+          if (gripSel || isGripSelection || !isCellSelection(selection)) return null
 
           const table = findTable(selection)
           if (!table) return null

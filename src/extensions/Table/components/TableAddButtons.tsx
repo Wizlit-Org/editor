@@ -11,6 +11,7 @@ import { selectColRange, selectRowRange, focusTableGrip, isGripInCurrentSelectio
 import { hasMergedCellsInRowSelection, hasMergedCellsInColSelection, isHeaderStraddling, isTargetSplittingMergedCell } from '../utils/TableHeaderStraddleUtils'
 import { useContainingBlockOffset, ContainingBlockAnchor } from '../utils/containingBlock'
 import { startAutoScroll, scrollTargetCellIntoView } from '../utils/TableAutoScroll'
+import { tableGripPluginKey } from '../Table'
 
 export interface TableAddButtonsProps {
   editor: Editor
@@ -56,10 +57,20 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
 
       const isGripSelected = isGripInCurrentSelection(editor, type, index, tableRect.pos)
       const initialSelection = editor.state.selection
+      const gripSel = tableGripPluginKey.getState(editor.state)
 
       let start = index
       let end = index
-      if (isGripSelected && isCellSelection(editor.state.selection)) {
+      if (
+        gripSel &&
+        gripSel.tablePos === tableRect.pos &&
+        gripSel.type === type &&
+        index >= gripSel.min &&
+        index <= gripSel.max
+      ) {
+        start = gripSel.min
+        end = gripSel.max
+      } else if (isGripSelected && isCellSelection(editor.state.selection)) {
         try {
           const map = TableMap.get(tableNode)
           const selStart = (editor.state.selection as any).$anchorCell.start(-1)
@@ -282,18 +293,24 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
   if (!tableRect || !isHovered || !editor.isEditable || (isScrolling && !(window as any).__isTableDragging) || typeof document === 'undefined') return null
 
   const tableNode = tableRect.pos >= 0 ? editor.state.doc.nodeAt(tableRect.pos) : null
+  const gripSel = tableGripPluginKey.getState(editor.state)
   let selCol: { start: number; end: number } | null = null
   let selRow: { start: number; end: number } | null = null
 
-  const selectedTable = findTable(editor.state.selection)
-  if (tableNode && isCellSelection(editor.state.selection) && selectedTable && selectedTable.pos === tableRect.pos) {
-    try {
-      const map = TableMap.get(tableNode)
-      const selStart = (editor.state.selection as any).$anchorCell.start(-1)
-      const selRect = map.rectBetween((editor.state.selection as any).$anchorCell.pos - selStart, (editor.state.selection as any).$headCell.pos - selStart)
-      if (selRect.bottom - selRect.top === map.height) selCol = { start: selRect.left, end: selRect.right - 1 }
-      if (selRect.right - selRect.left === map.width) selRow = { start: selRect.top, end: selRect.bottom - 1 }
-    } catch {}
+  if (gripSel && gripSel.tablePos === tableRect.pos) {
+    if (gripSel.type === 'col') selCol = { start: gripSel.min, end: gripSel.max }
+    else selRow = { start: gripSel.min, end: gripSel.max }
+  } else {
+    const selectedTable = findTable(editor.state.selection)
+    if (tableNode && isCellSelection(editor.state.selection) && selectedTable && selectedTable.pos === tableRect.pos) {
+      try {
+        const map = TableMap.get(tableNode)
+        const selStart = (editor.state.selection as any).$anchorCell.start(-1)
+        const selRect = map.rectBetween((editor.state.selection as any).$anchorCell.pos - selStart, (editor.state.selection as any).$headCell.pos - selStart)
+        if (selRect.bottom - selRect.top === map.height) selCol = { start: selRect.left, end: selRect.right - 1 }
+        if (selRect.right - selRect.left === map.width) selRow = { start: selRect.top, end: selRect.bottom - 1 }
+      } catch {}
+    }
   }
 
   const activeColGrip = hoveredColIndex !== null ? columnGrips[hoveredColIndex] : null
@@ -321,12 +338,8 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
   const singlePillClass = `${pillClass} bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-violet-500/90 border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white`
   const mergedPillClass = `${pillClass} bg-indigo-600/35 hover:bg-indigo-600/50 active:bg-indigo-600/90 dark:bg-violet-500/35 dark:hover:bg-violet-500/50 dark:active:bg-violet-500/90 border border-indigo-500/40 dark:border-violet-400/40 text-indigo-700 dark:text-violet-200 active:text-white`
 
-  const rowGripLeft =
-    (tableRect.editorLeft !== undefined
-      ? tableRect.editorLeft - 15
-      : tableRect.wrapperLeft !== undefined
-      ? (editor.isEditable ? tableRect.wrapperLeft + 33 : tableRect.wrapperLeft - 15)
-      : tableRect.left - 15) - offset.x
+  const editorContentLeft = tableRect.editorLeft ?? (tableRect.wrapperLeft !== undefined ? tableRect.wrapperLeft + 120 : tableRect.left)
+  const rowGripLeft = editorContentLeft - 15 - offset.x
 
   return createPortal(
     <div id="table-add-buttons-portal" className="pointer-events-auto" style={{ zIndex: 15, position: 'relative' }}>

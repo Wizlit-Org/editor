@@ -24,13 +24,13 @@
     }
   }
 
-  /* 편집 모드 한정: 좌측 거터(드래그핸들 + / ⠿ 위치 약 48px)까지 확장하여 오버플로우 시 블러 처리 */
+  /* 편집 모드 한정: 좌측 거터(드래그핸들 + / ⠿ 위치 및 에디터 좌측 여백)까지 자연스럽게 확장하여 인위적 절단 방지 */
   &[contenteditable="true"] {
     .tableWrapper {
-      margin-left: -48px !important;
-      padding-left: 48px !important;
-      width: calc(100% + 48px) !important;
-      max-width: calc(100% + 48px) !important;
+      margin-left: -120px !important;
+      padding-left: 120px !important;
+      width: calc(100% + 120px) !important;
+      max-width: calc(100% + 120px) !important;
     }
   }
 

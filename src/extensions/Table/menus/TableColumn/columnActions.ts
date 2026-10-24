@@ -4,6 +4,7 @@ import { findTable, isCellSelection } from '../../utils'
 import { moveTableColumn } from '../../utils/TableDndUtils'
 import { isHeaderStraddling, hasMergedCellsInColSelection, isTargetSplittingMergedCell } from '../../utils/TableHeaderStraddleUtils'
 import { scrollTargetCellIntoView } from '../../utils/TableAutoScroll'
+import { tableGripPluginKey } from '../../Table'
 import {
   getClusterColRange,
   duplicateColCluster,
@@ -12,6 +13,11 @@ import {
 } from '../../utils/TableClusterUtils'
 
 export const getSelectedColRange = (editor: Editor): { min: number; max: number } => {
+  const gripSel = tableGripPluginKey.getState(editor.state)
+  if (gripSel && gripSel.type === 'col') {
+    return { min: gripSel.min, max: gripSel.max }
+  }
+
   const { selection } = editor.state
   const table = findTable(selection)
   if (!table) return { min: 0, max: 0 }
