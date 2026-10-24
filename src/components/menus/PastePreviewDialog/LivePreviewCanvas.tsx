@@ -215,6 +215,7 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
   const viewportRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState<number>(1)
+  const [animReady, setAnimReady] = useState<boolean>(false)
 
   const previewDoc = useMemo(() => buildPreviewDoc(data, selectedId), [data, selectedId])
 
@@ -223,6 +224,21 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
     selectedId === 'image-upload' ||
     selectedId === 'youtube-video' ||
     selectedId === 'code-block'
+
+  // Trigger smooth crossfade + morph animation every time selectedId or data changes
+  useEffect(() => {
+    setAnimReady(false)
+    let raf2 = 0
+    const raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        setAnimReady(true)
+      })
+    })
+    return () => {
+      window.cancelAnimationFrame(raf1)
+      if (raf2) window.cancelAnimationFrame(raf2)
+    }
+  }, [selectedId, data])
 
   const previewEditor = useEditor(
     {
@@ -324,18 +340,25 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
         isDark ? 'dark theme-dark text-zinc-100' : 'theme-light text-zinc-900'
       } [&_figure]:!my-0 [&_.node-imageBlock]:!my-0 [&_[data-node-view-wrapper]]:!my-0 [&_.ProseMirror]:!bg-transparent`}
     >
-      {/* Frameless Center Stage Preview: Auto-Scaled Around Exact Center Without Box Frame or Scrollbars */}
+      {/* Frameless Center Stage Preview: Auto-Scaled & Animated on Option Switch Without Box Frame */}
       <div
         ref={contentRef}
         onClick={e => e.stopPropagation()}
         style={{
           width: isBlockMedia ? 'min(672px, 90vw)' : 'fit-content',
           maxWidth: 'min(672px, 90vw)',
-          transform: scale < 1 ? `scale(${scale})` : 'none',
+          opacity: animReady ? 1 : 0,
+          filter: animReady ? 'blur(0px)' : 'blur(6px)',
+          transform: `${scale < 1 ? `scale(${scale}) ` : ''}${
+            animReady ? 'translateY(0px) scale(1)' : 'translateY(10px) scale(0.96)'
+          }`,
           transformOrigin: 'center center',
+          transition: animReady
+            ? 'opacity 260ms cubic-bezier(0.16, 1, 0.3, 1), transform 260ms cubic-bezier(0.16, 1, 0.3, 1), filter 260ms cubic-bezier(0.16, 1, 0.3, 1)'
+            : 'none',
           backgroundColor: 'transparent',
         }}
-        className={`shrink-0 transition-transform duration-100 ease-out !bg-transparent ${
+        className={`shrink-0 !bg-transparent ${
           isBlockMedia
             ? ''
             : '[&_.ProseMirror]:!w-fit [&_.ProseMirror]:!max-w-[672px] [&_.ProseMirror]:!mx-auto'
