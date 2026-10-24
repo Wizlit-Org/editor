@@ -62,16 +62,16 @@ export const TableAddBar: React.FC<TableAddBarProps> = ({
         </div>
       )}
 
-      {/* 2. Bottom Row Add Button: Sized to current column width */}
+      {/* 2. Bottom Row Add Button: Sized to current column width - z-index: 9 (below blur z-12) */}
       {showBottomBar && (
         <div
-          className="fixed z-[30] flex items-center justify-center transition-all duration-150 rounded-full cursor-pointer group bg-zinc-500/10 hover:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:text-white dark:hover:text-white shadow-2xs"
+          className="fixed z-[9] flex items-center justify-center transition-all duration-150 rounded-full cursor-pointer group bg-zinc-500/10 hover:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:text-white dark:hover:text-white shadow-2xs"
           style={{
             top: tableRect.bottom + 4 - oy,
             left: bottomBarLeft - ox,
             width: bottomBarWidth,
             height: 14,
-            zIndex: 30,
+            zIndex: 9,
           }}
           onClick={onAddRow}
           onMouseEnter={onHoverKeepAlive}
