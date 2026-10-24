@@ -238,38 +238,16 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
 
   return (
     <div
-      className={`w-full px-4 py-3 ${
-        isDark ? 'bg-[#141417]' : 'bg-zinc-100/75'
-      }`}
+      onScrollCapture={e => e.stopPropagation()}
+      onWheelCapture={e => e.stopPropagation()}
+      className={`h-[340px] min-h-[340px] max-h-[340px] w-full overflow-y-auto overflow-x-hidden px-6 py-5 ${themeCanvasClass} ${
+        isDark
+          ? 'bg-[#191919] text-[#e3e3e3]'
+          : 'bg-white text-[#222325]'
+      } [&_figure]:!my-0 [&_.node-imageBlock]:!my-0 [&_[data-node-view-wrapper]]:!my-0`}
     >
-      {/* Preview Section Caption */}
-      <div className="flex items-center justify-between mb-1.5 px-1">
-        <span
-          className={`text-[11px] font-semibold tracking-tight ${
-            isDark ? 'text-zinc-400' : 'text-zinc-500'
-          }`}
-        >
-          에디터 미리보기
-        </span>
-        <span
-          className={`text-[10px] ${
-            isDark ? 'text-zinc-500' : 'text-zinc-400'
-          }`}
-        >
-          실제 본문에 삽입될 화면
-        </span>
-      </div>
-
-      {/* Strictly Fixed-Height 260px Viewport (0px dialog height jitter on tab switch) */}
-      <div
-        className={`h-[260px] min-h-[260px] max-h-[260px] w-full overflow-y-auto overflow-x-hidden rounded-xl border px-5 py-4 ${themeCanvasClass} ${
-          isDark
-            ? 'bg-[#191919] border-white/[0.08] text-[#e3e3e3] shadow-inner'
-            : 'bg-white border-black/[0.08] text-[#222325] shadow-inner'
-        } [&_figure]:!my-0 [&_.node-imageBlock]:!my-0 [&_[data-node-view-wrapper]]:!my-0 [&_img]:!max-h-[210px] [&_img]:!w-auto [&_img]:!mx-auto`}
-      >
-        <EditorContent editor={previewEditor} className="w-full focus:outline-none" />
-      </div>
+      {/* Exact 1:1 Editor Column Width (42rem = 672px) and Natural Aspect Ratio (No max-h image distortion) */}
+      <EditorContent editor={previewEditor} className="w-full max-w-[42rem] mx-auto focus:outline-none" />
     </div>
   )
 }

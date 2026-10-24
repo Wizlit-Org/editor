@@ -40,13 +40,15 @@ const createPlaceholderWidget = (id: string) => {
   wrapper.className = 'w-full my-4 select-none'
   wrapper.setAttribute('data-upload-placeholder-id', id)
   wrapper.innerHTML = `
-    <div class="w-full aspect-video min-h-[180px] max-h-[360px] rounded-lg bg-black/[0.03] dark:bg-white/[0.04] backdrop-blur-md animate-pulse flex flex-col items-center justify-center border border-dashed border-black/10 dark:border-white/10 gap-2 p-6 z-[2]">
-      <svg class="w-8 h-8 text-zinc-400 dark:text-zinc-500 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-      </svg>
-      <div class="flex flex-col items-center gap-0.5 text-center">
-        <span class="text-xs font-medium text-zinc-600 dark:text-zinc-300">이미지 업로드 중...</span>
-        <span class="text-[11px] text-zinc-400 dark:text-zinc-500">잠시만 기다려주세요</span>
+    <div class="w-full min-h-[150px] rounded-xl bg-indigo-500/[0.06] dark:bg-indigo-400/[0.08] backdrop-blur-md flex flex-col items-center justify-center border-2 border-dashed border-indigo-500/35 dark:border-indigo-400/35 gap-3 p-6 z-[2] shadow-sm">
+      <div class="w-10 h-10 rounded-full bg-indigo-500/15 dark:bg-indigo-400/20 flex items-center justify-center">
+        <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-300 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+        </svg>
+      </div>
+      <div class="flex flex-col items-center gap-1 text-center">
+        <span class="text-xs font-semibold text-indigo-950 dark:text-indigo-100">이미지 업로드 중...</span>
+        <span class="text-[11px] text-zinc-500 dark:text-zinc-400">자동으로 압축하여 본문에 삽입하고 있습니다</span>
       </div>
     </div>
   `
@@ -142,33 +144,37 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
         ({ base64, pos }) =>
         ({ editor }) => {
           if (!base64 || base64.trim().length === 0) return false
+          if (!this.options.onUpload) return false
 
           const cleanBase64 = base64.trim()
-          const dataUriRegex = /^data:image\/([a-z0-9.+-]+)(?:;[^,]*)?;base64,([\s\S]+)$/i
-          const base64Match = cleanBase64.match(dataUriRegex)
-
-          if (base64Match) {
-            try {
-              const rawSubType = base64Match[1].toLowerCase()
-              const b64Data = base64Match[2].replace(/\s+/g, '')
-              const byteString = atob(b64Data)
-              const array = new Uint8Array(byteString.length)
-              for (let i = 0; i < byteString.length; i++) {
-                array[i] = byteString.charCodeAt(i)
-              }
-              const ext = rawSubType === 'jpeg' ? 'jpg' : rawSubType.split('+')[0] || 'png'
-              const mimeType = `image/${rawSubType}`
-              const blob = new Blob([array], { type: mimeType })
-              const file = new File([blob], `pasted-${Date.now()}.${ext}`, { type: mimeType })
-              editor.commands.uploadImages({ files: [file], pos: pos ?? editor.state.selection.from })
-              return true
-            } catch {
-              editor.chain().focus().setImageBlock({ src: cleanBase64 }).run()
-              return true
-            }
+          if (!cleanBase64.startsWith('data:image/') || !cleanBase64.includes(';base64,')) {
+            return false
           }
 
-          return false
+          const currentEmbeds = countEmbedNodes(editor)
+          const remainingEmbeds =
+            this.options.maxEmbeddings != null
+              ? Math.max(0, this.options.maxEmbeddings - currentEmbeds)
+              : 1
+
+          if (remainingEmbeds === 0) {
+            alert('Embedding limit reached')
+            return false
+          }
+
+          const targetPos = pos ?? editor.state.selection.from
+
+          // Enqueue directly with base64Source so the skeleton placeholder widget mounts at 0ms synchronously
+          uploadImageQueue.setEditor(editor)
+          uploadImageQueue.add({
+            base64Source: cleanBase64,
+            pos: targetPos,
+            upload: this.options.onUpload,
+            maxSize: this.options.maxSize,
+            forceReduceSize: true,
+          })
+
+          return true
         },
 
       uploadImageByHtml:

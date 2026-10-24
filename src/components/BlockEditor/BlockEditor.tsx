@@ -145,7 +145,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           target.tagName === 'TEXTAREA' ||
           target.isContentEditable ||
           target.closest?.(
-            '.glass-menu, [role="dialog"], [role="menu"], [data-radix-popper-content-wrapper], .link-editor-panel, .link-preview-panel'
+            '.glass-menu, [role="dialog"], [role="menu"], [data-paste-preview-dialog="true"], [data-radix-popper-content-wrapper], .link-editor-panel, .link-preview-panel'
           )
         ) {
           return
@@ -254,21 +254,26 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   } | null>(null)
   
   useEffect(() => {
-    if (editor && image?.getUploadDialogProps) {
+    if (!editor) return
+    const hasUploading = uploadDialog.items.some(
+      i => i.status === 'compressing' || i.status === 'uploading' || i.status === 'validating',
+    )
+    image?.onLoadingChange?.(hasUploading)
+
+    if (image?.getUploadDialogProps) {
       const currentProps = {
         items: uploadDialog.items,
         onRetry: uploadDialog.onRetry,
         onRemove: uploadDialog.onRemove,
-        onLoadingChange: image.onLoadingChange
-      };
+        onLoadingChange: image.onLoadingChange,
+      }
 
-      // Only call if values actually changed
       if (JSON.stringify(prevUploadDialogRef.current) !== JSON.stringify(currentProps)) {
-        image.getUploadDialogProps(currentProps);
-        prevUploadDialogRef.current = currentProps;
+        image.getUploadDialogProps(currentProps)
+        prevUploadDialogRef.current = currentProps
       }
     }
-  }, [editor, image?.getUploadDialogProps, image?.onLoadingChange, uploadDialog.items]);
+  }, [editor, image?.getUploadDialogProps, image?.onLoadingChange, uploadDialog.items])
 
   if (!editor) {
     return null

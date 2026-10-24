@@ -118,10 +118,42 @@ const resizeFile = async (
   }
 }
 
+const decodeBase64AsFile = async (base64Uri: string, signal?: AbortSignal): Promise<File> => {
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+  const cleanUri = base64Uri.trim()
+
+  try {
+    const res = await fetch(cleanUri, { signal })
+    const blob = await res.blob()
+    if (blob.size > 0) {
+      return ensureFileWithExtension(blob, 'pasted-base64')
+    }
+  } catch (err: any) {
+    if (err?.name === 'AbortError') throw err
+  }
+
+  const dataUriRegex = /^data:image\/([a-z0-9.+-]+)(?:;[^,]*)?;base64,([\s\S]+)$/i
+  const match = cleanUri.match(dataUriRegex)
+  if (!match) {
+    throw new Error('Invalid base64 image URI')
+  }
+  const rawSubType = match[1].toLowerCase()
+  const b64Data = match[2].replace(/\s+/g, '')
+  const byteString = atob(b64Data)
+  const array = new Uint8Array(byteString.length)
+  for (let i = 0; i < byteString.length; i++) {
+    array[i] = byteString.charCodeAt(i)
+  }
+  const mimeType = `image/${rawSubType}`
+  const blob = new Blob([array], { type: mimeType })
+  return ensureFileWithExtension(blob, 'pasted-base64')
+}
+
 interface UploadQueueItem {
   id?: string
   file?: File
   sourceUrl?: string
+  base64Source?: string
   pos: number
   upload: (file: File, signal?: AbortSignal) => Promise<string>
   maxSize?: number
@@ -258,8 +290,11 @@ export class UploadQueue {
       this.statusMap.set(id!, { ...origStatus, status: 'compressing' })
       this.emit()
 
-      // Resolve File from either direct File or remote sourceUrl
+      // Resolve File from direct File, base64Source, or remote sourceUrl
       let sourceFile = item.file
+      if (!sourceFile && item.base64Source) {
+        sourceFile = await decodeBase64AsFile(item.base64Source, controller.signal)
+      }
       if (!sourceFile && item.sourceUrl) {
         sourceFile = await fetchRemoteUrlAsFile(item.sourceUrl, controller.signal)
       }
