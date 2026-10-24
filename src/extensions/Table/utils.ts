@@ -191,8 +191,15 @@ export const findCellClosestToPos = ($pos: ResolvedPos) => {
   return findParentNodeClosestToPos($pos, predicate)
 }
 
-const select = (type: 'row' | 'column') => (index: number) => (tr: Transaction) => {
-  const table = findTable(tr.selection)
+const select = (type: 'row' | 'column') => (index: number, tablePos?: number) => (tr: Transaction) => {
+  let table = null
+  if (tablePos !== undefined && tablePos >= 0) {
+    const node = tr.doc.nodeAt(tablePos)
+    if (node && node.type.name === 'table') {
+      table = { node, pos: tablePos, start: tablePos + 1 } as any
+    }
+  }
+  if (!table) table = findTable(tr.selection)
   const isRowSelection = type === 'row'
 
   if (table) {
@@ -222,7 +229,7 @@ const select = (type: 'row' | 'column') => (index: number) => (tr: Transaction) 
       const $head = tr.doc.resolve(head)
       const $anchor = tr.doc.resolve(anchor)
 
-      return tr.setSelection(new CellSelection($anchor, $head))
+      return tr.setSelection(new CellSelection($anchor, $head)).setMeta('isGripSelection', true)
     }
   }
   return tr

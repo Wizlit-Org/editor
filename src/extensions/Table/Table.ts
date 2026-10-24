@@ -16,18 +16,15 @@ export const Table = TiptapTable.extend({
           const { selection, doc } = newState
           if (isGripSelection || !isCellSelection(selection)) return null
 
-          // If it is a full row or full col selection from grip, do not auto-expand
-          if (selection.isRowSelection() || selection.isColSelection()) return null
-
           const table = findTable(selection)
           if (!table) return null
 
           try {
             const map = TableMap.get(table.node)
             const tableStart = selection.$anchorCell.start(-1)
-            const anchorOffset = selection.$anchorCell.pos - tableStart
-            const headOffset = selection.$headCell.pos - tableStart
-            const rawRect = map.rectBetween(anchorOffset, headOffset)
+            const curAnchorOffset = selection.$anchorCell.pos - tableStart
+            const curHeadOffset = selection.$headCell.pos - tableStart
+            const rawRect = map.rectBetween(curAnchorOffset, curHeadOffset)
 
             const expRect = expandRectToMergedCells(table.node, rawRect)
             const isExpanded =
@@ -38,11 +35,33 @@ export const Table = TiptapTable.extend({
 
             if (!isExpanded) return null
 
-            // Find top-left and bottom-right cell positions in expanded rect
-            const topLeftOffset = map.map[expRect.top * map.width + expRect.left]
-            const bottomRightOffset = map.map[(expRect.bottom - 1) * map.width + (expRect.right - 1)]
-            const anchorPos = tableStart + topLeftOffset
-            const headPos = tableStart + bottomRightOffset
+            // Find diagonal cell positions whose rectBetween exactly encloses expRect
+            let anchorOffset = map.map[expRect.top * map.width + expRect.left]
+            let headOffset = map.map[(expRect.bottom - 1) * map.width + (expRect.right - 1)]
+            const testRect = map.rectBetween(anchorOffset, headOffset)
+
+            if (
+              testRect.left !== expRect.left ||
+              testRect.right !== expRect.right ||
+              testRect.top !== expRect.top ||
+              testRect.bottom !== expRect.bottom
+            ) {
+              const trOffset = map.map[expRect.top * map.width + (expRect.right - 1)]
+              const blOffset = map.map[(expRect.bottom - 1) * map.width + expRect.left]
+              const trblRect = map.rectBetween(trOffset, blOffset)
+              if (
+                trblRect.left === expRect.left &&
+                trblRect.right === expRect.right &&
+                trblRect.top === expRect.top &&
+                trblRect.bottom === expRect.bottom
+              ) {
+                anchorOffset = trOffset
+                headOffset = blOffset
+              }
+            }
+
+            const anchorPos = tableStart + anchorOffset
+            const headPos = tableStart + headOffset
 
             if (selection.$anchorCell.pos === anchorPos && selection.$headCell.pos === headPos) {
               return null

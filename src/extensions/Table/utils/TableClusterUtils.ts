@@ -268,13 +268,14 @@ export function deleteColCluster(editor: Editor, minCol: number, maxCol: number)
  * Selects row range [minRow, maxRow] in transaction using ProseMirror built-in rowSelection.
  */
 export function selectRowRange(tr: Transaction, minRow: number, maxRow: number, tablePos?: number): Transaction {
-  let table = findTable(tr.selection)
-  if (!table && tablePos !== undefined && tablePos >= 0) {
+  let table = null
+  if (tablePos !== undefined && tablePos >= 0) {
     const node = tr.doc.nodeAt(tablePos)
     if (node && node.type.name === 'table') {
       table = { node, pos: tablePos, start: tablePos + 1 } as any
     }
   }
+  if (!table) table = findTable(tr.selection)
   if (!table) return tr
 
   const map = TableMap.get(table.node)
@@ -290,13 +291,14 @@ export function selectRowRange(tr: Transaction, minRow: number, maxRow: number, 
  * Selects col range [minCol, maxCol] in transaction using ProseMirror built-in colSelection.
  */
 export function selectColRange(tr: Transaction, minCol: number, maxCol: number, tablePos?: number): Transaction {
-  let table = findTable(tr.selection)
-  if (!table && tablePos !== undefined && tablePos >= 0) {
+  let table = null
+  if (tablePos !== undefined && tablePos >= 0) {
     const node = tr.doc.nodeAt(tablePos)
     if (node && node.type.name === 'table') {
       table = { node, pos: tablePos, start: tablePos + 1 } as any
     }
   }
+  if (!table) table = findTable(tr.selection)
   if (!table) return tr
 
   const map = TableMap.get(table.node)
@@ -359,24 +361,26 @@ export function expandRectToMergedCells(tableNode: Node, rawRect: TableRectBound
     while (changed && iterations < 15) {
       changed = false
       iterations++
-      const cells = map.cellsInRect(rect)
-      for (const pos of cells) {
-        const cRect = map.findCell(pos)
-        if (cRect.left < rect.left) {
-          rect.left = cRect.left
-          changed = true
-        }
-        if (cRect.right > rect.right) {
-          rect.right = cRect.right
-          changed = true
-        }
-        if (cRect.top < rect.top) {
-          rect.top = cRect.top
-          changed = true
-        }
-        if (cRect.bottom > rect.bottom) {
-          rect.bottom = cRect.bottom
-          changed = true
+      for (let r = rect.top; r < rect.bottom; r++) {
+        for (let c = rect.left; c < rect.right; c++) {
+          const pos = map.map[r * map.width + c]
+          const cRect = map.findCell(pos)
+          if (cRect.left < rect.left) {
+            rect.left = cRect.left
+            changed = true
+          }
+          if (cRect.right > rect.right) {
+            rect.right = cRect.right
+            changed = true
+          }
+          if (cRect.top < rect.top) {
+            rect.top = cRect.top
+            changed = true
+          }
+          if (cRect.bottom > rect.bottom) {
+            rect.bottom = cRect.bottom
+            changed = true
+          }
         }
       }
     }

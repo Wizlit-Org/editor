@@ -2,7 +2,8 @@ import { Editor } from '@tiptap/react'
 import { TableMap } from '@tiptap/pm/tables'
 import { findTable, isCellSelection } from '../../utils'
 import { moveTableColumn } from '../../utils/TableDndUtils'
-import { isHeaderStraddling, hasMergedCellsInColSelection } from '../../utils/TableHeaderStraddleUtils'
+import { isHeaderStraddling, hasMergedCellsInColSelection, isTargetSplittingMergedCell } from '../../utils/TableHeaderStraddleUtils'
+import { scrollTargetCellIntoView } from '../../utils/TableAutoScroll'
 import {
   getClusterColRange,
   duplicateColCluster,
@@ -28,8 +29,7 @@ export const getSelectedColRange = (editor: Editor): { min: number; max: number 
     if (n.type.spec.tableRole === 'cell' || n.type.spec.tableRole === 'header_cell') {
       const cellPos = $pos.before(d)
       const rect = map.findCell(cellPos - table.start)
-      const cluster = getClusterColRange(table.node, rect.left)
-      return { min: cluster.start, max: cluster.start + cluster.count - 1 }
+      return { min: rect.left, max: rect.right - 1 }
     }
   }
 
@@ -119,23 +119,10 @@ export const duplicateColumn = (editor: Editor, colIndex: number) => {
   const max = Math.max(colIndex, range.max)
   const success = duplicateColCluster(editor, min, max)
   if (success) {
-    setTimeout(() => {
-      try {
-        const table = findTable(editor.state.selection)
-        if (table) {
-          const dom = editor.view.nodeDOM(table.pos) as HTMLElement | null
-          const tableEl = dom && dom.nodeType === 1 ? (dom.tagName === 'TABLE' ? dom : dom.querySelector('table')) : null
-          if (tableEl) {
-            const rows = tableEl.querySelectorAll('tr')
-            if (rows.length > 0) {
-              const cells = rows[0].querySelectorAll('th, td')
-              const targetCell = cells[Math.min(cells.length - 1, max + 1)] as HTMLElement
-              targetCell?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
-            }
-          }
-        }
-      } catch {}
-    }, 50)
+    const table = findTable(editor.state.selection)
+    if (table) {
+      scrollTargetCellIntoView(editor, { tablePos: table.pos, colIndex: max + 1 })
+    }
   }
 }
 
@@ -185,6 +172,7 @@ export const moveColumnLeft = (editor: Editor, colIndex: number) => {
   const targetIdx = findJumpMoveIndex(table.node, 'col', range.min, 'prev')
   if (targetIdx >= 0) {
     if (isHeaderStraddling(table.node, 'col', range.min, targetIdx)) return
+    if (isTargetSplittingMergedCell(table.node, 'col', targetIdx)) return
     const count = range.max - range.min + 1
     moveTableColumn(editor, table.pos, range.min, targetIdx, count)
   }
@@ -198,6 +186,7 @@ export const moveColumnRight = (editor: Editor, colIndex: number) => {
   const targetIdx = findJumpMoveIndex(table.node, 'col', range.max, 'next')
   if (targetIdx >= 0) {
     if (isHeaderStraddling(table.node, 'col', range.max, targetIdx)) return
+    if (isTargetSplittingMergedCell(table.node, 'col', targetIdx)) return
     const count = range.max - range.min + 1
     moveTableColumn(editor, table.pos, range.min, targetIdx, count)
   }

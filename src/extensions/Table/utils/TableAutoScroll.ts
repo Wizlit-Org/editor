@@ -1,3 +1,6 @@
+import { Editor } from '@tiptap/core'
+import { TableMap } from '@tiptap/pm/tables'
+
 /**
  * Utility for smooth multi-axis auto-scrolling during table dragging (cell selection, grip selection, DnD move).
  */
@@ -109,4 +112,66 @@ export function startAutoScroll(options: {
       }
     },
   }
+}
+
+/**
+ * Automatically scrolls the newly added or targeted cell into view,
+ * adjusting both the horizontal .tableWrapper and the vertical scroll container.
+ */
+export function scrollTargetCellIntoView(
+  editor: Editor,
+  target: {
+    tablePos?: number
+    rowIndex?: number
+    colIndex?: number
+    cellEl?: HTMLElement | null
+  },
+) {
+  setTimeout(() => {
+    try {
+      let cell = target.cellEl
+      if (!cell && target.tablePos !== undefined && target.tablePos >= 0) {
+        const tableNode = editor.state.doc.nodeAt(target.tablePos)
+        if (tableNode) {
+          const map = TableMap.get(tableNode)
+          const dom = editor.view.nodeDOM(target.tablePos) as HTMLElement | null
+          const tableEl =
+            dom && dom.nodeType === 1 ? (dom.tagName === 'TABLE' ? dom : dom.querySelector('table')) : null
+          if (tableEl) {
+            const r = Math.max(0, Math.min(target.rowIndex ?? map.height - 1, map.height - 1))
+            const c = Math.max(0, Math.min(target.colIndex ?? map.width - 1, map.width - 1))
+            const cellRelPos = map.map[r * map.width + c]
+            const nodeDom = editor.view.nodeDOM(target.tablePos + 1 + cellRelPos) as HTMLElement | null
+            cell =
+              nodeDom && nodeDom.nodeType === 1
+                ? nodeDom
+                : (tableEl.querySelectorAll('tr')[r]?.children[c] as HTMLElement | null)
+          }
+        }
+      }
+
+      if (!cell) return
+
+      // 1. Horizontal scroll on .tableWrapper
+      const wrapper = cell.closest('.tableWrapper') as HTMLElement | null
+      if (wrapper) {
+        const cRect = cell.getBoundingClientRect()
+        const wRect = wrapper.getBoundingClientRect()
+        if (cRect.left < wRect.left) {
+          wrapper.scrollTo({
+            left: wrapper.scrollLeft - (wRect.left - cRect.left) - 24,
+            behavior: 'smooth',
+          })
+        } else if (cRect.right > wRect.right) {
+          wrapper.scrollTo({
+            left: wrapper.scrollLeft + (cRect.right - wRect.right) + 24,
+            behavior: 'smooth',
+          })
+        }
+      }
+
+      // 2. Vertical scroll into view
+      cell.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+    } catch {}
+  }, 50)
 }

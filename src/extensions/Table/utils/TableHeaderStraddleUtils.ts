@@ -217,8 +217,47 @@ export function hasMergedCellsInColSelection(tableNode: Node, startCol: number, 
 }
 
 /**
+ * Checks if targetIndex cuts through the middle of any merged cell in the table.
+ * If targetIndex splits any cell (rect.top < targetIndex && targetIndex < rect.bottom for row,
+ * or rect.left < targetIndex && targetIndex < rect.right for col), return true.
+ */
+export function isTargetSplittingMergedCell(
+  tableNode: Node,
+  type: 'col' | 'row',
+  targetIndex: number,
+): boolean {
+  try {
+    const map = TableMap.get(tableNode)
+    if (type === 'row') {
+      for (let r = 0; r < map.height; r++) {
+        for (let c = 0; c < map.width; c++) {
+          const cellPos = map.map[r * map.width + c]
+          const rect = map.findCell(cellPos)
+          if (rect.top < targetIndex && targetIndex < rect.bottom) {
+            return true
+          }
+        }
+      }
+    } else {
+      for (let r = 0; r < map.height; r++) {
+        for (let c = 0; c < map.width; c++) {
+          const cellPos = map.map[r * map.width + c]
+          const rect = map.findCell(cellPos)
+          if (rect.left < targetIndex && targetIndex < rect.right) {
+            return true
+          }
+        }
+      }
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
+/**
  * Checks if the current selection contains at least one merged cell (for batch split).
- * Inspects all cells in the selection rectangle via TableMap.cellsInRect.
+ * Inspects all cells in the selection rectangle via TableMap 2D grid coordinates.
  */
 export function hasMergedCellsInSelection(editor: Editor): boolean {
   const { selection } = editor.state
@@ -233,15 +272,17 @@ export function hasMergedCellsInSelection(editor: Editor): boolean {
         selection.$anchorCell.pos - selStart,
         selection.$headCell.pos - selStart,
       )
-      const cells = map.cellsInRect(rect)
-      for (const cellPos of cells) {
-        const cellRect = map.findCell(cellPos)
-        if (cellRect.right - cellRect.left > 1 || cellRect.bottom - cellRect.top > 1) {
-          return true
-        }
-        const cellNode = table.node.nodeAt(cellPos)
-        if (cellNode && ((cellNode.attrs.colspan && cellNode.attrs.colspan > 1) || (cellNode.attrs.rowspan && cellNode.attrs.rowspan > 1))) {
-          return true
+      for (let r = rect.top; r < rect.bottom; r++) {
+        for (let c = rect.left; c < rect.right; c++) {
+          const cellPos = map.map[r * map.width + c]
+          const cellRect = map.findCell(cellPos)
+          if (cellRect.right - cellRect.left > 1 || cellRect.bottom - cellRect.top > 1) {
+            return true
+          }
+          const cellNode = table.node.nodeAt(cellPos)
+          if (cellNode && ((cellNode.attrs.colspan && cellNode.attrs.colspan > 1) || (cellNode.attrs.rowspan && cellNode.attrs.rowspan > 1))) {
+            return true
+          }
         }
       }
     } catch {}

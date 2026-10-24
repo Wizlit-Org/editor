@@ -54,22 +54,30 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         const start = selection.$anchorCell.start(-1)
         const rawRect = map.rectBetween(selection.$anchorCell.pos - start, selection.$headCell.pos - start)
         const expandedRect = expandRectToMergedCells(table.node, rawRect)
-        const cellOffsets = map.cellsInRect(expandedRect)
         const domCells: HTMLElement[] = []
+        const seen = new Set<number>()
 
-        cellOffsets.forEach(offset => {
-          try {
-            const cellPos = table.start + offset
-            const nodeDom = editor.view.nodeDOM(cellPos) as HTMLElement | null
-            const cellEl = nodeDom && nodeDom.nodeType === 1 ? nodeDom : (editor.view.domAtPos(cellPos + 1).node as HTMLElement)?.closest?.('td, th') as HTMLElement | null
-            if (cellEl) {
-              domCells.push(cellEl)
-              if (!cellEl.classList.contains('selectedCell')) {
-                cellEl.classList.add('selectedCell')
+        for (let r = expandedRect.top; r < expandedRect.bottom; r++) {
+          for (let c = expandedRect.left; c < expandedRect.right; c++) {
+            const offset = map.map[r * map.width + c]
+            if (seen.has(offset)) continue
+            seen.add(offset)
+            try {
+              const cellPos = table.start + offset
+              const nodeDom = editor.view.nodeDOM(cellPos) as HTMLElement | null
+              const cellEl =
+                nodeDom && nodeDom.nodeType === 1
+                  ? nodeDom
+                  : ((editor.view.domAtPos(cellPos + 1).node as HTMLElement)?.closest?.('td, th') as HTMLElement | null)
+              if (cellEl) {
+                domCells.push(cellEl)
+                if (!cellEl.classList.contains('selectedCell')) {
+                  cellEl.classList.add('selectedCell')
+                }
               }
-            }
-          } catch {}
-        })
+            } catch {}
+          }
+        }
 
         if (domCells.length > 0) return domCells
       } catch {}
@@ -292,15 +300,17 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
       }
 
       if (rect) {
-        const cellOffsets = map.cellsInRect(rect)
         const cellPositions: number[] = []
         const seen = new Set<number>()
-        for (const offset of cellOffsets) {
-          if (seen.has(offset)) continue
-          seen.add(offset)
-          const node = table.node.nodeAt(offset)
-          if (node && ((node.attrs.colspan && node.attrs.colspan > 1) || (node.attrs.rowspan && node.attrs.rowspan > 1))) {
-            cellPositions.push(table.start + offset)
+        for (let r = rect.top; r < rect.bottom; r++) {
+          for (let c = rect.left; c < rect.right; c++) {
+            const offset = map.map[r * map.width + c]
+            if (seen.has(offset)) continue
+            seen.add(offset)
+            const node = table.node.nodeAt(offset)
+            if (node && ((node.attrs.colspan && node.attrs.colspan > 1) || (node.attrs.rowspan && node.attrs.rowspan > 1))) {
+              cellPositions.push(table.start + offset)
+            }
           }
         }
 
@@ -353,11 +363,13 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         const start = selection.$anchorCell.start(-1)
         const rawRect = map.rectBetween(selection.$anchorCell.pos - start, selection.$headCell.pos - start)
         const expRect = expandRectToMergedCells(table.node, rawRect)
-        const cells = map.cellsInRect(expRect)
-        for (const offset of cells) {
-          const n = table.node.nodeAt(offset)
-          if (n && ((n.attrs.colspan && n.attrs.colspan > 1) || (n.attrs.rowspan && n.attrs.rowspan > 1))) {
-            return true
+        for (let r = expRect.top; r < expRect.bottom; r++) {
+          for (let c = expRect.left; c < expRect.right; c++) {
+            const offset = map.map[r * map.width + c]
+            const n = table.node.nodeAt(offset)
+            if (n && ((n.attrs.colspan && n.attrs.colspan > 1) || (n.attrs.rowspan && n.attrs.rowspan > 1))) {
+              return true
+            }
           }
         }
       }

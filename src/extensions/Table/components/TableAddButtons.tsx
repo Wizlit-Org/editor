@@ -8,9 +8,9 @@ import { TableDragOverlays, DragGhostData, DragIndicatorData } from './TableDrag
 import { moveTableColumn, moveTableRow } from '../utils/TableDndUtils'
 import { isCellSelection, findTable } from '../utils'
 import { selectColRange, selectRowRange, focusTableGrip, isGripInCurrentSelection } from '../utils/TableClusterUtils'
-import { hasMergedCellsInRowSelection, hasMergedCellsInColSelection, isHeaderStraddling } from '../utils/TableHeaderStraddleUtils'
+import { hasMergedCellsInRowSelection, hasMergedCellsInColSelection, isHeaderStraddling, isTargetSplittingMergedCell } from '../utils/TableHeaderStraddleUtils'
 import { useContainingBlockOffset, ContainingBlockAnchor } from '../utils/containingBlock'
-import { startAutoScroll } from '../utils/TableAutoScroll'
+import { startAutoScroll, scrollTargetCellIntoView } from '../utils/TableAutoScroll'
 
 export interface TableAddButtonsProps {
   editor: Editor
@@ -123,8 +123,16 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
               const targetIdx = clientX > bCol.left + bCol.width / 2 ? bCol.index + 1 : bCol.index
               pendingTargetIdx = targetIdx
               const isNoOp = targetIdx >= start && targetIdx <= end + 1
-              const isBlocked = isHeaderStraddling(tableNode, 'col', index, Math.min(columnGrips.length - 1, targetIdx))
-              const label = isBlocked ? '헤더 이동 불가' : count > 1 ? `${count}열 이동` : `${index + 1}열 이동`
+              const isHeaderBlocked = isHeaderStraddling(tableNode, 'col', index, Math.min(columnGrips.length - 1, targetIdx))
+              const isSplitBlocked = isTargetSplittingMergedCell(tableNode, 'col', targetIdx)
+              const isBlocked = isHeaderBlocked || isSplitBlocked
+              const label = isHeaderBlocked
+                ? '헤더 이동 불가'
+                : isSplitBlocked
+                ? '병합 셀 사이 이동 불가'
+                : count > 1
+                ? `${count}열 이동`
+                : `${index + 1}열 이동`
               setDragGhost({ type, index, label, x: clientX, y: clientY, isBlocked, targetIdx })
               if (isNoOp || isBlocked) {
                 setDragIndicator(null)
@@ -140,8 +148,16 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
               const targetIdx = clientY > bRow.top + bRow.height / 2 ? bRow.index + 1 : bRow.index
               pendingTargetIdx = targetIdx
               const isNoOp = targetIdx >= start && targetIdx <= end + 1
-              const isBlocked = isHeaderStraddling(tableNode, 'row', index, Math.min(rowGrips.length - 1, targetIdx))
-              const label = isBlocked ? '헤더 이동 불가' : count > 1 ? `${count}행 이동` : `${index + 1}행 이동`
+              const isHeaderBlocked = isHeaderStraddling(tableNode, 'row', index, Math.min(rowGrips.length - 1, targetIdx))
+              const isSplitBlocked = isTargetSplittingMergedCell(tableNode, 'row', targetIdx)
+              const isBlocked = isHeaderBlocked || isSplitBlocked
+              const label = isHeaderBlocked
+                ? '헤더 이동 불가'
+                : isSplitBlocked
+                ? '병합 셀 사이 이동 불가'
+                : count > 1
+                ? `${count}행 이동`
+                : `${index + 1}행 이동`
               setDragGhost({ type, index, label, x: clientY, y: clientY, isBlocked, targetIdx })
               if (isNoOp || isBlocked) {
                 setDragIndicator(null)
@@ -203,7 +219,10 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         if (wasDragging) {
           if (isGripSelected && !hasMerged && target >= 0 && !(target >= start && target <= end + 1)) {
             const destIdx = target > end + 1 ? target - 1 : target
-            if (!isHeaderStraddling(tableNode, type, index, destIdx)) {
+            if (
+              !isHeaderStraddling(tableNode, type, index, destIdx) &&
+              !isTargetSplittingMergedCell(tableNode, type, target)
+            ) {
               if (type === 'col') moveTableColumn(editor, tableRect.pos, start, destIdx, count)
               else moveTableRow(editor, tableRect.pos, start, destIdx, count)
               setTimeout(updateTableRect, 50)
@@ -235,23 +254,14 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       if (tableNode) {
         const map = TableMap.get(tableNode)
         editor.chain().focus().setTextSelection(tableRect!.pos + 1 + map.map[map.width - 1] + 1).addColumnAfter().run()
-        setTimeout(() => {
-          updateTableRect()
-          if (currentTableEl) {
-            const rows = currentTableEl.querySelectorAll('tr')
-            if (rows.length > 0) {
-              const cells = rows[0].querySelectorAll('th, td')
-              const lastCell = cells[cells.length - 1] as HTMLElement
-              lastCell?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
-            }
-          }
-        }, 50)
+        scrollTargetCellIntoView(editor, { tablePos: tableRect!.pos, colIndex: map.width })
+        setTimeout(updateTableRect, 50)
         return
       }
     } catch {}
     editor.chain().focus().addColumnAfter().run()
     setTimeout(updateTableRect, 50)
-  }, [editor, tableRect, updateTableRect, currentTableEl])
+  }, [editor, tableRect, updateTableRect])
 
   const onAddRowAtEnd = useCallback((e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation()
@@ -260,22 +270,14 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       if (tableNode) {
         const map = TableMap.get(tableNode)
         editor.chain().focus().setTextSelection(tableRect!.pos + 1 + map.map[(map.height - 1) * map.width] + 1).addRowAfter().run()
-        setTimeout(() => {
-          updateTableRect()
-          if (currentTableEl) {
-            const rows = currentTableEl.querySelectorAll('tr')
-            if (rows.length > 0) {
-              const lastRow = rows[rows.length - 1] as HTMLElement
-              lastRow?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
-            }
-          }
-        }, 50)
+        scrollTargetCellIntoView(editor, { tablePos: tableRect!.pos, rowIndex: map.height })
+        setTimeout(updateTableRect, 50)
         return
       }
     } catch {}
     editor.chain().focus().addRowAfter().run()
     setTimeout(updateTableRect, 50)
-  }, [editor, tableRect, updateTableRect, currentTableEl])
+  }, [editor, tableRect, updateTableRect])
 
   if (!tableRect || !isHovered || !editor.isEditable || (isScrolling && !(window as any).__isTableDragging) || typeof document === 'undefined') return null
 
@@ -319,7 +321,12 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
   const singlePillClass = `${pillClass} bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-violet-500/90 border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white`
   const mergedPillClass = `${pillClass} bg-indigo-600/35 hover:bg-indigo-600/50 active:bg-indigo-600/90 dark:bg-violet-500/35 dark:hover:bg-violet-500/50 dark:active:bg-violet-500/90 border border-indigo-500/40 dark:border-violet-400/40 text-indigo-700 dark:text-violet-200 active:text-white`
 
-  const rowGripLeft = (tableRect.wrapperLeft !== undefined ? tableRect.wrapperLeft : tableRect.left) - 15 - offset.x
+  const rowGripLeft =
+    (tableRect.editorLeft !== undefined
+      ? tableRect.editorLeft - 15
+      : tableRect.wrapperLeft !== undefined
+      ? (editor.isEditable ? tableRect.wrapperLeft + 33 : tableRect.wrapperLeft - 15)
+      : tableRect.left - 15) - offset.x
 
   return createPortal(
     <div id="table-add-buttons-portal" className="pointer-events-auto" style={{ zIndex: 15, position: 'relative' }}>

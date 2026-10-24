@@ -17,6 +17,7 @@ import { TableMap } from '@tiptap/pm/tables'
 import { getRowAnchorVirtualElement } from '../useTableMenuPosition'
 import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
 import { DeleteRowIcon } from '../../components/TableActionIcons'
+import { scrollTargetCellIntoView } from '../../utils/TableAutoScroll'
 import { cn } from '@/lib/utils'
 
 const TABLE_ROW_MENU_OPTIONS = {
@@ -107,6 +108,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       const map = TableMap.get(table.node)
       const targetPos = table.start + map.map[range.min * map.width]
       editor.chain().focus().setTextSelection(targetPos + 1).addRowBefore().run()
+      scrollTargetCellIntoView(editor, { tablePos: table.pos, rowIndex: range.min })
     } else {
       editor.chain().focus().addRowBefore().run()
     }
@@ -119,6 +121,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       const map = TableMap.get(table.node)
       const targetPos = table.start + map.map[range.max * map.width]
       editor.chain().focus().setTextSelection(targetPos + 1).addRowAfter().run()
+      scrollTargetCellIntoView(editor, { tablePos: table.pos, rowIndex: range.max + 1 })
     } else {
       editor.chain().focus().addRowAfter().run()
     }

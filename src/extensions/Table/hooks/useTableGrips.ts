@@ -12,6 +12,7 @@ export interface TableRectInfo {
   pos: number
   wrapperLeft?: number
   wrapperRight?: number
+  editorLeft?: number
 }
 
 export interface GripItem {
@@ -81,6 +82,7 @@ export function useTableGrips(editor: Editor) {
 
     const wrapper = currentTableEl.closest('.tableWrapper') as HTMLElement | null
     const wr = wrapper ? wrapper.getBoundingClientRect() : r
+    const editorLeft = editor.view?.dom ? editor.view.dom.getBoundingClientRect().left : r.left
 
     setTableRect({
       top: r.top,
@@ -92,6 +94,7 @@ export function useTableGrips(editor: Editor) {
       pos: tablePos,
       wrapperLeft: wr.left,
       wrapperRight: wr.right,
+      editorLeft,
     })
 
     const tableNode = tablePos >= 0 ? editor.state.doc.nodeAt(tablePos) : null
@@ -253,7 +256,7 @@ export function useTableGrips(editor: Editor) {
       if (!target || !(target instanceof Element) || typeof target.closest !== 'function') return
 
       const table = target.closest('table')
-      if (table && table !== currentTableEl) {
+      if (table && table !== currentTableEl && !(window as any).__isTableDragging) {
         clearHoverTimer()
         setCurrentTableEl(table as HTMLTableElement)
         setIsHovered(true)

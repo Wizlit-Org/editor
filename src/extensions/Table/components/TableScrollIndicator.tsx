@@ -179,8 +179,9 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
         const visibleLeft = Math.max(t.rect.left, containerRect.left)
         const visibleRight = Math.min(t.rect.left + t.rect.width, containerRect.right)
 
+        const wrapperRect = t.wrapper.getBoundingClientRect()
         const leftFadeX = editor.isEditable
-          ? Math.max(0, visibleLeft - 48) - offset.x
+          ? wrapperRect.left - offset.x
           : visibleLeft - offset.x
         const leftFadeWidth = editor.isEditable ? '48px' : '36px'
 
