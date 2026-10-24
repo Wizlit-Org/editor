@@ -21,9 +21,17 @@ export const detectPasteType = (
         return { type: 'youtube_url', meta: { videoId: ytMatch[1], url: trimmed } }
       }
 
-      // Image URL
-      const isImg = /\.(png|jpe?g|gif|webp|svg|bmp|ico|avif|tiff)(\?.*)?$/i.test(url.pathname)
-      if (isImg) {
+      // Image URL (File extension or common image CDN / format query parameters)
+      const isImgExt = /\.(png|jpe?g|gif|webp|svg|bmp|ico|avif|tiff)(\?.*)?$/i.test(url.pathname)
+      const isImgQuery =
+        /^(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test(
+          url.searchParams.get('format') || url.searchParams.get('fm') || '',
+        ) || url.searchParams.has('auto') && url.hostname.includes('unsplash.com')
+      const isKnownImgHost =
+        /^(images\.unsplash\.com|plus\.unsplash\.com|i\.imgur\.com|images\.pexels\.com|cdn\.pixabay\.com|media\d*\.giphy\.com|pbs\.twimg\.com)$/i.test(
+          url.hostname,
+        )
+      if (isImgExt || isImgQuery || isKnownImgHost) {
         return { type: 'image_url', meta: { url: trimmed } }
       }
 

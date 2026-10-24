@@ -39,6 +39,18 @@ export const useBlockEditor = ({
   key?: string
 } & Partial<Omit<EditorOptions, 'extensions'>>) => {
   const editorRef = useRef<Editor | null>(null)
+  const onUploadImageRef = useRef(onUploadImage)
+  onUploadImageRef.current = onUploadImage
+
+  const stableUploadImage = useMemo(
+    () => (file: File) => {
+      if (!onUploadImageRef.current) {
+        return Promise.reject(new Error('No upload handler provided'))
+      }
+      return onUploadImageRef.current(file)
+    },
+    [],
+  )
 
   const editor = useEditor(
     {
@@ -49,7 +61,7 @@ export const useBlockEditor = ({
       autofocus: true,
       extensions: ExtensionKit({
         limit: maxCharacters,
-        onUploadImage,
+        onUploadImage: stableUploadImage,
         convertSrc,
         onImageClick,
         maxSize,

@@ -20,6 +20,7 @@ export interface PastePreviewDialogProps {
 export interface PasteOptionItem {
   id: string
   label: string
+  description: string
   icon: string
   isPrimary?: boolean
   insert: () => void
@@ -60,7 +61,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     setSelectedId('')
   }, [])
 
-  // Build options based on detected type
+  // Build options with concise labels and 1-line descriptions
   const options = useMemo<PasteOptionItem[]>(() => {
     if (!data) return []
 
@@ -76,7 +77,8 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
 
     const plainTextOpt: PasteOptionItem = {
       id: 'plain-text',
-      label: '일반 텍스트',
+      label: '텍스트',
+      description: '서식 없는 일반 텍스트로 본문에 삽입합니다',
       icon: 'Type',
       insert: () => {
         restoreSelection()
@@ -86,7 +88,8 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
 
     const linkOpt: PasteOptionItem = {
       id: 'link',
-      label: '하이퍼링크',
+      label: '링크',
+      description: '클릭하여 이동할 수 있는 하이퍼링크로 삽입합니다',
       icon: 'Link',
       insert: () => {
         restoreSelection()
@@ -99,7 +102,8 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
         return [
           {
             id: 'image-upload',
-            label: '서버에 이미지 업로드',
+            label: '이미지 업로드',
+            description: '이미지를 서버에 업로드하여 영구 보관합니다',
             icon: 'Upload',
             isPrimary: true,
             insert: () => {
@@ -116,7 +120,8 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
           },
           {
             id: 'image-external',
-            label: 'Base64 이미지 직접 삽입',
+            label: '외부 이미지',
+            description: '원본 이미지 데이터를 변환 없이 본문에 바로 삽입합니다',
             icon: 'Image',
             insert: () => {
               restoreSelection()
@@ -131,7 +136,8 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
           linkOpt,
           {
             id: 'image-external',
-            label: '외부 이미지 연동',
+            label: '외부 이미지',
+            description: '외부 이미지 주소를 직접 연결하여 본문에 표시합니다',
             icon: 'ExternalLink',
             insert: () => {
               restoreSelection()
@@ -140,7 +146,8 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
           },
           {
             id: 'image-upload',
-            label: '서버에 이미지 업로드',
+            label: '이미지 업로드',
+            description: '이미지를 서버에 업로드하여 영구 보관합니다',
             icon: 'Upload',
             isPrimary: true,
             insert: () => {
@@ -164,7 +171,8 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
           linkOpt,
           {
             id: 'youtube-video',
-            label: '유튜브 임베드',
+            label: '유튜브',
+            description: '본문에서 바로 재생 가능한 유튜브 동영상 플레이어로 삽입합니다',
             icon: 'Youtube',
             isPrimary: true,
             insert: () => {
@@ -184,7 +192,8 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
           plainTextOpt,
           {
             id: 'code-block',
-            label: '코드 블록',
+            label: '코드',
+            description: '구문 강조가 적용된 코드 블록으로 삽입합니다',
             icon: 'Code',
             isPrimary: true,
             insert: () => {
@@ -200,6 +209,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
           {
             id: 'list-items',
             label: '목록',
+            description: '줄바꿈 항목들을 정리된 에디터 목록으로 변환하여 삽입합니다',
             icon: 'List',
             isPrimary: true,
             insert: () => {
@@ -214,11 +224,15 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     }
   }, [data, editor])
 
+  const currentOption = useMemo(
+    () => options.find(o => o.id === selectedId) || options[options.length - 1],
+    [options, selectedId],
+  )
+
   const handleConfirm = useCallback(() => {
-    const currentOpt = options.find(o => o.id === selectedId) || options[options.length - 1]
-    if (currentOpt) currentOpt.insert()
+    if (currentOption) currentOption.insert()
     handleClose()
-  }, [options, selectedId, handleClose])
+  }, [currentOption, handleClose])
 
   useEffect(() => {
     const handleSmartPaste = (e: Event) => {
@@ -279,42 +293,95 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     return null
   }
 
-  const kbdClass = `px-1.5 py-0.5 text-[10px] font-mono rounded border ${
-    isDark
-      ? 'bg-white/[0.06] border-white/[0.1] text-zinc-300'
-      : 'bg-black/[0.04] border-black/[0.1] text-zinc-700'
-  }`
-
   return createPortal(
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="붙여넣기 미리보기"
-      className={`fixed inset-0 z-[1450] flex items-center justify-center p-4 sm:p-6 transition-opacity duration-150 ${
-        isDark ? 'bg-black/50 backdrop-blur-md' : 'bg-black/25 backdrop-blur-sm'
+      aria-label="붙여넣기 형식 선택"
+      className={`fixed inset-0 z-[1450] flex items-center justify-center p-4 transition-opacity duration-150 ${
+        isDark ? 'bg-black/55 backdrop-blur-md' : 'bg-black/30 backdrop-blur-sm'
       }`}
       onClick={handleClose}
     >
-      {/* Dialog matches exact 42rem (672px) editor column width + 24px horizontal padding = 720px */}
+      {/* Strictly Fixed-Width (680px) & Fixed-Structure Dialog (0px size jumping across tabs) */}
       <div
-        className={`w-[95%] max-w-[720px] rounded-2xl overflow-hidden flex flex-col select-none transition-all duration-200 ${
+        className={`w-[680px] max-w-[92vw] rounded-2xl overflow-hidden flex flex-col select-none ${
           isDark
-            ? 'bg-[#191919] border border-white/[0.12] text-[#e3e3e3] shadow-[0_24px_64px_-12px_rgba(0,0,0,0.75),inset_0_1px_0_0_rgba(255,255,255,0.08)]'
-            : 'bg-white border border-black/[0.1] text-[#222325] shadow-[0_24px_64px_-12px_rgba(0,0,0,0.2),inset_0_1px_0_0_rgba(255,255,255,0.9)]'
+            ? 'bg-[#1c1c20] border border-white/[0.14] text-zinc-100 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.8)]'
+            : 'bg-white border border-black/[0.12] text-zinc-900 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.22)]'
         }`}
         onClick={e => e.stopPropagation()}
       >
-        {/* 1. Single-Line Minimal Glass Pill Segmented Control Tab Bar */}
+        {/* 1. Top Header Bar: Clear Identity + Keyboard Guide */}
         <div
-          className={`flex items-center justify-between gap-2 px-4 py-2.5 border-b ${
+          className={`flex items-center justify-between gap-2 px-4 py-3 border-b ${
             isDark
-              ? 'border-white/[0.08] bg-[#202020]/90'
-              : 'border-black/[0.07] bg-zinc-50/90'
+              ? 'border-white/[0.08] bg-white/[0.02]'
+              : 'border-black/[0.07] bg-zinc-50/80'
           }`}
         >
+          <div className="flex items-center gap-2 min-w-0">
+            <div
+              className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border ${
+                isDark
+                  ? 'bg-indigo-500/20 border-indigo-400/30 text-indigo-300'
+                  : 'bg-indigo-50 border-indigo-200 text-indigo-600'
+              }`}
+            >
+              <Icon name="Clipboard" className="w-3.5 h-3.5" />
+            </div>
+            <span className="text-xs font-bold tracking-tight">
+              붙여넣기 형식 선택
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <span
+              className={`hidden sm:inline-block text-[11px] font-medium ${
+                isDark ? 'text-zinc-400' : 'text-zinc-500'
+              }`}
+            >
+              ←/→ 선택 · Enter 삽입 · Esc 닫기
+            </span>
+            <button
+              type="button"
+              onClick={handleClose}
+              className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors cursor-pointer ${
+                isDark
+                  ? 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.08]'
+                  : 'text-zinc-500 hover:text-zinc-900 hover:bg-black/[0.06]'
+              }`}
+              title="닫기 (Esc)"
+            >
+              <Icon name="X" className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* 2. Middle Option Selector Bar: "표시 형식" Label + Short-Titled Segmented Control */}
+        <div
+          className={`flex items-center gap-3 px-4 py-2.5 border-b ${
+            isDark
+              ? 'border-white/[0.08] bg-[#18181b]'
+              : 'border-black/[0.06] bg-white'
+          }`}
+        >
+          <span
+            className={`text-[11px] font-semibold shrink-0 ${
+              isDark ? 'text-zinc-400' : 'text-zinc-500'
+            }`}
+          >
+            표시 형식
+          </span>
+
           <div
             role="tablist"
-            className="flex items-center gap-1 overflow-x-auto min-w-0 flex-1"
+            aria-label="표시 형식"
+            className={`flex items-center gap-1 p-1 rounded-xl overflow-x-auto flex-1 ${
+              isDark
+                ? 'bg-black/45 border border-white/[0.07]'
+                : 'bg-zinc-100 border border-black/[0.06]'
+            }`}
           >
             {options.map(opt => {
               const isSelected = opt.id === selectedId
@@ -325,24 +392,20 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
                   aria-selected={isSelected}
                   type="button"
                   onClick={() => setSelectedId(opt.id)}
-                  className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 cursor-pointer border ${
+                  className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 cursor-pointer border ${
                     isSelected
                       ? isDark
-                        ? 'bg-white/[0.14] text-white border-white/[0.18] shadow-xs'
-                        : 'bg-white text-zinc-900 border-black/[0.1] shadow-xs'
+                        ? 'bg-indigo-600 text-white border-indigo-400/40 shadow-xs'
+                        : 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
                       : isDark
                         ? 'bg-transparent text-zinc-400 border-transparent hover:text-zinc-200 hover:bg-white/[0.06]'
-                        : 'bg-transparent text-zinc-600 border-transparent hover:text-zinc-900 hover:bg-black/[0.04]'
+                        : 'bg-transparent text-zinc-600 border-transparent hover:text-zinc-900 hover:bg-black/[0.05]'
                   }`}
                 >
                   <Icon
                     name={opt.icon as any}
                     className={`w-3.5 h-3.5 ${
-                      isSelected
-                        ? isDark
-                          ? 'text-indigo-300'
-                          : 'text-indigo-600'
-                        : 'opacity-75'
+                      isSelected ? 'text-white' : 'opacity-75'
                     }`}
                   />
                   <span>{opt.label}</span>
@@ -350,61 +413,43 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
               )
             })}
           </div>
-
-          <button
-            type="button"
-            onClick={handleClose}
-            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer border border-transparent ${
-              isDark
-                ? 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.08]'
-                : 'text-zinc-500 hover:text-zinc-900 hover:bg-black/[0.06]'
-            }`}
-            title="닫기 (Esc)"
-          >
-            <Icon name="X" className="w-4 h-4" />
-          </button>
         </div>
 
-        {/* 2. Center: Direct 1:1 Editor Canvas (No extra boxes, no forced 260px crop) */}
+        {/* 3. Center: Fixed-Height (260px) Lightweight TipTap Live Editor Preview */}
         <LivePreviewCanvas data={data} selectedId={selectedId} isDark={isDark} />
 
-        {/* 3. Bottom Bar: Keyboard Shortcut Hints (Left) + Cancel / Insert Action Buttons (Right) */}
+        {/* 4. Bottom Action Footer Bar: 1-Line Option Description (Left) + Distinct [취소] / [삽입 ↵] Buttons (Right) */}
         <div
-          className={`px-4 py-2.5 border-t flex items-center justify-between gap-3 ${
+          className={`px-4 py-3 border-t flex items-center justify-between gap-3 ${
             isDark
-              ? 'bg-[#202020]/90 border-white/[0.08]'
-              : 'bg-zinc-50/90 border-black/[0.07]'
+              ? 'bg-white/[0.02] border-white/[0.08]'
+              : 'bg-zinc-50/80 border-black/[0.07]'
           }`}
         >
-          <div
-            className={`hidden sm:flex items-center gap-2 text-[11px] ${
-              isDark ? 'text-zinc-400' : 'text-zinc-500'
-            }`}
-          >
-            <span className="inline-flex items-center gap-1">
-              <kbd className={kbdClass}>Tab</kbd>
-              <span>전환</span>
-            </span>
-            <span className="opacity-40">·</span>
-            <span className="inline-flex items-center gap-1">
-              <kbd className={kbdClass}>Enter</kbd>
-              <span>삽입</span>
-            </span>
-            <span className="opacity-40">·</span>
-            <span className="inline-flex items-center gap-1">
-              <kbd className={kbdClass}>Esc</kbd>
-              <span>닫기</span>
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Icon
+              name={(currentOption?.icon || 'Info') as any}
+              className={`w-3.5 h-3.5 shrink-0 ${
+                isDark ? 'text-indigo-400' : 'text-indigo-600'
+              }`}
+            />
+            <span
+              className={`text-xs truncate ${
+                isDark ? 'text-zinc-300' : 'text-zinc-600'
+              }`}
+            >
+              {currentOption?.description}
             </span>
           </div>
 
-          <div className="flex items-center gap-2 ml-auto shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={handleClose}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg border border-transparent transition-colors cursor-pointer ${
+              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-colors cursor-pointer ${
                 isDark
-                  ? 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.08]'
-                  : 'text-zinc-600 hover:text-zinc-900 hover:bg-black/[0.05]'
+                  ? 'border-zinc-600 bg-zinc-800/70 text-zinc-200 hover:bg-zinc-700 hover:text-white'
+                  : 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900'
               }`}
             >
               취소
@@ -415,7 +460,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
               className="px-4 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-lg border border-indigo-400/30 shadow-sm transition-colors cursor-pointer flex items-center gap-1.5"
             >
               <span>삽입</span>
-              <span className="text-[10px] opacity-85 font-mono">↵</span>
+              <span className="text-[11px] opacity-90 font-mono">↵</span>
             </button>
           </div>
         </div>

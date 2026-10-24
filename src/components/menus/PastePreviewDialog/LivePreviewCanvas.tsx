@@ -66,6 +66,8 @@ export const buildPreviewDoc = (
   // 3) External Image or Server Image Upload or Base64 Image
   if (selectedId === 'image-external' || selectedId === 'image-upload') {
     const isDataUri = rawText.startsWith('data:image/')
+    // For 'image-upload', use BFF proxy path so ImageBlockView renders cleanly without the '외부 이미지' badge
+    // For 'image-external', keep original http(s) URL so ImageBlockView displays the '외부 이미지' badge 1:1
     const previewSrc = isDataUri
       ? rawText
       : selectedId === 'image-upload'
@@ -236,9 +238,38 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
 
   return (
     <div
-      className={`w-full max-h-[62vh] overflow-y-auto overflow-x-hidden px-6 py-5 ${themeCanvasClass} [&_figure]:!my-0 [&_.node-imageBlock]:!my-0 [&_[data-node-view-wrapper]]:!my-0`}
+      className={`w-full px-4 py-3 ${
+        isDark ? 'bg-[#141417]' : 'bg-zinc-100/75'
+      }`}
     >
-      <EditorContent editor={previewEditor} className="w-full focus:outline-none" />
+      {/* Preview Section Caption */}
+      <div className="flex items-center justify-between mb-1.5 px-1">
+        <span
+          className={`text-[11px] font-semibold tracking-tight ${
+            isDark ? 'text-zinc-400' : 'text-zinc-500'
+          }`}
+        >
+          에디터 미리보기
+        </span>
+        <span
+          className={`text-[10px] ${
+            isDark ? 'text-zinc-500' : 'text-zinc-400'
+          }`}
+        >
+          실제 본문에 삽입될 화면
+        </span>
+      </div>
+
+      {/* Strictly Fixed-Height 260px Viewport (0px dialog height jitter on tab switch) */}
+      <div
+        className={`h-[260px] min-h-[260px] max-h-[260px] w-full overflow-y-auto overflow-x-hidden rounded-xl border px-5 py-4 ${themeCanvasClass} ${
+          isDark
+            ? 'bg-[#191919] border-white/[0.08] text-[#e3e3e3] shadow-inner'
+            : 'bg-white border-black/[0.08] text-[#222325] shadow-inner'
+        } [&_figure]:!my-0 [&_.node-imageBlock]:!my-0 [&_[data-node-view-wrapper]]:!my-0 [&_img]:!max-h-[210px] [&_img]:!w-auto [&_img]:!mx-auto`}
+      >
+        <EditorContent editor={previewEditor} className="w-full focus:outline-none" />
+      </div>
     </div>
   )
 }

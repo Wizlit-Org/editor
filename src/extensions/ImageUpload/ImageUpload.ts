@@ -41,10 +41,8 @@ const createPlaceholderWidget = (id: string) => {
   wrapper.setAttribute('data-upload-placeholder-id', id)
   wrapper.innerHTML = `
     <div class="w-full aspect-video min-h-[180px] max-h-[360px] rounded-lg bg-black/[0.03] dark:bg-white/[0.04] backdrop-blur-md animate-pulse flex flex-col items-center justify-center border border-dashed border-black/10 dark:border-white/10 gap-2 p-6 z-[2]">
-      <svg class="w-8 h-8 text-zinc-400 dark:text-zinc-500 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
-        <circle cx="9" cy="9" r="2"/>
-        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+      <svg class="w-8 h-8 text-zinc-400 dark:text-zinc-500 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
       </svg>
       <div class="flex flex-col items-center gap-0.5 text-center">
         <span class="text-xs font-medium text-zinc-600 dark:text-zinc-300">이미지 업로드 중...</span>
@@ -64,26 +62,6 @@ const isImageUrl = (url: string): boolean => {
   }
 }
 
-const blobToFile = (blob: Blob, sourceUrl: string): File => {
-  let mimeType = blob.type && blob.type.startsWith('image/') ? blob.type : 'image/png'
-  let ext = mimeType.split('/')[1]?.split('+')[0] || 'png'
-  if (ext === 'jpeg') ext = 'jpg'
-  try {
-    const pathname = new URL(sourceUrl).pathname
-    const match = pathname.match(/\.(png|jpe?g|gif|webp|svg|bmp|avif|ico|tiff)$/i)
-    if (match) {
-      const matchedExt = match[1].toLowerCase()
-      ext = matchedExt === 'jpeg' ? 'jpg' : matchedExt
-      if (!blob.type || !blob.type.startsWith('image/')) {
-        mimeType = `image/${matchedExt === 'jpg' ? 'jpeg' : matchedExt === 'svg' ? 'svg+xml' : matchedExt}`
-      }
-    }
-  } catch {
-    // ignore
-  }
-  return new File([blob], `pasted-${Date.now()}.${ext}`, { type: mimeType })
-}
-
 export interface ImageUploadOptions {
   onUpload: (file: File) => Promise<string>
   maxSize?: number
@@ -95,10 +73,10 @@ export interface ImageUploadOptions {
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     imageUpload: {
-      uploadImageByUrl: (attributes: { url: string, pos?: number }) => ReturnType
-      uploadImageByBase64: (attributes: { base64: string, pos?: number }) => ReturnType
-      uploadImageByHtml: (attributes: { html: string, pos?: number }) => ReturnType
-      uploadImages: (attributes: { files: File[], pos?: number }) => ReturnType
+      uploadImageByUrl: (attributes: { url: string; pos?: number }) => ReturnType
+      uploadImageByBase64: (attributes: { base64: string; pos?: number }) => ReturnType
+      uploadImageByHtml: (attributes: { html: string; pos?: number }) => ReturnType
+      uploadImages: (attributes: { files: File[]; pos?: number }) => ReturnType
       retryImageUpload: (localUrl: string) => ReturnType
     }
   }
@@ -118,178 +96,142 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
 
   addCommands() {
     return {
-      uploadImageByUrl: ({ url, pos }) => ({ editor }) => {
-        if (!url || url.trim().length === 0) return false
+      uploadImageByUrl:
+        ({ url, pos }) =>
+        ({ editor }) => {
+          if (!url || url.trim().length === 0) return false
+          if (!this.options.onUpload) return false
 
-        const cleanUrl = url.trim()
-        // URL 프로토콜 검증 (http / https 허용)
-        try {
-          const parsed = new URL(cleanUrl)
-          if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          const cleanUrl = url.trim()
+          try {
+            const parsed = new URL(cleanUrl)
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+              return false
+            }
+          } catch {
             return false
           }
-        } catch {
-          return false
-        }
 
-        const targetPos = pos ?? editor.state.selection.from
+          const currentEmbeds = countEmbedNodes(editor)
+          const remainingEmbeds =
+            this.options.maxEmbeddings != null
+              ? Math.max(0, this.options.maxEmbeddings - currentEmbeds)
+              : 1
 
-        const fallbackToImageBlock = () => {
-          if (pos !== undefined) {
-            editor.commands.setTextSelection(pos)
-          }
-          editor.chain().focus().setImageBlock({ src: cleanUrl }).run()
-        }
-
-        const fetchViaProxyOrDirect = async (): Promise<Blob> => {
-          // 1) BFF Proxy priority (/api/image-proxy) for 100% CORS-free server fetch
-          try {
-            const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(cleanUrl)}`
-            const proxyRes = await fetch(proxyUrl)
-            if (proxyRes.ok) {
-              const blob = await proxyRes.blob()
-              if (blob.size > 0) return blob
-            }
-          } catch {
-            // Fall through to direct CORS fetch
+          if (remainingEmbeds === 0) {
+            alert('Embedding limit reached')
+            return false
           }
 
-          // 2) Direct CORS fetch fallback (for standalone environments or same-origin URLs)
-          const directRes = await fetch(cleanUrl, { mode: 'cors' })
-          if (!directRes.ok) throw new Error(`Direct fetch failed: ${directRes.status}`)
-          const blob = await directRes.blob()
-          if (blob.size === 0) throw new Error('Empty blob')
-          return blob
-        }
+          const targetPos = pos ?? editor.state.selection.from
 
-        fetchViaProxyOrDirect()
-          .then(blob => {
-            const file = blobToFile(blob, cleanUrl)
-            editor.commands.uploadImages({ files: [file], pos: targetPos })
-          })
-          .catch(() => {
-            // 3) Fallback to Canvas drawImage
-            const img = document.createElement('img')
-            img.crossOrigin = 'anonymous'
-            img.src = cleanUrl
-
-            img.onload = () => {
-              try {
-                const canvas = document.createElement('canvas')
-                canvas.width = img.naturalWidth
-                canvas.height = img.naturalHeight
-                const ctx = canvas.getContext('2d')
-                if (!ctx) throw new Error('No 2D context')
-                ctx.drawImage(img, 0, 0)
-                canvas.toBlob(blob => {
-                  if (!blob) {
-                    fallbackToImageBlock()
-                    return
-                  }
-                  const file = new File([blob], `pasted-${Date.now()}.png`, { type: blob.type || 'image/png' })
-                  editor.commands.uploadImages({ files: [file], pos: targetPos })
-                }, 'image/png')
-              } catch {
-                fallbackToImageBlock()
-              }
-            }
-
-            img.onerror = () => {
-              // 4) Last resort fallback: insert external ImageBlock
-              fallbackToImageBlock()
-            }
-          })
-
-        return true
-      },
-      uploadImageByBase64: ({ base64, pos }) => ({ editor }) => {
-        if (!base64 || base64.trim().length === 0) return false;
-
-        const cleanBase64 = base64.trim();
-        const dataUriRegex = /^data:image\/([a-z0-9.+-]+)(?:;[^,]*)?;base64,([\s\S]+)$/i;
-        const base64Match = cleanBase64.match(dataUriRegex);
-
-        if (base64Match) {
-          try {
-            const rawSubType = base64Match[1].toLowerCase();
-            const b64Data = base64Match[2].replace(/\s+/g, '');
-            const byteString = atob(b64Data);
-            const array = new Uint8Array(byteString.length);
-            for (let i = 0; i < byteString.length; i++) {
-              array[i] = byteString.charCodeAt(i);
-            }
-            const ext = rawSubType === 'jpeg' ? 'jpg' : rawSubType.split('+')[0] || 'png';
-            const mimeType = `image/${rawSubType}`;
-            const blob = new Blob([array], { type: mimeType });
-            const file = new File([blob], `pasted-${Date.now()}.${ext}`, { type: mimeType });
-            editor.commands.uploadImages({ files: [file], pos: pos ?? editor.state.selection.from });
-            return true;
-          } catch {
-            editor.chain().focus().setImageBlock({ src: cleanBase64 }).run();
-            return true;
-          }
-        }
-
-        return false;
-      },
-      uploadImageByHtml: ({ html, pos }) => ({ editor }) => {
-        if (!html || html.length === 0) return false;
-
-        const img = html.match(/<img[^>]+src="([^"]+)"/);
-        if (img) {
-          const src = img[1];
-          if (editor.commands.uploadImageByBase64({ base64: src, pos })) {
-            return true;
-          }
-
-          if (this.editor.commands.uploadImageByUrl({ url: src, pos })) {
-            return true;
-          }
-        }
-        return false;
-      },
-      uploadImages: ({ files, pos }) => ({ editor }) => {
-        if (!this.options.onUpload) {
-          return false
-        }
-
-        const _pos = pos ?? editor.state.selection.from
-        let currentEmbeds = countEmbedNodes(editor)
-
-        // 2) Compute how many more we can embed
-        const remainingEmbeds = this.options.maxEmbeddings != null
-          ? Math.max(0, this.options.maxEmbeddings - currentEmbeds)
-          : files.length
-        
-        if (remainingEmbeds === 0) {
-          alert('Embedding limit reached')
-          return false
-        }
-
-        // 3) Filter and accept only image files
-        const imageFiles = files.filter(file => {
-          if (!this.options.accept) return file.type.startsWith('image/');
-          return file.type.match(new RegExp(this.options.accept.replace('*', '.*')));
-        });
-        if (imageFiles.length === 0) return false;
-
-        // 4) Slice to the lesser of remainingEmbeds or maxImagesPerAction
-        const maxPerAction = this.options.maxImagesPerAction ?? imageFiles.length
-        const limitedFiles = imageFiles.slice(0, Math.min(remainingEmbeds, maxPerAction))
-        
-        uploadImageQueue.setEditor(editor)
-        limitedFiles.forEach(file => {
+          // Enqueue directly with sourceUrl so the skeleton placeholder widget mounts at 0ms synchronously
+          uploadImageQueue.setEditor(editor)
           uploadImageQueue.add({
-            file,
-            pos: _pos,
+            sourceUrl: cleanUrl,
+            pos: targetPos,
             upload: this.options.onUpload,
             maxSize: this.options.maxSize,
             forceReduceSize: true,
           })
-        })
 
-        return true
-      },
+          return true
+        },
+
+      uploadImageByBase64:
+        ({ base64, pos }) =>
+        ({ editor }) => {
+          if (!base64 || base64.trim().length === 0) return false
+
+          const cleanBase64 = base64.trim()
+          const dataUriRegex = /^data:image\/([a-z0-9.+-]+)(?:;[^,]*)?;base64,([\s\S]+)$/i
+          const base64Match = cleanBase64.match(dataUriRegex)
+
+          if (base64Match) {
+            try {
+              const rawSubType = base64Match[1].toLowerCase()
+              const b64Data = base64Match[2].replace(/\s+/g, '')
+              const byteString = atob(b64Data)
+              const array = new Uint8Array(byteString.length)
+              for (let i = 0; i < byteString.length; i++) {
+                array[i] = byteString.charCodeAt(i)
+              }
+              const ext = rawSubType === 'jpeg' ? 'jpg' : rawSubType.split('+')[0] || 'png'
+              const mimeType = `image/${rawSubType}`
+              const blob = new Blob([array], { type: mimeType })
+              const file = new File([blob], `pasted-${Date.now()}.${ext}`, { type: mimeType })
+              editor.commands.uploadImages({ files: [file], pos: pos ?? editor.state.selection.from })
+              return true
+            } catch {
+              editor.chain().focus().setImageBlock({ src: cleanBase64 }).run()
+              return true
+            }
+          }
+
+          return false
+        },
+
+      uploadImageByHtml:
+        ({ html, pos }) =>
+        ({ editor }) => {
+          if (!html || html.length === 0) return false
+
+          const img = html.match(/<img[^>]+src="([^"]+)"/)
+          if (img) {
+            const src = img[1]
+            if (editor.commands.uploadImageByBase64({ base64: src, pos })) {
+              return true
+            }
+
+            if (this.editor.commands.uploadImageByUrl({ url: src, pos })) {
+              return true
+            }
+          }
+          return false
+        },
+
+      uploadImages:
+        ({ files, pos }) =>
+        ({ editor }) => {
+          if (!this.options.onUpload) {
+            return false
+          }
+
+          const _pos = pos ?? editor.state.selection.from
+          const currentEmbeds = countEmbedNodes(editor)
+
+          const remainingEmbeds =
+            this.options.maxEmbeddings != null
+              ? Math.max(0, this.options.maxEmbeddings - currentEmbeds)
+              : files.length
+
+          if (remainingEmbeds === 0) {
+            alert('Embedding limit reached')
+            return false
+          }
+
+          const imageFiles = files.filter(file => {
+            if (!this.options.accept) return file.type.startsWith('image/')
+            return file.type.match(new RegExp(this.options.accept.replace('*', '.*')))
+          })
+          if (imageFiles.length === 0) return false
+
+          const maxPerAction = this.options.maxImagesPerAction ?? imageFiles.length
+          const limitedFiles = imageFiles.slice(0, Math.min(remainingEmbeds, maxPerAction))
+
+          uploadImageQueue.setEditor(editor)
+          limitedFiles.forEach(file => {
+            uploadImageQueue.add({
+              file,
+              pos: _pos,
+              upload: this.options.onUpload,
+              maxSize: this.options.maxSize,
+              forceReduceSize: true,
+            })
+          })
+
+          return true
+        },
     }
   },
 
@@ -340,12 +282,12 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
         key: new PluginKey('imageUpload'),
         props: {
           handlePaste: (_view, event) => {
-            const clipboard = (event as ClipboardEvent).clipboardData;
-            if (!clipboard) return false;
+            const clipboard = (event as ClipboardEvent).clipboardData
+            if (!clipboard) return false
 
-            const items = clipboard.items;
-            const text = clipboard.getData('text');
-            const html = clipboard.getData('text/html');
+            const items = clipboard.items
+            const text = clipboard.getData('text')
+            const html = clipboard.getData('text/html')
 
             if (items?.length > 0) {
               const files = Array.from(items)
@@ -353,53 +295,57 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
                 .filter((file): file is File => file !== null)
 
               if (files.length > 0) {
-                this.editor.commands.uploadImages({ files });
-                return true;
+                this.editor.commands.uploadImages({ files })
+                return true
               }
             }
-            
+
             if (this.editor.commands.uploadImageByBase64({ base64: text })) {
-              return true;
+              return true
             }
 
             if (this.editor.commands.uploadImageByHtml({ html })) {
-              return true;
+              return true
             }
 
-            return false;
+            return false
           },
           handleDrop: (view, event, _slice, moved) => {
             if (moved) return false
-            const coords = view.posAtCoords({ left: event.clientX, top: event.clientY }) || { pos: 0 };
-
-            const files = Array.from(event.dataTransfer?.files || []);
-            if (files.length > 0) {
-              this.editor.commands.uploadImages({ files, pos: coords.pos });
-              return true;
+            const coords = view.posAtCoords({ left: event.clientX, top: event.clientY }) || {
+              pos: 0,
             }
 
-            // Handle text/URL
-            const text = event.dataTransfer?.getData('text');
-            const html = event.dataTransfer?.getData('text/html');
+            const files = Array.from(event.dataTransfer?.files || [])
+            if (files.length > 0) {
+              this.editor.commands.uploadImages({ files, pos: coords.pos })
+              return true
+            }
+
+            const text = event.dataTransfer?.getData('text')
+            const html = event.dataTransfer?.getData('text/html')
 
             if (text) {
               if (this.editor.commands.uploadImageByBase64({ base64: text, pos: coords.pos })) {
-                return true;
+                return true
               }
 
-              if (isImageUrl(text) && this.editor.commands.uploadImageByUrl({ url: text, pos: coords.pos })) {
-                return true;
+              if (
+                isImageUrl(text) &&
+                this.editor.commands.uploadImageByUrl({ url: text, pos: coords.pos })
+              ) {
+                return true
               }
             }
-            
+
             if (html && this.editor.commands.uploadImageByHtml({ html, pos: coords.pos })) {
-              return true;
+              return true
             }
 
-            return false;
+            return false
           },
         },
       }),
     ]
   },
-}) 
+})
