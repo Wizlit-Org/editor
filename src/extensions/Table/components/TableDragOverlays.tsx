@@ -29,12 +29,22 @@ export interface DraggingSourceData {
   height: number
 }
 
+export interface TargetSlotData {
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
 interface TableDragOverlaysProps {
   dragGhost: DragGhostData | null
   draggingSource: DraggingSourceData | null
   dragIndicator: DragIndicatorData | null
+  targetSlot: TargetSlotData | null
   resizingGuideX: number | null
+  tableRectLeft: number
   tableRectTop: number
+  tableRectWidth: number
   tableRectHeight: number
 }
 
@@ -42,8 +52,11 @@ export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
   dragGhost,
   draggingSource,
   dragIndicator,
+  targetSlot,
   resizingGuideX,
+  tableRectLeft,
   tableRectTop,
+  tableRectWidth,
   tableRectHeight,
 }) => {
   return (
@@ -66,7 +79,57 @@ export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
         />
       )}
 
-      {/* 2. Drag Cursor-Following Ghost Preview Badge & Mini Slice Card */}
+      {/* 2. Target Drop Slot Preview Box (Subtle translucent drop zone) */}
+      {targetSlot && (
+        <div
+          className={`fixed pointer-events-none z-[1395] rounded-md transition-all duration-100 ${
+            dragIndicator?.isBlocked
+              ? 'bg-rose-500/10 border-2 border-dashed border-rose-500/50'
+              : 'bg-indigo-500/10 dark:bg-indigo-400/15 border-2 border-dashed border-indigo-500/60'
+          }`}
+          style={{
+            left: targetSlot.left,
+            top: targetSlot.top,
+            width: targetSlot.width,
+            height: targetSlot.height,
+          }}
+        />
+      )}
+
+      {/* 3. Notion/Linear Style Floating Clone Slice (Full Row Bar or Full Col Pillar following cursor) */}
+      {dragGhost && draggingSource && (
+        <div
+          className={`fixed pointer-events-none z-[1440] rounded-lg shadow-2xl backdrop-blur-xs transition-none flex items-center justify-center overflow-hidden border-2 ${
+            dragGhost.isBlocked
+              ? 'bg-rose-500/25 border-rose-500/80 shadow-rose-950/40'
+              : 'bg-indigo-600/25 dark:bg-indigo-500/30 border-indigo-500/80 dark:border-indigo-400/90 shadow-indigo-950/50'
+          }`}
+          style={
+            dragGhost.type === 'row'
+              ? {
+                  left: tableRectLeft,
+                  top: Math.max(tableRectTop - 40, Math.min(tableRectTop + tableRectHeight - draggingSource.height + 40, dragGhost.y - draggingSource.height / 2)),
+                  width: tableRectWidth,
+                  height: draggingSource.height,
+                }
+              : {
+                  left: Math.max(tableRectLeft - 40, Math.min(tableRectLeft + tableRectWidth - draggingSource.width + 40, dragGhost.x - draggingSource.width / 2)),
+                  top: tableRectTop,
+                  width: draggingSource.width,
+                  height: tableRectHeight,
+                }
+          }
+        >
+          {/* Subtle inner cell grid lines inside floating slice */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-40">
+            <span className="text-xs font-semibold tracking-wider uppercase text-white drop-shadow-md">
+              {dragGhost.label}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Drag Cursor-Following Ghost Preview Badge & Mini Slice Card */}
       {dragGhost && (
         <div
           className={`fixed pointer-events-none z-[1450] flex flex-col gap-1.5 p-2 rounded-xl shadow-2xl backdrop-blur-md select-none -translate-x-1/2 -translate-y-12 transition-colors duration-150 min-w-[130px] max-w-[220px] ${
@@ -119,7 +182,7 @@ export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
         </div>
       )}
 
-      {/* 3. Drag Drop Position Indicator Guide Bar (3px neon glow + diamond markers) */}
+      {/* 5. Drag Drop Position Indicator Guide Bar (3px neon glow + diamond markers) */}
       {dragIndicator && (
         <div
           className={`fixed pointer-events-none z-[1400] transition-all duration-75 ${
@@ -167,8 +230,8 @@ export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
             <div
               className="absolute z-[1450] whitespace-nowrap px-2.5 py-1 rounded-md bg-rose-600 text-white font-medium text-xs shadow-xl flex items-center gap-1.5 -translate-x-1/2 -translate-y-1/2"
               style={{
-                left: dragIndicator.type === 'col' ? '50%' : '50%',
-                top: dragIndicator.type === 'col' ? '50%' : '50%',
+                left: '50%',
+                top: '50%',
               }}
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -182,7 +245,7 @@ export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
         </div>
       )}
 
-      {/* 4. Real-time Column Resizing Full-Height Vertical Guide Line */}
+      {/* 6. Real-time Column Resizing Full-Height Vertical Guide Line */}
       {resizingGuideX !== null && (
         <div
           className="fixed pointer-events-none bg-indigo-500 dark:bg-violet-400 z-[1400] shadow-[0_0_10px_rgba(99,102,241,0.95)] rounded-full transition-none"

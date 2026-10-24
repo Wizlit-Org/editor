@@ -10,6 +10,7 @@ import {
   DragGhostData,
   DragIndicatorData,
   DraggingSourceData,
+  TargetSlotData,
 } from './TableDragOverlays'
 import { moveTableColumn, moveTableRow, getMergedColRange, getMergedRowRange } from '../utils/TableDndUtils'
 import { findTable, isCellSelection } from '../utils'
@@ -41,6 +42,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
   const [dragIndicator, setDragIndicator] = useState<DragIndicatorData | null>(null)
   const [draggingSource, setDraggingSource] = useState<DraggingSourceData | null>(null)
   const [dragGhost, setDragGhost] = useState<DragGhostData | null>(null)
+  const [targetSlot, setTargetSlot] = useState<TargetSlotData | null>(null)
   const [resizingGuideX, setResizingGuideX] = useState<number | null>(null)
 
   // Listen to mouse events for column resizing to show full-height vertical indigo guide
@@ -92,20 +94,10 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
     }
   }, [editor, currentTableEl, updateTableRect])
 
-  const onSelectGrip = useCallback(
-    (type: 'col' | 'row', index: number) => (e: React.MouseEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      focusTableGrip(editor, type, index, currentTableEl, tableRect?.pos ?? -1)
-    },
-    [editor, currentTableEl, tableRect],
-  )
-
   const handleGripMouseDown = useCallback(
     (type: 'col' | 'row', index: number) => (e: React.MouseEvent) => {
       e.preventDefault()
       e.stopPropagation()
-      window.dispatchEvent(new CustomEvent('tiptap:close-table-menus'))
       if (!tableRect || tableRect.pos < 0) return
 
       const startX = e.clientX
@@ -123,7 +115,10 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       const onMouseMove = (moveEvent: MouseEvent) => {
         const dist = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY)
         if (dist > 4) {
-          isDragging = true
+          if (!isDragging) {
+            window.dispatchEvent(new CustomEvent('tiptap:close-table-menus'))
+            isDragging = true
+          }
 
           // Case A: Unselected grip drag -> real-time multi-range selection
           if (!isGripSelected && tableNode) {
@@ -199,6 +194,15 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
               })
 
               const targetGrip = columnGrips[targetIdx]
+              if (targetGrip) {
+                setTargetSlot({
+                  left: targetGrip.left,
+                  top: tableRect.top,
+                  width: targetGrip.width,
+                  height: tableRect.height,
+                })
+              }
+
               const lineX = targetGrip ? (isRightSide ? targetGrip.left + targetGrip.width : targetGrip.left) : (isRightSide ? bestCol.left + bestCol.width : bestCol.left)
               setDragIndicator({
                 type: 'col',
@@ -211,6 +215,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
               })
             } else {
               setDragIndicator(null)
+              setTargetSlot(null)
               pendingTargetIdx = -1
             }
           } else {
@@ -255,6 +260,15 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
               })
 
               const targetGrip = rowGrips[targetIdx]
+              if (targetGrip) {
+                setTargetSlot({
+                  left: tableRect.left,
+                  top: targetGrip.top,
+                  width: tableRect.width,
+                  height: targetGrip.height,
+                })
+              }
+
               const lineY = targetGrip ? (isBottomSide ? targetGrip.top + targetGrip.height : targetGrip.top) : (isBottomSide ? bestRow.top + bestRow.height : bestRow.top)
               setDragIndicator({
                 type: 'row',
@@ -267,6 +281,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
               })
             } else {
               setDragIndicator(null)
+              setTargetSlot(null)
               pendingTargetIdx = -1
             }
           }
@@ -280,6 +295,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         setDragIndicator(null)
         setDraggingSource(null)
         setDragGhost(null)
+        setTargetSlot(null)
 
         if (isDragging) {
           if (isGripSelected && pendingTargetIdx >= 0 && pendingTargetIdx !== index && tableNode) {
@@ -294,25 +310,32 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
             }
           }
         } else {
-          // Pure click action: select row/col if not selected, or keep selection and ALWAYS trigger menu
+          // Pure click action: 100% reliable menu open
+          // 1. Dispatch open event first so isMenuOpenRef.current becomes true synchronously
+          if (type === 'col') {
+            window.dispatchEvent(new CustomEvent('tiptap:open-table-col-menu'))
+          } else {
+            window.dispatchEvent(new CustomEvent('tiptap:open-table-row-menu'))
+          }
+
+          // 2. Focus and select the table grip (dispatches CellSelection)
           focusTableGrip(editor, type, index, currentTableEl, tableRect?.pos ?? -1)
-          requestAnimationFrame(() => {
-            if (type === 'col') {
-              window.dispatchEvent(new CustomEvent('tiptap:open-table-col-menu'))
-            } else {
-              window.dispatchEvent(new CustomEvent('tiptap:open-table-row-menu'))
-            }
-            if (editor.view && !editor.view.isDestroyed) {
-              editor.view.dispatch(editor.state.tr.setMeta('tableMenuTrigger', true))
-            }
-          })
+
+          // 3. Force ProseMirror view.update cycle with tableMenu meta to guarantee BubbleMenuView shouldShow runs immediately
+          if (editor.view && !editor.view.isDestroyed) {
+            editor.view.dispatch(
+              editor.state.tr
+                .setMeta('tableMenuTrigger', Date.now())
+                .setMeta(type === 'col' ? 'tableColumnMenu' : 'tableRowMenu', 'show'),
+            )
+          }
         }
       }
 
       window.addEventListener('mousemove', onMouseMove)
       window.addEventListener('mouseup', onMouseUp)
     },
-    [editor, tableRect, columnGrips, rowGrips, updateTableRect, onSelectGrip],
+    [editor, tableRect, columnGrips, rowGrips, updateTableRect, currentTableEl],
   )
 
   const onAddColumnAtEnd = useCallback(
@@ -458,8 +481,11 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         dragGhost={dragGhost}
         draggingSource={draggingSource}
         dragIndicator={dragIndicator}
+        targetSlot={targetSlot}
         resizingGuideX={resizingGuideX}
+        tableRectLeft={tableRect.left}
         tableRectTop={tableRect.top}
+        tableRectWidth={tableRect.width}
         tableRectHeight={tableRect.height}
       />
     </div>,
