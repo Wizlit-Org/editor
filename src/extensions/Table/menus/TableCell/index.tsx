@@ -1,9 +1,9 @@
 import React, { useCallback, useState, useEffect, useRef, JSX } from 'react'
 import { createPortal } from 'react-dom'
 import * as Popover from '@radix-ui/react-popover'
-import { CellSelection } from '@tiptap/pm/tables'
+import { CellSelection, splitCell } from '@tiptap/pm/tables'
 import { isCellSelection } from '../../utils'
-import { isSelectionStraddlingHeader } from '../../utils/TableHeaderStraddleUtils'
+import { isSelectionStraddlingHeader, hasMergedCellsInSelection } from '../../utils/TableHeaderStraddleUtils'
 import { Icon } from '@/components/ui/Icon'
 import { MenuProps } from '@/components/menus/types'
 import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
@@ -83,6 +83,21 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         return
       }
 
+      // Container viewport clipping to prevent spilling over TOC or bottom bar (AC ⑦)
+      const container = (appendTo?.current as HTMLElement) || null
+      let isWithinContainer = true
+      if (container) {
+        const cRect = container.getBoundingClientRect()
+        if (maxBottom < cRect.top || minTop > cRect.bottom || maxRight < cRect.left || minLeft > cRect.right) {
+          setSelectionRect(null)
+          setIsButtonVisible(false)
+          setMenuOpen(false)
+          return
+        }
+        const dotY = minTop + (maxBottom - minTop) / 2
+        isWithinContainer = dotY >= cRect.top && dotY <= cRect.bottom
+      }
+
       setSelectionRect(prev => {
         if (
           prev &&
@@ -107,9 +122,9 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         const wrapperRect = tableWrapper.getBoundingClientRect()
         const isHorizontallyVisible = maxRight >= wrapperRect.left && maxRight <= wrapperRect.right + 10
         const isVerticallyVisible = minTop < window.innerHeight && maxBottom > 0
-        setIsButtonVisible(isHorizontallyVisible && isVerticallyVisible)
+        setIsButtonVisible(isHorizontallyVisible && isVerticallyVisible && isWithinContainer)
       } else {
-        setIsButtonVisible(true)
+        setIsButtonVisible(isWithinContainer)
       }
     } else {
       setSelectionRect(prev => (prev === null ? prev : null))
@@ -231,6 +246,30 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   }, [editor])
 
   const onSplitCell = useCallback(() => {
+    const { view } = editor
+    if (!view) return
+    const { selection } = view.state
+    if (isCellSelection(selection)) {
+      const cellPositions: number[] = []
+      selection.forEachCell((node: any, pos: number) => {
+        if ((node.attrs.colspan && node.attrs.colspan > 1) || (node.attrs.rowspan && node.attrs.rowspan > 1)) {
+          cellPositions.push(pos)
+        }
+      })
+      if (cellPositions.length > 0) {
+        cellPositions.sort((a, b) => b - a)
+        for (const pos of cellPositions) {
+          try {
+            const $cell = view.state.doc.resolve(pos)
+            const tr = view.state.tr.setSelection(new CellSelection($cell, $cell))
+            view.dispatch(tr)
+            splitCell(view.state, view.dispatch)
+          } catch {}
+        }
+        setMenuOpen(false)
+        return
+      }
+    }
     editor.chain().focus().splitCell().run()
     setMenuOpen(false)
   }, [editor])
@@ -283,7 +322,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   }, [editor])
 
   const canMerge = editor.can().mergeCells() && !isSelectionStraddlingHeader(editor)
-  const canSplit = editor.can().splitCell()
+  const canSplit = hasMergedCellsInSelection(editor) || editor.can().splitCell()
 
   const itemClass =
     'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none cursor-pointer'
@@ -310,24 +349,24 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         <>
           {/* 1. Selection Perimeter Continuous 2px Outline (Notion Style point border) */}
           <div
-            className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[1330] border-2 border-indigo-500/85 dark:border-violet-400/85 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
+            className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[18] border-2 border-indigo-500/85 dark:border-violet-400/85 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
             style={{
               top: selectionRect.top,
               left: selectionRect.left,
               width: selectionRect.width,
               height: selectionRect.height,
-              zIndex: 1330,
+              zIndex: 18,
             }}
           />
 
           {/* 2. Expandable 4-dot Circle Trigger (8px -> 16px) & Popover Menu */}
           {isButtonVisible && (
             <div
-              className="fixed z-[1330] -translate-y-1/2 flex items-center"
+              className="fixed z-[20] -translate-y-1/2 flex items-center"
               style={{
                 top: selectionRect.top + selectionRect.height / 2,
                 left: selectionRect.left + selectionRect.width,
-                zIndex: 1330,
+                zIndex: 20,
               }}
             >
               <Popover.Root
@@ -349,7 +388,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                     }}
                     onMouseEnter={() => setIsBtnHovered(true)}
                     onMouseLeave={() => setIsBtnHovered(false)}
-                    className={`rounded-full bg-indigo-600 dark:bg-violet-500 text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-[1330] select-none ${
+                    className={`rounded-full bg-indigo-600 dark:bg-violet-500 text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-[20] select-none ${
                       isExpanded ? 'w-4 h-4 -ml-2' : 'w-2 h-2 -ml-1'
                     }`}
                     title="Click for options, drag to adjust cell selection"
@@ -368,7 +407,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                     </svg>
                   </button>
                 </Popover.Anchor>
-                <Popover.Portal container={typeof document !== 'undefined' ? document.body : undefined}>
+                <Popover.Portal container={typeof document !== 'undefined' ? ((appendTo?.current as HTMLElement) || document.body) : undefined}>
                   <Popover.Content
                     side="right"
                     align="center"
@@ -420,7 +459,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
             </div>
           )}
         </>,
-        typeof document !== 'undefined' ? (document.body as HTMLElement) : (null as any),
+        (appendTo?.current as HTMLElement) || (typeof document !== 'undefined' ? (document.body as HTMLElement) : (null as any)),
       )}
     </>
   )

@@ -2,7 +2,6 @@ import { findParentNode } from '@tiptap/core'
 import { Selection, Transaction } from '@tiptap/pm/state'
 import { CellSelection, Rect, TableMap } from '@tiptap/pm/tables'
 import { Node, ResolvedPos } from '@tiptap/pm/model'
-import { getClusterRowRange, getClusterColRange } from './utils/TableClusterUtils'
 
 export const isRectSelected = (rect: Rect) => (selection: CellSelection) => {
   const map = TableMap.get(selection.$anchorCell.node(-1))
@@ -207,15 +206,13 @@ const select = (type: 'row' | 'column') => (index: number) => (tr: Transaction) 
       let maxCol: number
 
       if (isRowSelection) {
-        const cluster = getClusterRowRange(table.node, index)
-        minRow = cluster.start
-        maxRow = cluster.start + cluster.count
+        minRow = index
+        maxRow = index + 1
         minCol = 0
         maxCol = map.width
       } else {
-        const cluster = getClusterColRange(table.node, index)
-        minCol = cluster.start
-        maxCol = cluster.start + cluster.count
+        minCol = index
+        maxCol = index + 1
         minRow = 0
         maxRow = map.height
       }

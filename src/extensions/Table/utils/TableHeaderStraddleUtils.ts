@@ -159,3 +159,82 @@ export function extractCellTextSnippets(
   } catch {}
   return snippets
 }
+
+/**
+ * Checks if the row selection [startRow..endRow] contains any merged cells (rowspan > 1 or colspan > 1).
+ * If true, row move is strictly blocked.
+ */
+export function hasMergedCellsInRowSelection(tableNode: Node, startRow: number, endRow: number): boolean {
+  try {
+    const map = TableMap.get(tableNode)
+    const minR = Math.max(0, Math.min(startRow, endRow))
+    const maxR = Math.min(map.height - 1, Math.max(startRow, endRow))
+
+    for (let r = minR; r <= maxR; r++) {
+      for (let c = 0; c < map.width; c++) {
+        const cellPos = map.map[r * map.width + c]
+        const rect = map.findCell(cellPos)
+        if (rect.bottom - rect.top > 1 || rect.right - rect.left > 1 || rect.top < minR || rect.bottom > maxR + 1) {
+          return true
+        }
+      }
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Checks if the col selection [startCol..endCol] contains any merged cells (rowspan > 1 or colspan > 1).
+ * If true, column move is strictly blocked.
+ */
+export function hasMergedCellsInColSelection(tableNode: Node, startCol: number, endCol: number): boolean {
+  try {
+    const map = TableMap.get(tableNode)
+    const minC = Math.max(0, Math.min(startCol, endCol))
+    const maxC = Math.min(map.width - 1, Math.max(startCol, endCol))
+
+    for (let c = minC; c <= maxC; c++) {
+      for (let r = 0; r < map.height; r++) {
+        const cellPos = map.map[r * map.width + c]
+        const rect = map.findCell(cellPos)
+        if (rect.right - rect.left > 1 || rect.bottom - rect.top > 1 || rect.left < minC || rect.right > maxC + 1) {
+          return true
+        }
+      }
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Checks if the current selection contains at least one merged cell (for batch split).
+ */
+export function hasMergedCellsInSelection(editor: Editor): boolean {
+  const { selection } = editor.state
+  const table = findTable(selection)
+  if (!table) return false
+
+  if (isCellSelection(selection)) {
+    let hasMerged = false
+    selection.forEachCell((node: any) => {
+      if ((node.attrs.colspan && node.attrs.colspan > 1) || (node.attrs.rowspan && node.attrs.rowspan > 1)) {
+        hasMerged = true
+      }
+    })
+    return hasMerged
+  }
+
+  const $pos = selection.$from
+  for (let d = $pos.depth; d > 0; d--) {
+    const n = $pos.node(d)
+    if (n.type.spec.tableRole === 'cell' || n.type.spec.tableRole === 'header_cell') {
+      return (n.attrs.colspan && n.attrs.colspan > 1) || (n.attrs.rowspan && n.attrs.rowspan > 1)
+    }
+  }
+  return false
+}
+

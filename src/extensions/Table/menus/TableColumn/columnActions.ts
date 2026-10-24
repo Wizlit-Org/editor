@@ -2,7 +2,7 @@ import { Editor } from '@tiptap/react'
 import { TableMap } from '@tiptap/pm/tables'
 import { findTable, isCellSelection } from '../../utils'
 import { moveTableColumn } from '../../utils/TableDndUtils'
-import { isHeaderStraddling } from '../../utils/TableHeaderStraddleUtils'
+import { isHeaderStraddling, hasMergedCellsInColSelection } from '../../utils/TableHeaderStraddleUtils'
 import {
   getClusterColRange,
   duplicateColCluster,
@@ -162,6 +162,7 @@ export const moveColumnLeft = (editor: Editor, colIndex: number) => {
   const table = findTable(editor.state.selection)
   if (!table) return
   const range = getSelectedColRange(editor)
+  if (hasMergedCellsInColSelection(table.node, range.min, range.max)) return
   const targetIdx = findJumpMoveIndex(table.node, 'col', range.min, 'prev')
   if (targetIdx >= 0) {
     if (isHeaderStraddling(table.node, 'col', range.min, targetIdx)) return
@@ -173,6 +174,7 @@ export const moveColumnRight = (editor: Editor, colIndex: number) => {
   const table = findTable(editor.state.selection)
   if (!table) return
   const range = getSelectedColRange(editor)
+  if (hasMergedCellsInColSelection(table.node, range.min, range.max)) return
   const targetIdx = findJumpMoveIndex(table.node, 'col', range.min, 'next')
   if (targetIdx >= 0) {
     if (isHeaderStraddling(table.node, 'col', range.min, targetIdx)) return

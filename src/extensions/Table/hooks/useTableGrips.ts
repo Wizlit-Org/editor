@@ -92,48 +92,82 @@ export function useTableGrips(editor: Editor) {
       wrapperRight: wr.right,
     })
 
-    const firstRow = currentTableEl.querySelector('tr')
-    if (firstRow && tablePos >= 0) {
-      const cells = Array.from(firstRow.children) as HTMLElement[]
-      const colItems: GripItem[] = cells.map((cell, idx) => {
-        const cr = cell.getBoundingClientRect()
-        let cellPos = -1
-        try {
-          cellPos = editor.view.posAtDOM(cell, 0)
-        } catch {
-          cellPos = -1
-        }
-        return {
-          index: idx,
-          top: r.top,
-          left: cr.left,
-          width: cr.width,
-          height: cr.height,
-          pos: cellPos,
-        }
-      })
-      setColumnGrips(colItems)
-    }
+    const tableNode = tablePos >= 0 ? editor.state.doc.nodeAt(tablePos) : null
+    if (tableNode && tablePos >= 0) {
+      const map = TableMap.get(tableNode)
+      const rows = Array.from(currentTableEl.querySelectorAll('tr')) as HTMLElement[]
 
-    const rows = Array.from(currentTableEl.querySelectorAll('tr')) as HTMLElement[]
-    if (rows.length > 0 && tablePos >= 0) {
-      const rowItems: GripItem[] = rows.map((row, idx) => {
-        const rr = row.getBoundingClientRect()
-        let rowPos = -1
-        try {
-          rowPos = editor.view.posAtDOM(row, 0)
-        } catch {
-          rowPos = -1
+      // Calculate exact column grips using TableMap coordinates
+      const colItems: GripItem[] = []
+      for (let c = 0; c < map.width; c++) {
+        let colLeft = 0
+        let colWidth = 0
+        let colPos = -1
+
+        // Look for a cell in column c with colspan === 1 for pixel-perfect measurement
+        let foundCellEl: HTMLElement | null = null
+        for (let rIdx = 0; rIdx < map.height; rIdx++) {
+          const cellPos = map.map[rIdx * map.width + c]
+          const rect = map.findCell(cellPos)
+          if (rect.right - rect.left === 1) {
+            const docCellPos = tablePos + 1 + cellPos
+            const dom = editor.view.nodeDOM(docCellPos) as HTMLElement | null
+            if (dom instanceof HTMLElement) {
+              foundCellEl = dom
+              colPos = docCellPos
+              break
+            }
+          }
         }
-        return {
-          index: idx,
-          top: rr.top,
+
+        if (foundCellEl) {
+          const cr = foundCellEl.getBoundingClientRect()
+          colLeft = cr.left
+          colWidth = cr.width
+        } else {
+          // Fallback: If column c is part of horizontal merge across all rows
+          const cellPos = map.map[c]
+          const rect = map.findCell(cellPos)
+          const docCellPos = tablePos + 1 + cellPos
+          colPos = docCellPos
+          const dom = editor.view.nodeDOM(docCellPos) as HTMLElement | null
+          if (dom instanceof HTMLElement) {
+            const cr = dom.getBoundingClientRect()
+            const span = Math.max(1, rect.right - rect.left)
+            const unitWidth = cr.width / span
+            colLeft = cr.left + (c - rect.left) * unitWidth
+            colWidth = unitWidth
+          }
+        }
+
+        colItems.push({
+          index: c,
+          top: r.top,
+          left: colLeft,
+          width: colWidth,
+          height: r.height,
+          pos: colPos,
+        })
+      }
+      setColumnGrips(colItems)
+
+      // Calculate exact row grips (1:1 with each <tr>)
+      const rowItems: GripItem[] = []
+      for (let rIdx = 0; rIdx < map.height; rIdx++) {
+        const rowEl = rows[rIdx]
+        const rr = rowEl ? rowEl.getBoundingClientRect() : null
+        const cellPos = map.map[rIdx * map.width]
+        const rowPos = tablePos + 1 + cellPos
+
+        rowItems.push({
+          index: rIdx,
+          top: rr ? rr.top : r.top + (rIdx * r.height) / map.height,
           left: r.left,
-          width: rr.width,
-          height: rr.height,
+          width: r.width,
+          height: rr ? rr.height : r.height / map.height,
           pos: rowPos,
-        }
-      })
+        })
+      }
       setRowGrips(rowItems)
     }
   }, [currentTableEl, editor])
