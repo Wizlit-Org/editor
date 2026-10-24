@@ -41,13 +41,14 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
   const offset = useContainingBlockOffset(anchorRef)
 
   const updateTableScrollStates = useCallback(() => {
-    if (!editor.view?.dom) {
+    const dom = editor.view?.dom
+    if (!dom) {
       setTables(prev => (prev.length === 0 ? prev : []))
       return
     }
 
     const wrappers = Array.from(
-      editor.view.dom.querySelectorAll('.tableWrapper'),
+      dom.querySelectorAll('.tableWrapper'),
     ) as HTMLElement[]
 
     if (wrappers.length === 0) {
@@ -59,20 +60,20 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
 
     wrappers.forEach((wrapper, index) => {
       const rect = wrapper.getBoundingClientRect()
-      // Skip if wrapper is out of viewport vertically
-      if (rect.bottom < 0 || rect.top > window.innerHeight) {
+      // Skip if wrapper is zero-sized or out of viewport vertically
+      if (rect.width <= 0 || rect.height <= 0 || rect.bottom < 0 || rect.top > window.innerHeight) {
         return
       }
 
       const { scrollLeft, scrollWidth, clientWidth } = wrapper
-      const hasHorizontalScroll = scrollWidth > clientWidth + 2
+      const hasHorizontalScroll = scrollWidth > clientWidth + 1
 
       if (!hasHorizontalScroll) {
         return
       }
 
-      const showLeft = scrollLeft > 4
-      const showRight = scrollLeft < scrollWidth - clientWidth - 4
+      const showLeft = scrollLeft > 2
+      const showRight = scrollLeft < scrollWidth - clientWidth - 2
 
       nextStates.push({
         id: `table-wrapper-${index}`,
@@ -93,44 +94,58 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
 
   useEffect(() => {
     let rafId: number | null = null
+    let active = true
 
     const scheduledUpdate = () => {
       if (rafId !== null) return
       rafId = window.requestAnimationFrame(() => {
         rafId = null
-        updateTableScrollStates()
+        if (active) updateTableScrollStates()
       })
     }
 
-    updateTableScrollStates()
+    scheduledUpdate()
+
+    // 3-stage poll after mount to catch ProseMirror/TipTap table wrapper rendering
+    const timer1 = setTimeout(scheduledUpdate, 50)
+    const timer2 = setTimeout(scheduledUpdate, 200)
+    const timer3 = setTimeout(scheduledUpdate, 500)
 
     const dom = editor.view?.dom
-    const wrappers = Array.from(
-      dom?.querySelectorAll('.tableWrapper') || [],
-    ) as HTMLElement[]
-
-    wrappers.forEach(w => w.addEventListener('scroll', scheduledUpdate, { passive: true }))
-
     let ro: ResizeObserver | null = null
-    if (typeof ResizeObserver !== 'undefined' && dom) {
+    let mo: MutationObserver | null = null
+
+    if (typeof ResizeObserver !== 'undefined') {
       ro = new ResizeObserver(() => scheduledUpdate())
-      ro.observe(dom)
-      wrappers.forEach(w => ro!.observe(w))
+      if (dom) ro.observe(dom)
+    }
+
+    if (typeof MutationObserver !== 'undefined') {
+      mo = new MutationObserver(() => scheduledUpdate())
+      if (dom) {
+        mo.observe(dom, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] })
+      } else if (typeof document !== 'undefined') {
+        mo.observe(document.body, { childList: true, subtree: true })
+      }
     }
 
     editor.on('selectionUpdate', scheduledUpdate)
     editor.on('transaction', scheduledUpdate)
+    editor.on('update', scheduledUpdate)
     window.addEventListener('scroll', scheduledUpdate, { passive: true, capture: true })
     window.addEventListener('resize', scheduledUpdate, { passive: true })
 
     return () => {
-      if (rafId !== null) {
-        window.cancelAnimationFrame(rafId)
-      }
-      wrappers.forEach(w => w.removeEventListener('scroll', scheduledUpdate))
+      active = false
+      clearTimeout(timer1)
+      clearTimeout(timer2)
+      clearTimeout(timer3)
+      if (rafId !== null) window.cancelAnimationFrame(rafId)
       ro?.disconnect()
+      mo?.disconnect()
       editor.off('selectionUpdate', scheduledUpdate)
       editor.off('transaction', scheduledUpdate)
+      editor.off('update', scheduledUpdate)
       window.removeEventListener('scroll', scheduledUpdate, { capture: true })
       window.removeEventListener('resize', scheduledUpdate)
     }
@@ -163,29 +178,41 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
           <React.Fragment key={t.id}>
             {/* Left Edge Fade Shadow Indicator & Edit mode glass blur */}
             <div
-              className={`fixed pointer-events-none z-[14] transition-opacity duration-200 bg-gradient-to-r from-black/15 dark:from-black/40 to-transparent ${
-                editor.isEditable ? 'backdrop-blur-[2px]' : ''
-              } ${
-                t.showLeft ? 'opacity-100' : 'opacity-0'
-              }`}
               style={{
+                position: 'fixed',
+                pointerEvents: 'none',
+                zIndex: 14,
+                transition: 'opacity 0.2s ease',
+                opacity: t.showLeft ? 1 : 0,
                 top: t.rect.top - offset.y,
                 left: t.rect.left - offset.x,
-                width: '28px',
+                width: '36px',
                 height: t.rect.height,
+                background: 'linear-gradient(to right, rgba(0,0,0,0.18), transparent)',
+                ...(editor.isEditable
+                  ? {
+                      backdropFilter: 'blur(4px)',
+                      WebkitBackdropFilter: 'blur(4px)',
+                      maskImage: 'linear-gradient(to right, transparent 0px, black 36px)',
+                      WebkitMaskImage: 'linear-gradient(to right, transparent 0px, black 36px)',
+                    }
+                  : {}),
               }}
             />
 
             {/* Right Edge Fade Shadow Indicator */}
             <div
-              className={`fixed pointer-events-none z-[14] transition-opacity duration-200 bg-gradient-to-l from-black/15 dark:from-black/40 to-transparent ${
-                t.showRight ? 'opacity-100' : 'opacity-0'
-              }`}
               style={{
+                position: 'fixed',
+                pointerEvents: 'none',
+                zIndex: 14,
+                transition: 'opacity 0.2s ease',
+                opacity: t.showRight ? 1 : 0,
                 top: t.rect.top - offset.y,
-                left: t.rect.left + t.rect.width - 28 - offset.x,
-                width: '28px',
+                left: t.rect.left + t.rect.width - 32 - offset.x,
+                width: '32px',
                 height: t.rect.height,
+                background: 'linear-gradient(to left, rgba(0,0,0,0.18), transparent)',
               }}
             />
 
@@ -196,7 +223,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
               title="Scroll table left"
               aria-label="Scroll table left"
               className={`fixed z-[40] w-8 h-8 rounded-full bg-white/90 dark:bg-[#202020]/90 backdrop-blur-md border border-black/10 dark:border-white/15 shadow-md flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 hover:bg-white dark:hover:bg-[#2c2c2c] text-zinc-700 dark:text-zinc-200 ${
-                t.showLeft && isVisibleInViewport
+                t.showLeft
                   ? 'opacity-100 pointer-events-auto'
                   : 'opacity-0 pointer-events-none'
               }`}
@@ -215,7 +242,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
               title="Scroll table right"
               aria-label="Scroll table right"
               className={`fixed z-[40] w-8 h-8 rounded-full bg-white/90 dark:bg-[#202020]/90 backdrop-blur-md border border-black/10 dark:border-white/15 shadow-md flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 hover:bg-white dark:hover:bg-[#2c2c2c] text-zinc-700 dark:text-zinc-200 ${
-                t.showRight && isVisibleInViewport
+                t.showRight
                   ? 'opacity-100 pointer-events-auto'
                   : 'opacity-0 pointer-events-none'
               }`}

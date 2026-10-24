@@ -1,8 +1,9 @@
-import React, { useCallback, useState, useEffect, useRef, JSX } from 'react'
+import React, { useCallback, useState, useEffect, useRef, useMemo, JSX } from 'react'
 import { createPortal } from 'react-dom'
 import * as Popover from '@radix-ui/react-popover'
 import { CellSelection, splitCell, TableMap } from '@tiptap/pm/tables'
 import { findTable, isCellSelection } from '../../utils'
+import { expandRectToMergedCells } from '../../utils/TableClusterUtils'
 import { isSelectionStraddlingHeader, hasMergedCellsInSelection } from '../../utils/TableHeaderStraddleUtils'
 import { useContainingBlockOffset, ContainingBlockAnchor } from '../../utils/containingBlock'
 import { Icon } from '@/components/ui/Icon'
@@ -43,8 +44,39 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
 
   const getActiveCells = useCallback((): HTMLElement[] => {
     if (!editor.view?.dom) return []
+    const { selection } = editor.state
+    const table = findTable(selection)
+
+    if (table && isCellSelection(selection)) {
+      try {
+        const map = TableMap.get(table.node)
+        const start = selection.$anchorCell.start(-1)
+        const rawRect = map.rectBetween(selection.$anchorCell.pos - start, selection.$headCell.pos - start)
+        const expandedRect = expandRectToMergedCells(table.node, rawRect)
+        const cellOffsets = map.cellsInRect(expandedRect)
+        const domCells: HTMLElement[] = []
+
+        cellOffsets.forEach(offset => {
+          try {
+            const cellPos = table.start + offset
+            const nodeDom = editor.view.nodeDOM(cellPos) as HTMLElement | null
+            const cellEl = nodeDom && nodeDom.nodeType === 1 ? nodeDom : (editor.view.domAtPos(cellPos + 1).node as HTMLElement)?.closest?.('td, th') as HTMLElement | null
+            if (cellEl) {
+              domCells.push(cellEl)
+              if (!cellEl.classList.contains('selectedCell')) {
+                cellEl.classList.add('selectedCell')
+              }
+            }
+          } catch {}
+        })
+
+        if (domCells.length > 0) return domCells
+      } catch {}
+    }
+
     const selectedCells = Array.from(editor.view.dom.querySelectorAll('.selectedCell')) as HTMLElement[]
     if (selectedCells.length > 0) return selectedCells
+
     if (editor.isActive('tableCell') || editor.isActive('tableHeader')) {
       try {
         const domAt = editor.view.domAtPos(editor.state.selection.from)
@@ -88,31 +120,12 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
       let isVisibleInWrapper = true
       if (tableWrapper) {
         const wrapperRect = tableWrapper.getBoundingClientRect()
-        const isHorizontallyVisible = maxRight >= wrapperRect.left && maxRight <= wrapperRect.right + 10
+        const isHorizontallyVisible = maxRight >= wrapperRect.left - 8 && maxRight <= wrapperRect.right + 15
         const isVerticallyVisible = minTop < window.innerHeight && maxBottom > 0
         isVisibleInWrapper = isHorizontallyVisible && isVerticallyVisible
       }
 
-      const dotX = maxRight
-      const dotY = minTop + (maxBottom - minTop) / 2
-      let hasCollision = false
-      if (typeof document !== 'undefined') {
-        const collisionTargets = document.querySelectorAll(
-          '.table-of-contents, [data-bottom-text-menu], [data-text-menu], [role="dialog"], [data-radix-popper-content-wrapper], .glass-menu'
-        )
-        for (const el of Array.from(collisionTargets)) {
-          if (menuOpen && anchorRef.current && el.contains(anchorRef.current)) continue
-          const r = (el as HTMLElement).getBoundingClientRect()
-          if (r.width > 0 && r.height > 0) {
-            if (dotX >= r.left - 4 && dotX <= r.right + 4 && dotY >= r.top - 4 && dotY <= r.bottom + 4) {
-              hasCollision = true
-              break
-            }
-          }
-        }
-      }
-
-      setIsButtonVisible(isVisibleInWrapper && isWithinContainer && !hasCollision)
+      setIsButtonVisible(isVisibleInWrapper && isWithinContainer)
     } else {
       setSelectionRect(prev => (prev === null ? prev : null))
       setIsButtonVisible(prev => (prev === false ? prev : false))
@@ -164,14 +177,29 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   }, [editor, triggerUpdate])
 
   useEffect(() => {
-    const activeTable = getActiveCells()[0]?.closest('table') as HTMLTableElement | null
-    if (!activeTable) return
+    const dom = editor.view?.dom
+    if (!dom) return
     const ro = new ResizeObserver(() => triggerUpdate())
-    ro.observe(activeTable)
+    ro.observe(dom)
+    dom.querySelectorAll('table').forEach(t => ro.observe(t))
     const mo = new MutationObserver(() => triggerUpdate())
-    mo.observe(activeTable, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style', 'width', 'colwidth', 'class', 'rowspan', 'colspan'] })
-    return () => { ro.disconnect(); mo.disconnect() }
-  }, [getActiveCells, triggerUpdate])
+    mo.observe(dom, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['style', 'width', 'colwidth', 'class', 'rowspan', 'colspan', 'height'],
+    })
+    const onMouseMove = (e: MouseEvent) => {
+      if (e.buttons > 0) updateSelectionRect()
+    }
+    window.addEventListener('mousemove', onMouseMove, { passive: true })
+    return () => {
+      ro.disconnect()
+      mo.disconnect()
+      window.removeEventListener('mousemove', onMouseMove)
+    }
+  }, [editor, triggerUpdate, updateSelectionRect])
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return
@@ -298,7 +326,26 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   }, [editor])
 
   const canMerge = editor.can().mergeCells() && !isSelectionStraddlingHeader(editor)
-  const canSplit = hasMergedCellsInSelection(editor) || editor.can().splitCell()
+  const canSplit = useMemo(() => {
+    try {
+      const { selection } = editor.state
+      const table = findTable(selection)
+      if (table && isCellSelection(selection)) {
+        const map = TableMap.get(table.node)
+        const start = selection.$anchorCell.start(-1)
+        const rawRect = map.rectBetween(selection.$anchorCell.pos - start, selection.$headCell.pos - start)
+        const expRect = expandRectToMergedCells(table.node, rawRect)
+        const cells = map.cellsInRect(expRect)
+        for (const offset of cells) {
+          const n = table.node.nodeAt(offset)
+          if (n && ((n.attrs.colspan && n.attrs.colspan > 1) || (n.attrs.rowspan && n.attrs.rowspan > 1))) {
+            return true
+          }
+        }
+      }
+    } catch {}
+    return hasMergedCellsInSelection(editor) || editor.can().splitCell()
+  }, [editor, editor.state.selection])
 
   const itemClass = "w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none cursor-pointer"
   const dangerClass = "w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-red-600 dark:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 select-none cursor-pointer"
@@ -312,9 +359,16 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
       {createPortal(
         <>
           <ContainingBlockAnchor ref={anchorRef} />
-          {/* 1. Selection Perimeter Continuous 2px Outline */}
+          {/* 1. Selection Perimeter Continuous 2px Outline & Unified Selection Background */}
           <div className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[15] border-2 border-indigo-500/85 dark:border-violet-400/85 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
-            style={{ top: selectionRect.top - offset.y, left: selectionRect.left - offset.x, width: selectionRect.width, height: selectionRect.height, zIndex: 15 }} />
+            style={{
+              top: selectionRect.top - offset.y,
+              left: selectionRect.left - offset.x,
+              width: selectionRect.width,
+              height: selectionRect.height,
+              backgroundColor: 'rgba(99, 102, 241, 0.12)',
+              zIndex: 15,
+            }} />
 
           {/* 2. Expandable 4-dot Circle Trigger & Popover Menu */}
           {isButtonVisible && (

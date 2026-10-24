@@ -330,6 +330,54 @@ export function isGripInCurrentSelection(editor: Editor, type: 'col' | 'row', in
   }
 }
 
+export interface TableRectBoundary {
+  left: number
+  right: number
+  top: number
+  bottom: number
+}
+
+/**
+ * Expands a selection rectangle [left, top, right, bottom] using fixed-point iteration
+ * so that any merged cell that straddles the boundary is fully enclosed within the rectangle.
+ */
+export function expandRectToMergedCells(tableNode: Node, rawRect: TableRectBoundary): TableRectBoundary {
+  try {
+    const map = TableMap.get(tableNode)
+    const rect = { ...rawRect }
+    let changed = true
+    let iterations = 0
+
+    while (changed && iterations < 15) {
+      changed = false
+      iterations++
+      const cells = map.cellsInRect(rect)
+      for (const pos of cells) {
+        const cRect = map.findCell(pos)
+        if (cRect.left < rect.left) {
+          rect.left = cRect.left
+          changed = true
+        }
+        if (cRect.right > rect.right) {
+          rect.right = cRect.right
+          changed = true
+        }
+        if (cRect.top < rect.top) {
+          rect.top = cRect.top
+          changed = true
+        }
+        if (cRect.bottom > rect.bottom) {
+          rect.bottom = cRect.bottom
+          changed = true
+        }
+      }
+    }
+    return rect
+  } catch {
+    return rawRect
+  }
+}
+
 /**
  * Focus and select a table column or row with table focus recovery.
  */

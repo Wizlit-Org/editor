@@ -95,13 +95,6 @@
       }
     }
 
-    th:hover > .column-resize-handle,
-    td:hover > .column-resize-handle {
-      &::before {
-        @apply bg-indigo-500/80 dark:bg-violet-400/80;
-      }
-    }
-
     td.selectedCell,
     th.selectedCell,
     .selectedCell {

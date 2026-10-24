@@ -38,46 +38,6 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
 
   const [dragIndicator, setDragIndicator] = useState<DragIndicatorData | null>(null)
   const [dragGhost, setDragGhost] = useState<DragGhostData | null>(null)
-  const [resizingGuideX, setResizingGuideX] = useState<number | null>(null)
-
-  // Listen to mouse events for column resizing to show full-height vertical guide
-  useEffect(() => {
-    const dom = editor.view?.dom
-    if (!dom) return
-    let activeCleanup: (() => void) | null = null
-
-    const handleMouseDown = (e: MouseEvent) => {
-      const target = e.target as HTMLElement | null
-      if (!target?.closest) return
-      const isResize = target.closest('.column-resize-handle') || (target.closest('td, th') && Math.abs(e.clientX - target.closest('td, th')!.getBoundingClientRect().right) <= 8)
-
-      if (isResize && currentTableEl) {
-        currentTableEl.classList.add('resizing')
-        setResizingGuideX(e.clientX)
-        const onMouseMove = (moveEvt: MouseEvent) => setResizingGuideX(moveEvt.clientX)
-        const onMouseUp = () => {
-          window.removeEventListener('mousemove', onMouseMove)
-          window.removeEventListener('mouseup', onMouseUp)
-          if (currentTableEl) currentTableEl.classList.remove('resizing')
-          setResizingGuideX(null)
-          setTimeout(updateTableRect, 50)
-        }
-        window.addEventListener('mousemove', onMouseMove)
-        window.addEventListener('mouseup', onMouseUp)
-        activeCleanup = () => {
-          window.removeEventListener('mousemove', onMouseMove)
-          window.removeEventListener('mouseup', onMouseUp)
-          if (currentTableEl) currentTableEl.classList.remove('resizing')
-        }
-      }
-    }
-
-    dom.addEventListener('mousedown', handleMouseDown)
-    return () => {
-      dom.removeEventListener('mousedown', handleMouseDown)
-      if (activeCleanup) activeCleanup()
-    }
-  }, [editor, currentTableEl, updateTableRect])
 
   const handleGripMouseDown = useCallback(
     (type: 'col' | 'row', index: number) => (e: React.MouseEvent) => {
@@ -232,7 +192,9 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
           }
         } else {
           window.dispatchEvent(new CustomEvent(type === 'col' ? 'tiptap:open-table-col-menu' : 'tiptap:open-table-row-menu'))
-          focusTableGrip(editor, type, index, currentTableEl, tableRect?.pos ?? -1)
+          if (!isGripSelected) {
+            focusTableGrip(editor, type, index, currentTableEl, tableRect?.pos ?? -1)
+          }
           if (editor.view && !editor.view.isDestroyed) {
             editor.view.dispatch(editor.state.tr.setMeta('tableMenuTrigger', Date.now()).setMeta(type === 'col' ? 'tableColumnMenu' : 'tableRowMenu', 'show'))
           }
@@ -316,7 +278,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
   const singlePillClass = `${pillClass} bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-violet-500/90 border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white`
   const mergedPillClass = `${pillClass} bg-indigo-600/35 hover:bg-indigo-600/50 active:bg-indigo-600/90 dark:bg-violet-500/35 dark:hover:bg-violet-500/50 dark:active:bg-violet-500/90 border border-indigo-500/40 dark:border-violet-400/40 text-indigo-700 dark:text-violet-200 active:text-white`
 
-  const rowGripLeft = Math.max(tableRect.left, tableRect.wrapperLeft ?? tableRect.left) - 15 - offset.x
+  const rowGripLeft = (tableRect.wrapperLeft !== undefined ? Math.max(tableRect.left, tableRect.wrapperLeft) : tableRect.left) - 15 - offset.x
 
   return createPortal(
     <div id="table-add-buttons-portal" className="pointer-events-auto" style={{ zIndex: 15, position: 'relative' }}>
@@ -359,8 +321,8 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       {/* 3. Right & Bottom Add Buttons */}
       <TableAddBar tableRect={tableRect} activeRowRect={activeRowGrip ? { top: activeRowGrip.top, height: activeRowGrip.height } : null} activeColRect={activeColGrip ? { left: activeColGrip.left, width: activeColGrip.width } : null} showRightBar={showRightAddBar || isLastCol} showBottomBar={showBottomAddBar || isLastRow} containerOffset={offset} onAddColumn={onAddColumnAtEnd} onAddRow={onAddRowAtEnd} onHoverKeepAlive={() => { clearHoverTimer(); setIsHovered(true) }} />
 
-      {/* 4. Drag & Resize Visual Overlays */}
-      <TableDragOverlays dragGhost={dragGhost} dragIndicator={dragIndicator} resizingGuideX={resizingGuideX} tableRectLeft={tableRect.left} tableRectTop={tableRect.top} tableRectWidth={tableRect.width} tableRectHeight={tableRect.height} containerOffset={offset} />
+      {/* 4. Drag Overlays */}
+      <TableDragOverlays dragGhost={dragGhost} dragIndicator={dragIndicator} tableRectLeft={tableRect.left} tableRectTop={tableRect.top} tableRectWidth={tableRect.width} tableRectHeight={tableRect.height} containerOffset={offset} />
     </div>,
     (appendTo?.current as HTMLElement) || (typeof document !== 'undefined' ? document.body : (null as any)),
   )

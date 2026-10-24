@@ -41,7 +41,7 @@ interface TableDragOverlaysProps {
   draggingSource?: DraggingSourceData | null
   dragIndicator: DragIndicatorData | null
   targetSlot?: TargetSlotData | null
-  resizingGuideX: number | null
+  resizingGuideX?: number | null
   tableRectLeft: number
   tableRectTop: number
   tableRectWidth: number
@@ -52,9 +52,6 @@ interface TableDragOverlaysProps {
 export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
   dragGhost,
   dragIndicator,
-  resizingGuideX,
-  tableRectTop,
-  tableRectHeight,
   containerOffset = { x: 0, y: 0 },
 }) => {
   const ox = containerOffset.x
@@ -62,7 +59,7 @@ export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
 
   return (
     <>
-      {/* 1. Drop Position Indicator Guide: Single clean 2px indigo line (AC ⑥) */}
+      {/* 1. Drop Position Indicator Guide: Single clean 2px indigo line */}
       {dragIndicator && !dragIndicator.isBlocked && (
         <div
           className="fixed pointer-events-none z-[25] bg-indigo-500 dark:bg-indigo-400 shadow-[0_0_6px_rgba(99,102,241,0.6)] rounded-full transition-all duration-75"
@@ -76,7 +73,7 @@ export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
         />
       )}
 
-      {/* 2. Drag Cursor-Following Ghost: Minimal single capsule badge (AC ⑥) */}
+      {/* 2. Drag Cursor-Following Ghost: Minimal single capsule badge */}
       {dragGhost && (
         <div
           className={`fixed pointer-events-none z-[30] px-3 py-1 rounded-full text-xs font-medium shadow-lg backdrop-blur-sm select-none -translate-x-1/2 -translate-y-9 transition-colors flex items-center gap-1.5 ${
@@ -89,20 +86,6 @@ export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
           <span className={`w-1.5 h-1.5 rounded-full ${dragGhost.isBlocked ? 'bg-rose-400' : 'bg-indigo-400'}`} />
           <span>{dragGhost.label}</span>
         </div>
-      )}
-
-      {/* 3. Column Resizing Guide: Single clean 2px vertical indigo line */}
-      {resizingGuideX !== null && (
-        <div
-          className="fixed pointer-events-none bg-indigo-500 dark:bg-indigo-400 z-[25] shadow-[0_0_6px_rgba(99,102,241,0.6)] rounded-full"
-          style={{
-            left: resizingGuideX - 1 - ox,
-            top: tableRectTop - oy,
-            width: 2,
-            height: tableRectHeight,
-            zIndex: 25,
-          }}
-        />
       )}
     </>
   )
