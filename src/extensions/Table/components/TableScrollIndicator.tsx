@@ -80,7 +80,9 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       const showRight = scrollLeft < scrollWidth - clientWidth - 2
 
       if (editor.isEditable && showLeft) {
-        const mask = 'linear-gradient(to right, transparent 0px, rgba(0,0,0,0.3) 24px, black 64px)'
+        const editorDomLeft = editor.view?.dom ? editor.view.dom.getBoundingClientRect().left : rect.left
+        const gutter = Math.max(0, Math.round(editorDomLeft - rect.left))
+        const mask = `linear-gradient(to right, transparent 0px, transparent ${gutter}px, rgba(0,0,0,0.3) ${gutter + 16}px, black ${gutter + 48}px)`
         wrapper.style.maskImage = mask
         ;(wrapper.style as any).webkitMaskImage = mask
       } else {
@@ -202,6 +204,10 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
         const visibleLeft = Math.max(t.rect.left, containerRect.left)
         const visibleRight = Math.min(t.rect.left + t.rect.width, containerRect.right)
 
+        const editorContentLeft = editor.view?.dom ? editor.view.dom.getBoundingClientRect().left : visibleLeft
+        const gutterWidth = Math.max(0, Math.round(editorContentLeft - visibleLeft))
+        const blurWidth = gutterWidth + 48
+
         return (
           <React.Fragment key={t.id}>
             {/* Left Edge Fade Shadow / Frosted Glass Blur Indicator */}
@@ -214,35 +220,19 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
                 opacity: t.showLeft ? 1 : 0,
                 top: t.rect.top - offset.y,
                 left: visibleLeft - offset.x,
-                width: editor.isEditable ? '64px' : '36px',
+                width: editor.isEditable ? `${blurWidth}px` : '36px',
                 height: t.rect.height,
                 ...(editor.isEditable
                   ? {
                       background: 'transparent',
                       backdropFilter: 'blur(8px)',
                       WebkitBackdropFilter: 'blur(8px)',
-                      maskImage: 'linear-gradient(to right, black 0%, rgba(0,0,0,0.6) 50%, transparent 100%)',
-                      WebkitMaskImage: 'linear-gradient(to right, black 0%, rgba(0,0,0,0.6) 50%, transparent 100%)',
+                      maskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
+                      WebkitMaskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
                     }
                   : {
                       background: 'linear-gradient(to right, rgba(0,0,0,0.18), transparent)',
                     }),
-              }}
-            />
-
-            {/* Right Edge Fade Shadow Indicator */}
-            <div
-              style={{
-                position: 'fixed',
-                pointerEvents: 'none',
-                zIndex: 14,
-                transition: 'opacity 0.2s ease',
-                opacity: t.showRight ? 1 : 0,
-                top: t.rect.top - offset.y,
-                left: visibleRight - 32 - offset.x,
-                width: '32px',
-                height: t.rect.height,
-                background: 'linear-gradient(to left, rgba(0,0,0,0.18), transparent)',
               }}
             />
 
