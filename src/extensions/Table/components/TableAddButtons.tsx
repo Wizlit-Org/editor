@@ -53,7 +53,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
 
     const handleMouseDown = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null
-      if (!target) return
+      if (!target || !(target instanceof Element) || typeof target.closest !== 'function') return
       const handleEl = target.closest('.column-resize-handle') as HTMLElement | null
       const cellEl = target.closest('td, th') as HTMLElement | null
 

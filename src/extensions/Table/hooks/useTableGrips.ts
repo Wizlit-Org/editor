@@ -143,7 +143,7 @@ export function useTableGrips(editor: Editor) {
 
     const handleMouseMove = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null
-      if (!target) return
+      if (!target || !(target instanceof Element) || typeof target.closest !== 'function') return
 
       const table = target.closest('table')
       if (table && table !== currentTableEl) {
