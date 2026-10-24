@@ -53,7 +53,14 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
           <Icon name="ChevronDown" className="w-2.5 h-2.5 opacity-60 shrink-0" />
         </Toolbar.Button>
       </Dropdown.Trigger>
-      <Dropdown.Content asChild sideOffset={6} className="z-50 outline-none animate-in fade-in-0 zoom-in-95 duration-150">
+      <Dropdown.Content
+        asChild
+        side="top"
+        align="start"
+        sideOffset={8}
+        collisionPadding={12}
+        className="z-[60] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
+      >
         <div className="glass-menu flex flex-col gap-0.5 p-1.5 min-w-[13rem] max-h-[22rem] overflow-y-auto shadow-2xl rounded-xl bg-white/90 dark:bg-[#202020]/95 backdrop-blur-xl border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
           {options.map(option => {
             if (isOption(option)) {

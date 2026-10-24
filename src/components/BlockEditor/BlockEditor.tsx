@@ -145,7 +145,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           target.tagName === 'TEXTAREA' ||
           target.isContentEditable ||
           target.closest?.(
-            '.glass-menu, [role="dialog"], [role="menu"], [data-paste-preview-dialog="true"], [data-radix-popper-content-wrapper], .link-editor-panel, .link-preview-panel'
+            '.glass-menu, [role="dialog"], [role="menu"], [data-paste-preview-dialog="true"], [data-bottom-text-menu="true"], [data-radix-popper-content-wrapper], .link-editor-panel, .link-preview-panel'
           )
         ) {
           return
@@ -294,7 +294,10 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           {/* Sticky Table of Contents & Table Scroll Indicators (Client-only, works in both Edit and Read-only modes) */}
           <TableOfContents editor={editor} />
           <TableScrollIndicator editor={editor} appendTo={menuContainerRef} />
-          <EditorContent editor={editor} className="flex-1 focus:outline-none" />
+          <EditorContent
+            editor={editor}
+            className={`flex-1 focus:outline-none ${!readOnly ? 'pb-16' : ''}`.trim()}
+          />
           <ContentItemMenu editor={editor} isEditable={!readOnly} appendTo={menuContainerRef} />
           <LinkMenu
             editor={editor}

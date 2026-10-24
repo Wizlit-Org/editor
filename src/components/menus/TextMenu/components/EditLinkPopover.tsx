@@ -19,7 +19,13 @@ export const EditLinkPopover = ({ onSetLink }: EditLinkPopoverProps) => {
           <Icon name="Link" />
         </Toolbar.Button>
       </Popover.Trigger>
-      <Popover.Content sideOffset={8} className="z-50 outline-none">
+      <Popover.Content
+        side="top"
+        align="center"
+        sideOffset={8}
+        collisionPadding={12}
+        className="z-[60] outline-none"
+      >
         <LinkEditorPanel onSetLink={onSetLink} />
       </Popover.Content>
     </Popover.Root>
