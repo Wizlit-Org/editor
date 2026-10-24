@@ -344,49 +344,53 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
   const rowGripLeft = originLeft - 15 - offset.x
 
   return createPortal(
-    <div id="table-add-buttons-portal" className="pointer-events-auto" style={{ position: 'relative' }}>
+    <>
       <ContainingBlockAnchor ref={anchorRef} />
 
-      {/* 1. Column Grip (Merged Stretched Pill or Single Hovered Pill) - z-index: 9 (below blur z-12) */}
-      {mergedCol && isColVisible(mergedCol) ? (
-        <button key="active-col-grip" type="button" onMouseDown={handleGripMouseDown('col', mergedCol.startIdx)}
-          className={`${colMergedPillClass} h-[12px]`}
-          style={{ top: tableRect.top - 15 - offset.y, left: mergedCol.left - offset.x, width: mergedCol.width, zIndex: 9 }}
-          title="Click for options, drag to move selected columns">
-          <div className="flex items-center gap-0.5"><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /></div>
-        </button>
-      ) : activeColGrip && isColVisible(activeColGrip) ? (
-        <button key="active-col-grip" type="button" onMouseDown={handleGripMouseDown('col', activeColGrip.index)}
-          className={`${colSinglePillClass} h-[12px]`}
-          style={{ top: tableRect.top - 15 - offset.y, left: activeColGrip.left - offset.x, width: activeColGrip.width, zIndex: 9 }}
-          title={`Click to select, drag to move column ${activeColGrip.index + 1}`}>
-          <div className="flex items-center gap-0.5"><span className="w-1 h-1 rounded-full bg-current opacity-70" /><span className="w-1 h-1 rounded-full bg-current opacity-70" /><span className="w-1 h-1 rounded-full bg-current opacity-70" /></div>
-        </button>
-      ) : null}
+      {/* 1. Column Grip (Merged Stretched Pill or Single Hovered Pill) - Isolated Stacking Context z-index: 9 (below blur z-12) */}
+      <div id="table-col-grips" style={{ position: 'fixed', top: 0, left: 0, width: 0, height: 0, zIndex: 9, pointerEvents: 'none' }}>
+        {mergedCol && isColVisible(mergedCol) ? (
+          <button key="active-col-grip" type="button" onMouseDown={handleGripMouseDown('col', mergedCol.startIdx)}
+            className={`${colMergedPillClass} h-[12px] pointer-events-auto`}
+            style={{ top: tableRect.top - 15 - offset.y, left: mergedCol.left - offset.x, width: mergedCol.width, zIndex: 9 }}
+            title="Click for options, drag to move selected columns">
+            <div className="flex items-center gap-0.5"><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /></div>
+          </button>
+        ) : activeColGrip && isColVisible(activeColGrip) ? (
+          <button key="active-col-grip" type="button" onMouseDown={handleGripMouseDown('col', activeColGrip.index)}
+            className={`${colSinglePillClass} h-[12px] pointer-events-auto`}
+            style={{ top: tableRect.top - 15 - offset.y, left: activeColGrip.left - offset.x, width: activeColGrip.width, zIndex: 9 }}
+            title={`Click to select, drag to move column ${activeColGrip.index + 1}`}>
+            <div className="flex items-center gap-0.5"><span className="w-1 h-1 rounded-full bg-current opacity-70" /><span className="w-1 h-1 rounded-full bg-current opacity-70" /><span className="w-1 h-1 rounded-full bg-current opacity-70" /></div>
+          </button>
+        ) : null}
+      </div>
 
-      {/* 2. Row Grip (Merged Stretched Pill or Single Hovered Pill) - z-index: 15 (above blur z-12) */}
-      {mergedRow ? (
-        <button key="active-row-grip" type="button" onMouseDown={handleGripMouseDown('row', mergedRow.startIdx)}
-          className={`${rowMergedPillClass} w-[12px]`}
-          style={{ top: mergedRow.top - offset.y, left: rowGripLeft, height: mergedRow.height, zIndex: 15 }}
-          title="Click for options, drag to move selected rows">
-          <div className="flex flex-col items-center gap-0.5"><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /></div>
-        </button>
-      ) : activeRowGrip ? (
-        <button key="active-row-grip" type="button" onMouseDown={handleGripMouseDown('row', activeRowGrip.index)}
-          className={`${rowSinglePillClass} w-[12px]`}
-          style={{ top: activeRowGrip.top - offset.y, left: rowGripLeft, height: activeRowGrip.height, zIndex: 15 }}
-          title={`Click to select, drag to move row ${activeRowGrip.index + 1}`}>
-          <div className="flex flex-col items-center gap-0.5"><span className="w-1 h-1 rounded-full bg-current opacity-70" /><span className="w-1 h-1 rounded-full bg-current opacity-70" /><span className="w-1 h-1 rounded-full bg-current opacity-70" /></div>
-        </button>
-      ) : null}
+      {/* 2. Row Grip (Merged Stretched Pill or Single Hovered Pill) - Isolated Stacking Context z-index: 15 (above blur z-12) */}
+      <div id="table-row-grips" style={{ position: 'fixed', top: 0, left: 0, width: 0, height: 0, zIndex: 15, pointerEvents: 'none' }}>
+        {mergedRow ? (
+          <button key="active-row-grip" type="button" onMouseDown={handleGripMouseDown('row', mergedRow.startIdx)}
+            className={`${rowMergedPillClass} w-[12px] pointer-events-auto`}
+            style={{ top: mergedRow.top - offset.y, left: rowGripLeft, height: mergedRow.height, zIndex: 15 }}
+            title="Click for options, drag to move selected rows">
+            <div className="flex flex-col items-center gap-0.5"><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /></div>
+          </button>
+        ) : activeRowGrip ? (
+          <button key="active-row-grip" type="button" onMouseDown={handleGripMouseDown('row', activeRowGrip.index)}
+            className={`${rowSinglePillClass} w-[12px] pointer-events-auto`}
+            style={{ top: activeRowGrip.top - offset.y, left: rowGripLeft, height: activeRowGrip.height, zIndex: 15 }}
+            title={`Click to select, drag to move row ${activeRowGrip.index + 1}`}>
+            <div className="flex flex-col items-center gap-0.5"><span className="w-1 h-1 rounded-full bg-current opacity-70" /><span className="w-1 h-1 rounded-full bg-current opacity-70" /><span className="w-1 h-1 rounded-full bg-current opacity-70" /></div>
+          </button>
+        ) : null}
+      </div>
 
-      {/* 3. Right & Bottom Add Buttons */}
-      <TableAddBar tableRect={tableRect} activeRowRect={activeRowGrip ? { top: activeRowGrip.top, height: activeRowGrip.height } : null} activeColRect={activeColGrip ? { left: activeColGrip.left, width: activeColGrip.width } : null} showRightBar={showRightAddBar || isLastCol} showBottomBar={showBottomAddBar || isLastRow} containerOffset={offset} onAddColumn={onAddColumnAtEnd} onAddRow={onAddRowAtEnd} onHoverKeepAlive={() => { clearHoverTimer(); setIsHovered(true) }} />
-
-      {/* 4. Drag Overlays */}
-      <TableDragOverlays dragGhost={dragGhost} dragIndicator={dragIndicator} tableRectLeft={tableRect.left} tableRectTop={tableRect.top} tableRectWidth={tableRect.width} tableRectHeight={tableRect.height} containerOffset={offset} />
-    </div>,
+      {/* 3. Right & Bottom Add Buttons & Drag Overlays */}
+      <div id="table-overlays-wrapper" style={{ position: 'fixed', top: 0, left: 0, width: 0, height: 0, zIndex: 20, pointerEvents: 'none' }}>
+        <TableAddBar tableRect={tableRect} activeRowRect={activeRowGrip ? { top: activeRowGrip.top, height: activeRowGrip.height } : null} activeColRect={activeColGrip ? { left: activeColGrip.left, width: activeColGrip.width } : null} showRightBar={showRightAddBar || isLastCol} showBottomBar={showBottomAddBar || isLastRow} containerOffset={offset} onAddColumn={onAddColumnAtEnd} onAddRow={onAddRowAtEnd} onHoverKeepAlive={() => { clearHoverTimer(); setIsHovered(true) }} />
+        <TableDragOverlays dragGhost={dragGhost} dragIndicator={dragIndicator} tableRectLeft={tableRect.left} tableRectTop={tableRect.top} tableRectWidth={tableRect.width} tableRectHeight={tableRect.height} containerOffset={offset} />
+      </div>
+    </>,
     (appendTo?.current as HTMLElement) || (typeof document !== 'undefined' ? document.body : (null as any)),
   )
 }

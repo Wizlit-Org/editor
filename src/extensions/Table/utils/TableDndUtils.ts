@@ -1,6 +1,6 @@
 import { Editor } from '@tiptap/core'
 import { TableMap } from '@tiptap/pm/tables'
-import { getClusterRowRange, getClusterColRange } from './TableClusterUtils'
+import { getClusterRowRange, getClusterColRange, selectColRange, selectRowRange } from './TableClusterUtils'
 import { isTargetSplittingMergedCell } from './TableHeaderStraddleUtils'
 
 export { getClusterRowRange as getMergedRowRange, getClusterColRange as getMergedColRange } from './TableClusterUtils'
@@ -79,7 +79,10 @@ export function moveTableColumn(
     }
 
     const newTableNode = tableNode.type.create(tableNode.attrs, rows)
-    const tr = state.tr.replaceWith(tablePos, tablePos + tableNode.nodeSize, newTableNode)
+    let tr = state.tr.replaceWith(tablePos, tablePos + tableNode.nodeSize, newTableNode)
+    const newMin = insertIdx
+    const newMax = insertIdx + actualCount - 1
+    tr = selectColRange(tr, newMin, newMax, tablePos)
     view.dispatch(tr)
     return true
   } catch (err) {
@@ -150,7 +153,10 @@ export function moveTableRow(
     })
 
     const newTableNode = tableNode.type.create(tableNode.attrs, normalizedRows)
-    const tr = state.tr.replaceWith(tablePos, tablePos + tableNode.nodeSize, newTableNode)
+    let tr = state.tr.replaceWith(tablePos, tablePos + tableNode.nodeSize, newTableNode)
+    const newMin = insertIdx
+    const newMax = insertIdx + actualCount - 1
+    tr = selectRowRange(tr, newMin, newMax, tablePos)
     view.dispatch(tr)
     return true
   } catch (err) {
