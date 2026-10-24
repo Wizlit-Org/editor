@@ -202,6 +202,11 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     [options, selectedId],
   )
 
+  const imageProxyUrl = useMemo<((url: string) => string) | undefined>(() => {
+    const uploadExt = editor?.extensionManager?.extensions?.find(e => e.name === 'imageUpload')
+    return uploadExt?.options?.imageProxyUrl
+  }, [editor])
+
   const handleConfirm = useCallback(() => {
     if (isExiting) return
     setIsExiting(true)
@@ -410,7 +415,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
           transition: `opacity ${animTiming}, transform ${animTiming}`,
         }}
       >
-        <LivePreviewCanvas data={data} selectedId={selectedId} isDark={isDark} />
+        <LivePreviewCanvas data={data} selectedId={selectedId} isDark={isDark} imageProxyUrl={imageProxyUrl} />
       </div>
 
       {/* 4단 & 5단 (하단 중앙): [4단: 취소/삽입 버튼 바로 위 단축키 안내] + [5단: 하단 중앙 취소/삽입 글라스 버튼] */}

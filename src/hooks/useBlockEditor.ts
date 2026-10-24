@@ -23,6 +23,7 @@ export const useBlockEditor = ({
   onUploadImage,
   convertSrc,
   onImageClick,
+  imageProxyUrl,
   maxSize,
   maxEmbeddings,
   maxCharacters,
@@ -32,6 +33,7 @@ export const useBlockEditor = ({
   onUploadImage?: (file: File) => Promise<string>
   convertSrc?: ConvertSrc
   onImageClick?: OnImageClick
+  imageProxyUrl?: (url: string) => string
   maxSize?: number
   maxEmbeddings?: number
   maxCharacters?: number
@@ -64,6 +66,7 @@ export const useBlockEditor = ({
         onUploadImage: stableUploadImage,
         convertSrc,
         onImageClick,
+        imageProxyUrl,
         maxSize,
         maxEmbeddings,
       }),

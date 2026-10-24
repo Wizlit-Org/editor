@@ -49,6 +49,7 @@ export interface BlockEditorProps {
     disableBuiltInUploadDialog?: boolean
     convertSrc?: ConvertSrc
     onUploadImage?: (file: File) => Promise<string>
+    imageProxyUrl?: (url: string) => string
     getUploadDialogProps?: (props: UploadListDialogProps) => void
     onClick?: OnImageClick
     onLoadingChange?: (hasUploading: boolean) => void
@@ -176,6 +177,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     onUploadImage,
     convertSrc: image?.convertSrc,
     onImageClick: image?.onClick,
+    imageProxyUrl: image?.imageProxyUrl,
     maxSize,
     maxEmbeddings,
     className,

@@ -18,24 +18,30 @@ const ensureFileWithExtension = (blobOrFile: Blob | File, fallbackName = 'image'
   return new File([blobOrFile], fileName, { type: mime })
 }
 
-const fetchRemoteUrlAsFile = async (rawUrl: string, signal?: AbortSignal): Promise<File> => {
+const fetchRemoteUrlAsFile = async (
+  rawUrl: string,
+  signal?: AbortSignal,
+  imageProxyUrl?: (url: string) => string,
+): Promise<File> => {
   const cleanUrl = rawUrl.trim()
 
-  // 1) Try BFF Proxy (/api/image-proxy) for 100% CORS-free fetch
-  try {
-    const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(cleanUrl)}`
-    const proxyRes = await fetch(proxyUrl, { signal })
-    if (proxyRes.ok) {
-      const blob = await proxyRes.blob()
-      if (blob.size > 0) {
-        return ensureFileWithExtension(blob, 'pasted-remote')
+  // 1) Try Proxy URL if imageProxyUrl handler is provided
+  if (typeof imageProxyUrl === 'function') {
+    try {
+      const proxyUrl = imageProxyUrl(cleanUrl)
+      const proxyRes = await fetch(proxyUrl, { signal })
+      if (proxyRes.ok) {
+        const blob = await proxyRes.blob()
+        if (blob.size > 0) {
+          return ensureFileWithExtension(blob, 'pasted-remote')
+        }
       }
+    } catch (err: any) {
+      if (err?.name === 'AbortError') throw err
     }
-  } catch (err: any) {
-    if (err?.name === 'AbortError') throw err
   }
 
-  // 2) Try direct CORS fetch
+  // 2) Try direct CORS fetch (standalone fallback without proxy)
   try {
     const directRes = await fetch(cleanUrl, { mode: 'cors', signal })
     if (directRes.ok) {
@@ -158,6 +164,7 @@ interface UploadQueueItem {
   upload: (file: File, signal?: AbortSignal) => Promise<string>
   maxSize?: number
   forceReduceSize?: boolean
+  imageProxyUrl?: (url: string) => string
   controller: AbortController
 }
 
@@ -324,7 +331,7 @@ export class UploadQueue {
         sourceFile = await decodeBase64AsFile(item.base64Source, controller.signal)
       }
       if (!sourceFile && item.sourceUrl) {
-        sourceFile = await fetchRemoteUrlAsFile(item.sourceUrl, controller.signal)
+        sourceFile = await fetchRemoteUrlAsFile(item.sourceUrl, controller.signal, item.imageProxyUrl)
       }
       if (!sourceFile) {
         throw new Error('No image file resolved')

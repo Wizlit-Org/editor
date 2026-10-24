@@ -20,6 +20,7 @@ export interface LivePreviewCanvasProps {
   data: SmartPasteEventDetail
   selectedId: string
   isDark?: boolean
+  imageProxyUrl?: (url: string) => string
 }
 
 /**
@@ -29,6 +30,7 @@ export interface LivePreviewCanvasProps {
 export const buildPreviewDoc = (
   data: SmartPasteEventDetail,
   selectedId: string,
+  imageProxyUrl?: (url: string) => string,
 ): JSONContent => {
   const rawText = data.text || ''
 
@@ -70,12 +72,12 @@ export const buildPreviewDoc = (
   // 3) External Image or Server Image Upload or Base64 Image
   if (selectedId === 'image-external' || selectedId === 'image-upload') {
     const isDataUri = rawText.startsWith('data:image/')
-    // For 'image-upload', use BFF proxy path so ImageBlockView renders cleanly without the '외부 이미지' badge
+    // For 'image-upload', use imageProxyUrl option if provided; otherwise fallback directly to rawText (standalone isolation)
     // For 'image-external', keep original http(s) URL so ImageBlockView displays the '외부 이미지' badge 1:1
     const previewSrc = isDataUri
       ? rawText
-      : selectedId === 'image-upload'
-        ? `/api/image-proxy?url=${encodeURIComponent(rawText)}`
+      : selectedId === 'image-upload' && typeof imageProxyUrl === 'function'
+        ? imageProxyUrl(rawText)
         : rawText
 
     return {
@@ -211,13 +213,17 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
   data,
   selectedId,
   isDark = true,
+  imageProxyUrl,
 }) => {
   const viewportRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState<number>(1)
   const [animReady, setAnimReady] = useState<boolean>(false)
 
-  const previewDoc = useMemo(() => buildPreviewDoc(data, selectedId), [data, selectedId])
+  const previewDoc = useMemo(
+    () => buildPreviewDoc(data, selectedId, imageProxyUrl),
+    [data, selectedId, imageProxyUrl],
+  )
 
   const isBlockMedia =
     selectedId === 'image-external' ||

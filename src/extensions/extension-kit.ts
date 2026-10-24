@@ -55,6 +55,7 @@ interface ExtensionKitProps {
   onUploadImage?: (file: File) => Promise<string>
   convertSrc?: ConvertSrc
   onImageClick?: OnImageClick
+  imageProxyUrl?: (url: string) => string
   maxSize?: number
   maxEmbeddings?: number
 }
@@ -66,6 +67,7 @@ export const ExtensionKit = ({
   maxEmbeddings,
   convertSrc,
   onImageClick,
+  imageProxyUrl,
 }: ExtensionKitProps) => [
   Document,
   TaskList,
@@ -118,6 +120,7 @@ export const ExtensionKit = ({
     maxSize,
     maxEmbeddings,
     maxImagesPerAction: 3,
+    imageProxyUrl,
   }),
   // FileHandler.configure({
   //   allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],

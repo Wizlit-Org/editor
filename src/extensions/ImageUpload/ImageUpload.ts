@@ -70,6 +70,7 @@ export interface ImageUploadOptions {
   maxImagesPerAction?: number
   accept?: string
   maxEmbeddings?: number
+  imageProxyUrl?: (url: string) => string
 }
 
 declare module '@tiptap/core' {
@@ -93,6 +94,7 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
       maxSize: 5 * 1024 * 1024, // 5MB
       maxImages: 3,
       accept: 'image/*',
+      imageProxyUrl: undefined,
     }
   },
 
@@ -135,6 +137,7 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
             upload: this.options.onUpload,
             maxSize: this.options.maxSize,
             forceReduceSize: true,
+            imageProxyUrl: this.options.imageProxyUrl,
           })
 
           return true
