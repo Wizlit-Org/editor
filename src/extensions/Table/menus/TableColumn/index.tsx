@@ -33,9 +33,11 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
   const isMenuOpenRef = useRef(false)
   const [isClosedByScroll, setIsClosedByScroll] = useState(false)
   const isClosedByScrollRef = useRef(false)
+  const lastOpenTimeRef = useRef(0)
 
   useEffect(() => {
     const handleOpen = () => {
+      lastOpenTimeRef.current = Date.now()
       isMenuOpenRef.current = true
       setIsMenuOpen(true)
       isClosedByScrollRef.current = false
@@ -62,6 +64,8 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
 
   useEffect(() => {
     const handleScroll = () => {
+      // Ignore micro-scroll within 180ms of opening to prevent focus auto-scroll from closing menu
+      if (Date.now() - lastOpenTimeRef.current < 180) return
       isClosedByScrollRef.current = true
       setIsClosedByScroll(true)
       isMenuOpenRef.current = false

@@ -5,9 +5,16 @@ import { TextSelection } from '@tiptap/pm/state'
 import { TableMap } from '@tiptap/pm/tables'
 import { useTableGrips } from '../hooks/useTableGrips'
 import { TableAddBar } from './TableAddBar'
+import {
+  TableDragOverlays,
+  DragGhostData,
+  DragIndicatorData,
+  DraggingSourceData,
+} from './TableDragOverlays'
 import { moveTableColumn, moveTableRow, getMergedColRange, getMergedRowRange } from '../utils/TableDndUtils'
 import { findTable, isCellSelection } from '../utils'
 import { findSafeDropIndex, selectColRange, selectRowRange, focusTableGrip, isGripInCurrentSelection } from '../utils/TableClusterUtils'
+import { isHeaderStraddling, extractCellTextSnippets } from '../utils/TableHeaderStraddleUtils'
 
 export interface TableAddButtonsProps {
   editor: Editor
@@ -31,9 +38,9 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
     updateTableRect,
   } = useTableGrips(editor)
 
-  const [dragIndicator, setDragIndicator] = useState<{ type: 'col' | 'row'; left: number; top: number; width: number; height: number } | null>(null)
-  const [draggingSource, setDraggingSource] = useState<{ type: 'col' | 'row'; left: number; top: number; width: number; height: number } | null>(null)
-  const [dragGhost, setDragGhost] = useState<{ type: 'col' | 'row'; index: number; label: string; x: number; y: number } | null>(null)
+  const [dragIndicator, setDragIndicator] = useState<DragIndicatorData | null>(null)
+  const [draggingSource, setDraggingSource] = useState<DraggingSourceData | null>(null)
+  const [dragGhost, setDragGhost] = useState<DragGhostData | null>(null)
   const [resizingGuideX, setResizingGuideX] = useState<number | null>(null)
 
   // Listen to mouse events for column resizing to show full-height vertical indigo guide
@@ -162,8 +169,6 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
                 height: tableRect.height,
               })
             }
-            const label = colBundle.count > 1 ? `Columns ${colBundle.start + 1}-${colBundle.start + colBundle.count}` : `Column ${index + 1}`
-            setDragGhost({ type, index, label, x: moveEvent.clientX, y: moveEvent.clientY })
 
             let bestCol = columnGrips.find(g => moveEvent.clientX >= g.left && moveEvent.clientX <= g.left + g.width)
             if (!bestCol && columnGrips.length > 0) {
@@ -179,9 +184,31 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
               targetIdx = findSafeDropIndex(tableNode, 'col', targetIdx)
               pendingTargetIdx = targetIdx
 
+              const isBlocked = isHeaderStraddling(tableNode, 'col', index, targetIdx)
+              const label = colBundle.count > 1 ? `${colBundle.count}개 열 이동 중` : `열 ${index + 1}`
+              const snippets = extractCellTextSnippets(tableNode, 'col', index, 4)
+              setDragGhost({
+                type,
+                index,
+                label,
+                x: moveEvent.clientX,
+                y: moveEvent.clientY,
+                snippets,
+                isBlocked,
+                targetIdx,
+              })
+
               const targetGrip = columnGrips[targetIdx]
               const lineX = targetGrip ? (isRightSide ? targetGrip.left + targetGrip.width : targetGrip.left) : (isRightSide ? bestCol.left + bestCol.width : bestCol.left)
-              setDragIndicator({ type: 'col', left: lineX - 1.5, top: tableRect.top, width: 3, height: tableRect.height })
+              setDragIndicator({
+                type: 'col',
+                left: lineX - 1.5,
+                top: tableRect.top,
+                width: 3,
+                height: tableRect.height,
+                isBlocked,
+                blockMessage: isBlocked ? '헤더와 일반 셀에 걸쳐 이동할 수 없습니다' : undefined,
+              })
             } else {
               setDragIndicator(null)
               pendingTargetIdx = -1
@@ -198,8 +225,6 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
                 height: endGrip.top + endGrip.height - startGrip.top,
               })
             }
-            const label = rowBundle.count > 1 ? `Rows ${rowBundle.start + 1}-${rowBundle.start + rowBundle.count}` : `Row ${index + 1}`
-            setDragGhost({ type, index, label, x: moveEvent.clientX, y: moveEvent.clientY })
 
             let bestRow = rowGrips.find(g => moveEvent.clientY >= g.top && moveEvent.clientY <= g.top + g.height)
             if (!bestRow && rowGrips.length > 0) {
@@ -215,9 +240,31 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
               targetIdx = findSafeDropIndex(tableNode, 'row', targetIdx)
               pendingTargetIdx = targetIdx
 
+              const isBlocked = isHeaderStraddling(tableNode, 'row', index, targetIdx)
+              const label = rowBundle.count > 1 ? `${rowBundle.count}개 행 이동 중` : `행 ${index + 1}`
+              const snippets = extractCellTextSnippets(tableNode, 'row', index, 4)
+              setDragGhost({
+                type,
+                index,
+                label,
+                x: moveEvent.clientX,
+                y: moveEvent.clientY,
+                snippets,
+                isBlocked,
+                targetIdx,
+              })
+
               const targetGrip = rowGrips[targetIdx]
               const lineY = targetGrip ? (isBottomSide ? targetGrip.top + targetGrip.height : targetGrip.top) : (isBottomSide ? bestRow.top + bestRow.height : bestRow.top)
-              setDragIndicator({ type: 'row', left: tableRect.left, top: lineY - 1.5, width: tableRect.width, height: 3 })
+              setDragIndicator({
+                type: 'row',
+                left: tableRect.left,
+                top: lineY - 1.5,
+                width: tableRect.width,
+                height: 3,
+                isBlocked,
+                blockMessage: isBlocked ? '헤더와 일반 셀에 걸쳐 이동할 수 없습니다' : undefined,
+              })
             } else {
               setDragIndicator(null)
               pendingTargetIdx = -1
@@ -235,26 +282,30 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         setDragGhost(null)
 
         if (isDragging) {
-          if (isGripSelected && pendingTargetIdx >= 0 && pendingTargetIdx !== index) {
-            if (type === 'col') {
-              moveTableColumn(editor, tableRect.pos, index, pendingTargetIdx)
-            } else {
-              moveTableRow(editor, tableRect.pos, index, pendingTargetIdx)
+          if (isGripSelected && pendingTargetIdx >= 0 && pendingTargetIdx !== index && tableNode) {
+            const isBlocked = isHeaderStraddling(tableNode, type, index, pendingTargetIdx)
+            if (!isBlocked) {
+              if (type === 'col') {
+                moveTableColumn(editor, tableRect.pos, index, pendingTargetIdx)
+              } else {
+                moveTableRow(editor, tableRect.pos, index, pendingTargetIdx)
+              }
+              setTimeout(updateTableRect, 50)
             }
-            setTimeout(updateTableRect, 50)
           }
         } else {
-          // Pure click action: select row/col if not selected, or keep selection and trigger menu
-          if (!isGripSelected) {
-            onSelectGrip(type, index)(e)
-          }
-          setTimeout(() => {
+          // Pure click action: select row/col if not selected, or keep selection and ALWAYS trigger menu
+          focusTableGrip(editor, type, index, currentTableEl, tableRect?.pos ?? -1)
+          requestAnimationFrame(() => {
             if (type === 'col') {
               window.dispatchEvent(new CustomEvent('tiptap:open-table-col-menu'))
             } else {
               window.dispatchEvent(new CustomEvent('tiptap:open-table-row-menu'))
             }
-          }, 15)
+            if (editor.view && !editor.view.isDestroyed) {
+              editor.view.dispatch(editor.state.tr.setMeta('tableMenuTrigger', true))
+            }
+          })
         }
       }
 
@@ -402,55 +453,15 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         }}
       />
 
-      {/* 4. Drag Cursor-Following Ghost Preview Badge */}
-      {dragGhost && (
-        <div
-          className="fixed pointer-events-none z-[1450] flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900/95 dark:bg-zinc-100/95 text-white dark:text-zinc-900 text-xs font-semibold shadow-2xl backdrop-blur-md -translate-x-1/2 -translate-y-9 select-none animate-in fade-in-0 zoom-in-95 duration-75"
-          style={{ left: dragGhost.x, top: dragGhost.y }}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 dark:bg-violet-500 animate-pulse" />
-          <span>{dragGhost.label}</span>
-        </div>
-      )}
-
-      {/* 5. Drag Source Highlight Overlay (dashed border + translucent fill) */}
-      {draggingSource && (
-        <div
-          className="fixed pointer-events-none bg-indigo-500/15 dark:bg-violet-500/20 border-2 border-dashed border-indigo-500/70 dark:border-violet-400/70 z-[1390] rounded transition-all duration-75"
-          style={{
-            left: draggingSource.left,
-            top: draggingSource.top,
-            width: draggingSource.width,
-            height: draggingSource.height,
-          }}
-        />
-      )}
-
-      {/* 5. Drag Drop Position Indicator Guide Bar */}
-      {dragIndicator && (
-        <div
-          className="fixed pointer-events-none bg-indigo-500 dark:bg-violet-400 z-[1400] shadow-[0_0_10px_rgba(99,102,241,0.9)] rounded-full transition-all duration-75"
-          style={{
-            left: dragIndicator.left,
-            top: dragIndicator.top,
-            width: dragIndicator.width,
-            height: dragIndicator.height,
-          }}
-        />
-      )}
-
-      {/* 6. Real-time Column Resizing Full-Height Vertical Guide Line */}
-      {resizingGuideX !== null && (
-        <div
-          className="fixed pointer-events-none bg-indigo-500 dark:bg-violet-400 z-[1400] shadow-[0_0_10px_rgba(99,102,241,0.95)] rounded-full transition-none"
-          style={{
-            left: resizingGuideX - 1.5,
-            top: tableRect.top,
-            width: 3,
-            height: tableRect.height,
-          }}
-        />
-      )}
+      {/* 4. Drag & Resize Visual Overlays */}
+      <TableDragOverlays
+        dragGhost={dragGhost}
+        draggingSource={draggingSource}
+        dragIndicator={dragIndicator}
+        resizingGuideX={resizingGuideX}
+        tableRectTop={tableRect.top}
+        tableRectHeight={tableRect.height}
+      />
     </div>,
     (appendTo?.current as HTMLElement) || (typeof document !== 'undefined' ? document.body : (null as any)),
   )

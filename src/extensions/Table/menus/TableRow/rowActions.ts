@@ -2,6 +2,7 @@ import { Editor } from '@tiptap/react'
 import { TableMap } from '@tiptap/pm/tables'
 import { findTable, isCellSelection } from '../../utils'
 import { moveTableRow } from '../../utils/TableDndUtils'
+import { isHeaderStraddling } from '../../utils/TableHeaderStraddleUtils'
 import {
   getClusterRowRange,
   duplicateRowCluster,
@@ -120,6 +121,7 @@ export const moveRowUp = (editor: Editor, rowIndex: number) => {
   const range = getSelectedRowRange(editor)
   const targetIdx = findJumpMoveIndex(table.node, 'row', range.min, 'prev')
   if (targetIdx >= 0) {
+    if (isHeaderStraddling(table.node, 'row', range.min, targetIdx)) return
     moveTableRow(editor, table.pos, range.min, targetIdx)
   }
 }
@@ -130,6 +132,7 @@ export const moveRowDown = (editor: Editor, rowIndex: number) => {
   const range = getSelectedRowRange(editor)
   const targetIdx = findJumpMoveIndex(table.node, 'row', range.min, 'next')
   if (targetIdx >= 0) {
+    if (isHeaderStraddling(table.node, 'row', range.min, targetIdx)) return
     moveTableRow(editor, table.pos, range.min, targetIdx)
   }
 }

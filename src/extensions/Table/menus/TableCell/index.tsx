@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import * as Popover from '@radix-ui/react-popover'
 import { CellSelection } from '@tiptap/pm/tables'
 import { isCellSelection } from '../../utils'
+import { isSelectionStraddlingHeader } from '../../utils/TableHeaderStraddleUtils'
 import { Icon } from '@/components/ui/Icon'
 import { MenuProps } from '@/components/menus/types'
 import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
@@ -224,6 +225,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   )
 
   const onMergeCells = useCallback(() => {
+    if (isSelectionStraddlingHeader(editor)) return
     editor.chain().focus().mergeCells().run()
     setMenuOpen(false)
   }, [editor])
@@ -280,7 +282,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
     }
   }, [editor])
 
-  const canMerge = editor.can().mergeCells()
+  const canMerge = editor.can().mergeCells() && !isSelectionStraddlingHeader(editor)
   const canSplit = editor.can().splitCell()
 
   const itemClass =
