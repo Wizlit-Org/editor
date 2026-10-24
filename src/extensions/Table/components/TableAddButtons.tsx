@@ -338,8 +338,8 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
   const singlePillClass = `${pillClass} bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-violet-500/90 border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white`
   const mergedPillClass = `${pillClass} bg-indigo-600/35 hover:bg-indigo-600/50 active:bg-indigo-600/90 dark:bg-violet-500/35 dark:hover:bg-violet-500/50 dark:active:bg-violet-500/90 border border-indigo-500/40 dark:border-violet-400/40 text-indigo-700 dark:text-violet-200 active:text-white`
 
-  const editorContentLeft = tableRect.editorLeft ?? (tableRect.wrapperLeft !== undefined ? tableRect.wrapperLeft + 120 : tableRect.left)
-  const rowGripLeft = editorContentLeft - 15 - offset.x
+  const originLeft = tableRect.originLeft !== undefined ? tableRect.originLeft : tableRect.left
+  const rowGripLeft = originLeft - 15 - offset.x
 
   return createPortal(
     <div id="table-add-buttons-portal" className="pointer-events-auto" style={{ zIndex: 15, position: 'relative' }}>

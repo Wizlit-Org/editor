@@ -13,6 +13,7 @@ export interface TableRectInfo {
   wrapperLeft?: number
   wrapperRight?: number
   editorLeft?: number
+  originLeft?: number
 }
 
 export interface GripItem {
@@ -83,6 +84,7 @@ export function useTableGrips(editor: Editor) {
     const wrapper = currentTableEl.closest('.tableWrapper') as HTMLElement | null
     const wr = wrapper ? wrapper.getBoundingClientRect() : r
     const editorLeft = editor.view?.dom ? editor.view.dom.getBoundingClientRect().left : r.left
+    const originLeft = r.left + (wrapper ? wrapper.scrollLeft : 0)
 
     setTableRect({
       top: r.top,
@@ -95,6 +97,7 @@ export function useTableGrips(editor: Editor) {
       wrapperLeft: wr.left,
       wrapperRight: wr.right,
       editorLeft,
+      originLeft,
     })
 
     const tableNode = tablePos >= 0 ? editor.state.doc.nodeAt(tablePos) : null

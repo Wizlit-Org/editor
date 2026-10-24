@@ -24,26 +24,6 @@
     }
   }
 
-  /* 편집 모드 한정: 좌측 거터(드래그핸들 + / ⠿ 위치 및 에디터 좌측 여백)까지 자연스럽게 확장하여 인위적 절단 방지 */
-  &[contenteditable="true"] {
-    .tableWrapper {
-      margin-left: -120px !important;
-      padding-left: 120px !important;
-      width: calc(100% + 120px) !important;
-      max-width: calc(100% + 120px) !important;
-    }
-  }
-
-  /* 읽기 모드 한정: 기존 규격 100% 보존 */
-  &:not([contenteditable="true"]),
-  &[contenteditable="false"] {
-    .tableWrapper {
-      margin-left: calc((100% - 100cqw) / 2) !important;
-      padding-left: calc((100cqw - 100%) / 2) !important;
-      width: 100cqw !important;
-      max-width: 100cqw !important;
-    }
-  }
 
   table {
     @apply border-collapse border-black/10 rounded box-border;

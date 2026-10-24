@@ -62,6 +62,8 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       const rect = wrapper.getBoundingClientRect()
       // Skip if wrapper is zero-sized or out of viewport vertically
       if (rect.width <= 0 || rect.height <= 0 || rect.bottom < 0 || rect.top > window.innerHeight) {
+        wrapper.style.maskImage = ''
+        ;(wrapper.style as any).webkitMaskImage = ''
         return
       }
 
@@ -69,11 +71,22 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       const hasHorizontalScroll = scrollWidth > clientWidth + 1
 
       if (!hasHorizontalScroll) {
+        wrapper.style.maskImage = ''
+        ;(wrapper.style as any).webkitMaskImage = ''
         return
       }
 
       const showLeft = scrollLeft > 2
       const showRight = scrollLeft < scrollWidth - clientWidth - 2
+
+      if (editor.isEditable && showLeft) {
+        const mask = 'linear-gradient(to right, transparent 0px, rgba(0,0,0,0.3) 24px, black 64px)'
+        wrapper.style.maskImage = mask
+        ;(wrapper.style as any).webkitMaskImage = mask
+      } else {
+        wrapper.style.maskImage = ''
+        ;(wrapper.style as any).webkitMaskImage = ''
+      }
 
       nextStates.push({
         id: `table-wrapper-${index}`,
@@ -148,6 +161,16 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       editor.off('update', scheduledUpdate)
       window.removeEventListener('scroll', scheduledUpdate, { capture: true })
       window.removeEventListener('resize', scheduledUpdate)
+
+      // Clean up inline maskImage on table wrappers
+      const editorDom = editor.view?.dom
+      if (editorDom) {
+        editorDom.querySelectorAll('.tableWrapper').forEach((el) => {
+          const w = el as HTMLElement
+          w.style.maskImage = ''
+          ;(w.style as any).webkitMaskImage = ''
+        })
+      }
     }
   }, [editor, updateTableScrollStates])
 
@@ -179,15 +202,9 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
         const visibleLeft = Math.max(t.rect.left, containerRect.left)
         const visibleRight = Math.min(t.rect.left + t.rect.width, containerRect.right)
 
-        const editorContentLeft = editor.view?.dom ? editor.view.dom.getBoundingClientRect().left : visibleLeft
-        const leftFadeX = editor.isEditable
-          ? editorContentLeft - 48 - offset.x
-          : visibleLeft - offset.x
-        const leftFadeWidth = editor.isEditable ? '48px' : '36px'
-
         return (
           <React.Fragment key={t.id}>
-            {/* Left Edge Fade Shadow Indicator & Edit mode glass blur */}
+            {/* Left Edge Fade Shadow / Frosted Glass Blur Indicator */}
             <div
               style={{
                 position: 'fixed',
@@ -196,18 +213,20 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
                 transition: 'opacity 0.2s ease',
                 opacity: t.showLeft ? 1 : 0,
                 top: t.rect.top - offset.y,
-                left: leftFadeX,
-                width: leftFadeWidth,
+                left: visibleLeft - offset.x,
+                width: editor.isEditable ? '64px' : '36px',
                 height: t.rect.height,
-                background: 'linear-gradient(to right, rgba(0,0,0,0.18), transparent)',
                 ...(editor.isEditable
                   ? {
-                      backdropFilter: 'blur(4px)',
-                      WebkitBackdropFilter: 'blur(4px)',
-                      maskImage: 'linear-gradient(to right, transparent 0px, black 48px)',
-                      WebkitMaskImage: 'linear-gradient(to right, transparent 0px, black 48px)',
+                      background: 'transparent',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
+                      maskImage: 'linear-gradient(to right, black 0%, rgba(0,0,0,0.6) 50%, transparent 100%)',
+                      WebkitMaskImage: 'linear-gradient(to right, black 0%, rgba(0,0,0,0.6) 50%, transparent 100%)',
                     }
-                  : {}),
+                  : {
+                      background: 'linear-gradient(to right, rgba(0,0,0,0.18), transparent)',
+                    }),
               }}
             />
 
