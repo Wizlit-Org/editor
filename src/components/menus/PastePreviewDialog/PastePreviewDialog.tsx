@@ -246,7 +246,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
 
   const isVisible = isEntered && !isExiting
   const animTiming = isExiting
-    ? '200ms cubic-bezier(0.16, 1, 0.3, 1)'
+    ? '200ms cubic-bezier(0.4, 0, 0.2, 1)'
     : '260ms cubic-bezier(0.16, 1, 0.3, 1)'
 
   const renderKbd = (keyText: string) => (
@@ -286,9 +286,9 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
         backgroundImage: isDark
           ? 'radial-gradient(circle at 50% 18%, rgba(79, 70, 229, 0.14) 0%, rgba(9, 9, 11, 0.78) 70%)'
           : 'radial-gradient(circle at 50% 18%, rgba(224, 231, 255, 0.55) 0%, rgba(255, 255, 255, 0.72) 70%)',
-        backdropFilter: isVisible ? 'blur(24px) saturate(160%)' : 'blur(0px) saturate(100%)',
-        WebkitBackdropFilter: isVisible ? 'blur(24px) saturate(160%)' : 'blur(0px) saturate(100%)',
-        transition: `opacity ${animTiming}, backdrop-filter ${animTiming}, -webkit-backdrop-filter ${animTiming}`,
+        backdropFilter: 'blur(24px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+        transition: `opacity ${animTiming}`,
       }}
       className="fixed inset-0 z-[1450] flex flex-col items-center justify-between select-none"
     >
@@ -302,7 +302,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
           transform: isVisible
             ? 'translateY(0px) scale(1)'
             : isExiting
-              ? 'translateY(-8px) scale(0.96)'
+              ? 'translateY(6px) scale(0.96)'
               : 'translateY(-10px) scale(0.96)',
           transition: `opacity ${animTiming}, transform ${animTiming}`,
         }}
@@ -387,7 +387,11 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
           flex: 1, width: '100%', minHeight: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
           opacity: isVisible ? 1 : 0,
-          transform: isVisible ? 'scale(1)' : 'scale(0.96)',
+          transform: isVisible
+            ? 'translateY(0px) scale(1)'
+            : isExiting
+              ? 'translateY(6px) scale(0.96)'
+              : 'scale(0.96)',
           transition: `opacity ${animTiming}, transform ${animTiming}`,
         }}
       >
@@ -404,7 +408,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
           transform: isVisible
             ? 'translateY(0px) scale(1)'
             : isExiting
-              ? 'translateY(8px) scale(0.96)'
+              ? 'translateY(6px) scale(0.96)'
               : 'translateY(10px) scale(0.96)',
           transition: `opacity ${animTiming}, transform ${animTiming}`,
         }}
