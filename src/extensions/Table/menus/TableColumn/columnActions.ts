@@ -117,7 +117,26 @@ export const duplicateColumn = (editor: Editor, colIndex: number) => {
   const range = getSelectedColRange(editor)
   const min = Math.min(colIndex, range.min)
   const max = Math.max(colIndex, range.max)
-  duplicateColCluster(editor, min, max)
+  const success = duplicateColCluster(editor, min, max)
+  if (success) {
+    setTimeout(() => {
+      try {
+        const table = findTable(editor.state.selection)
+        if (table) {
+          const dom = editor.view.nodeDOM(table.pos) as HTMLElement | null
+          const tableEl = dom && dom.nodeType === 1 ? (dom.tagName === 'TABLE' ? dom : dom.querySelector('table')) : null
+          if (tableEl) {
+            const rows = tableEl.querySelectorAll('tr')
+            if (rows.length > 0) {
+              const cells = rows[0].querySelectorAll('th, td')
+              const targetCell = cells[Math.min(cells.length - 1, max + 1)] as HTMLElement
+              targetCell?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+            }
+          }
+        }
+      } catch {}
+    }, 50)
+  }
 }
 
 export const deleteColumn = (editor: Editor, colIndex?: number) => {

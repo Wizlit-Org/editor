@@ -6,6 +6,7 @@ import { findTable, isCellSelection } from '../../utils'
 import { expandRectToMergedCells } from '../../utils/TableClusterUtils'
 import { isSelectionStraddlingHeader, hasMergedCellsInSelection } from '../../utils/TableHeaderStraddleUtils'
 import { useContainingBlockOffset, ContainingBlockAnchor } from '../../utils/containingBlock'
+import { startAutoScroll } from '../../utils/TableAutoScroll'
 import { Icon } from '@/components/ui/Icon'
 import { MenuProps } from '@/components/menus/types'
 import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
@@ -213,7 +214,30 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
     if (startPos === null) return
     let hasMoved = false
 
+    const tableWrapper = startCells[0]?.closest('.tableWrapper') as HTMLElement | null
+    const scrollContainer = (appendTo?.current as HTMLElement) || (typeof window !== 'undefined' ? window : null)
+
+    const updateSelectionAtCoords = (clientX: number, clientY: number) => {
+      const targetEl = document.elementFromPoint(clientX, clientY)?.closest('td, th') as HTMLElement | null
+      if (!targetEl) return
+      const endPos = getCellPosFromDOM(view, targetEl)
+      if (endPos === null) return
+      try {
+        const cellSelection = new CellSelection(view.state.doc.resolve(startPos), view.state.doc.resolve(endPos))
+        view.dispatch(view.state.tr.setSelection(cellSelection))
+      } catch {}
+    }
+
+    const autoScroller = startAutoScroll({
+      tableWrapper,
+      scrollContainer,
+      onTick: (cx, cy) => {
+        if (hasMoved) updateSelectionAtCoords(cx, cy)
+      },
+    })
+
     const cleanUpPointerDrag = () => {
+      autoScroller.stop()
       isDraggingHandleRef.current = false
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerup', handlePointerUp)
@@ -228,14 +252,8 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
     const handlePointerMove = (moveEvent: PointerEvent) => {
       if (Math.hypot(moveEvent.clientX - e.clientX, moveEvent.clientY - e.clientY) > 6) hasMoved = true
       if (!hasMoved) return
-      const targetEl = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)?.closest('td, th') as HTMLElement | null
-      if (!targetEl) return
-      const endPos = getCellPosFromDOM(view, targetEl)
-      if (endPos === null) return
-      try {
-        const cellSelection = new CellSelection(view.state.doc.resolve(startPos), view.state.doc.resolve(endPos))
-        view.dispatch(view.state.tr.setSelection(cellSelection))
-      } catch {}
+      autoScroller.updateCoords(moveEvent.clientX, moveEvent.clientY)
+      updateSelectionAtCoords(moveEvent.clientX, moveEvent.clientY)
     }
     const handlePointerUp = () => {
       cleanUpPointerDrag()
@@ -244,7 +262,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
     window.addEventListener('pointermove', handlePointerMove)
     window.addEventListener('pointerup', handlePointerUp)
     window.addEventListener('keydown', onKeyDown, { capture: true })
-  }, [editor, getActiveCells])
+  }, [editor, getActiveCells, appendTo])
 
   const onMergeCells = useCallback(() => {
     if (isSelectionStraddlingHeader(editor)) return
@@ -351,7 +369,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   const dangerClass = "w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-red-600 dark:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 select-none cursor-pointer"
   const isExpanded = isBtnHovered || menuOpen
 
-  const shouldRender = mounted && !isScrolling && typeof document !== 'undefined' && selectionRect && !editor.view?.dragging && (isCellSelected || editor.isActive('tableCell') || editor.isActive('tableHeader'))
+  const shouldRender = mounted && (!isScrolling || isDraggingHandleRef.current) && typeof document !== 'undefined' && selectionRect && !editor.view?.dragging && (isCellSelected || editor.isActive('tableCell') || editor.isActive('tableHeader'))
   if (!shouldRender) return <></>
 
   return (

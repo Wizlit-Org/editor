@@ -6,10 +6,11 @@ import { useTableGrips } from '../hooks/useTableGrips'
 import { TableAddBar } from './TableAddBar'
 import { TableDragOverlays, DragGhostData, DragIndicatorData } from './TableDragOverlays'
 import { moveTableColumn, moveTableRow } from '../utils/TableDndUtils'
-import { isCellSelection } from '../utils'
+import { isCellSelection, findTable } from '../utils'
 import { selectColRange, selectRowRange, focusTableGrip, isGripInCurrentSelection } from '../utils/TableClusterUtils'
 import { hasMergedCellsInRowSelection, hasMergedCellsInColSelection, isHeaderStraddling } from '../utils/TableHeaderStraddleUtils'
 import { useContainingBlockOffset, ContainingBlockAnchor } from '../utils/containingBlock'
+import { startAutoScroll } from '../utils/TableAutoScroll'
 
 export interface TableAddButtonsProps {
   editor: Editor
@@ -53,7 +54,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       const tableNode = editor.state.doc.nodeAt(tableRect.pos)
       if (!tableNode) return
 
-      const isGripSelected = isGripInCurrentSelection(editor, type, index)
+      const isGripSelected = isGripInCurrentSelection(editor, type, index, tableRect.pos)
       const initialSelection = editor.state.selection
 
       let start = index
@@ -82,7 +83,88 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       const count = end - start + 1
       ;(window as any).__isTableDragging = true
 
+      const wrapperEl = currentTableEl ? (currentTableEl.closest('.tableWrapper') as HTMLElement | null) : null
+      const scrollContainer = (appendTo?.current as HTMLElement) || (typeof window !== 'undefined' ? window : null)
+
+      const handleDragMoveAtCoords = (clientX: number, clientY: number) => {
+        const dist = Math.hypot(clientX - startX, clientY - startY)
+        if (dist > 4) {
+          if (!isDragging) {
+            window.dispatchEvent(new CustomEvent('tiptap:close-table-menus'))
+            isDragging = true
+          }
+
+          if (!isGripSelected) {
+            document.body.style.cursor = 'cell'
+            if (type === 'col') {
+              let hCol = columnGrips.find(g => clientX >= g.left && clientX <= g.left + g.width)
+              if (!hCol && columnGrips.length > 0) hCol = clientX < columnGrips[0].left ? columnGrips[0] : columnGrips[columnGrips.length - 1]
+              if (hCol) editor.view.dispatch(selectColRange(editor.state.tr, Math.min(index, hCol.index), Math.max(index, hCol.index), tableRect.pos))
+            } else {
+              let hRow = rowGrips.find(g => clientY >= g.top && clientY <= g.top + g.height)
+              if (!hRow && rowGrips.length > 0) hRow = clientY < rowGrips[0].top ? rowGrips[0] : rowGrips[rowGrips.length - 1]
+              if (hRow) editor.view.dispatch(selectRowRange(editor.state.tr, Math.min(index, hRow.index), Math.max(index, hRow.index), tableRect.pos))
+            }
+            return
+          }
+
+          document.body.style.cursor = hasMerged ? 'not-allowed' : type === 'col' ? 'col-resize' : 'row-resize'
+          if (hasMerged) {
+            pendingTargetIdx = -1
+            setDragIndicator(null)
+            setDragGhost({ type, index, label: '이동 불가 (병합 셀 포함)', x: clientX, y: clientY, isBlocked: true, targetIdx: -1 })
+            return
+          }
+
+          if (type === 'col') {
+            let bCol = columnGrips.find(g => clientX >= g.left && clientX <= g.left + g.width)
+            if (!bCol && columnGrips.length > 0) bCol = clientX < columnGrips[0].left ? columnGrips[0] : columnGrips[columnGrips.length - 1]
+            if (bCol) {
+              const targetIdx = clientX > bCol.left + bCol.width / 2 ? bCol.index + 1 : bCol.index
+              pendingTargetIdx = targetIdx
+              const isNoOp = targetIdx >= start && targetIdx <= end + 1
+              const isBlocked = isHeaderStraddling(tableNode, 'col', index, Math.min(columnGrips.length - 1, targetIdx))
+              const label = isBlocked ? '헤더 이동 불가' : count > 1 ? `${count}열 이동` : `${index + 1}열 이동`
+              setDragGhost({ type, index, label, x: clientX, y: clientY, isBlocked, targetIdx })
+              if (isNoOp || isBlocked) {
+                setDragIndicator(null)
+              } else {
+                const lineX = targetIdx < columnGrips.length ? columnGrips[targetIdx].left : columnGrips[columnGrips.length - 1].left + columnGrips[columnGrips.length - 1].width
+                setDragIndicator({ type: 'col', left: lineX - 1, top: tableRect.top, width: 2, height: tableRect.height, isBlocked: false })
+              }
+            }
+          } else {
+            let bRow = rowGrips.find(g => clientY >= g.top && clientY <= g.top + g.height)
+            if (!bRow && rowGrips.length > 0) bRow = clientY < rowGrips[0].top ? rowGrips[0] : rowGrips[rowGrips.length - 1]
+            if (bRow) {
+              const targetIdx = clientY > bRow.top + bRow.height / 2 ? bRow.index + 1 : bRow.index
+              pendingTargetIdx = targetIdx
+              const isNoOp = targetIdx >= start && targetIdx <= end + 1
+              const isBlocked = isHeaderStraddling(tableNode, 'row', index, Math.min(rowGrips.length - 1, targetIdx))
+              const label = isBlocked ? '헤더 이동 불가' : count > 1 ? `${count}행 이동` : `${index + 1}행 이동`
+              setDragGhost({ type, index, label, x: clientY, y: clientY, isBlocked, targetIdx })
+              if (isNoOp || isBlocked) {
+                setDragIndicator(null)
+              } else {
+                const lineY = targetIdx < rowGrips.length ? rowGrips[targetIdx].top : rowGrips[rowGrips.length - 1].top + rowGrips[rowGrips.length - 1].height
+                setDragIndicator({ type: 'row', left: tableRect.left, top: lineY - 1, width: tableRect.width, height: 2, isBlocked: false })
+              }
+            }
+          }
+        }
+      }
+
+      const autoScroller = startAutoScroll({
+        tableWrapper: wrapperEl,
+        scrollContainer,
+        onTick: (cx, cy) => {
+          updateTableRect()
+          handleDragMoveAtCoords(cx, cy)
+        },
+      })
+
       const cleanUpDrag = () => {
+        autoScroller.stop()
         ;(window as any).__isTableDragging = false
         window.removeEventListener('mousemove', onMouseMove)
         window.removeEventListener('mouseup', onMouseUp)
@@ -110,71 +192,8 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       }
 
       const onMouseMove = (moveEvent: MouseEvent) => {
-        const dist = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY)
-        if (dist > 4) {
-          if (!isDragging) {
-            window.dispatchEvent(new CustomEvent('tiptap:close-table-menus'))
-            isDragging = true
-          }
-
-          if (!isGripSelected) {
-            document.body.style.cursor = 'cell'
-            if (type === 'col') {
-              let hCol = columnGrips.find(g => moveEvent.clientX >= g.left && moveEvent.clientX <= g.left + g.width)
-              if (!hCol && columnGrips.length > 0) hCol = moveEvent.clientX < columnGrips[0].left ? columnGrips[0] : columnGrips[columnGrips.length - 1]
-              if (hCol) editor.view.dispatch(selectColRange(editor.state.tr, Math.min(index, hCol.index), Math.max(index, hCol.index), tableRect.pos))
-            } else {
-              let hRow = rowGrips.find(g => moveEvent.clientY >= g.top && moveEvent.clientY <= g.top + g.height)
-              if (!hRow && rowGrips.length > 0) hRow = moveEvent.clientY < rowGrips[0].top ? rowGrips[0] : rowGrips[rowGrips.length - 1]
-              if (hRow) editor.view.dispatch(selectRowRange(editor.state.tr, Math.min(index, hRow.index), Math.max(index, hRow.index), tableRect.pos))
-            }
-            return
-          }
-
-          document.body.style.cursor = hasMerged ? 'not-allowed' : type === 'col' ? 'col-resize' : 'row-resize'
-          if (hasMerged) {
-            pendingTargetIdx = -1
-            setDragIndicator(null)
-            setDragGhost({ type, index, label: '이동 불가 (병합 셀 포함)', x: moveEvent.clientX, y: moveEvent.clientY, isBlocked: true, targetIdx: -1 })
-            return
-          }
-
-          if (type === 'col') {
-            let bCol = columnGrips.find(g => moveEvent.clientX >= g.left && moveEvent.clientX <= g.left + g.width)
-            if (!bCol && columnGrips.length > 0) bCol = moveEvent.clientX < columnGrips[0].left ? columnGrips[0] : columnGrips[columnGrips.length - 1]
-            if (bCol) {
-              const targetIdx = moveEvent.clientX > bCol.left + bCol.width / 2 ? bCol.index + 1 : bCol.index
-              pendingTargetIdx = targetIdx
-              const isNoOp = targetIdx >= start && targetIdx <= end + 1
-              const isBlocked = isHeaderStraddling(tableNode, 'col', index, Math.min(columnGrips.length - 1, targetIdx))
-              const label = isBlocked ? '헤더 이동 불가' : count > 1 ? `${count}열 이동` : `${index + 1}열 이동`
-              setDragGhost({ type, index, label, x: moveEvent.clientX, y: moveEvent.clientY, isBlocked, targetIdx })
-              if (isNoOp || isBlocked) {
-                setDragIndicator(null)
-              } else {
-                const lineX = targetIdx < columnGrips.length ? columnGrips[targetIdx].left : columnGrips[columnGrips.length - 1].left + columnGrips[columnGrips.length - 1].width
-                setDragIndicator({ type: 'col', left: lineX - 1, top: tableRect.top, width: 2, height: tableRect.height, isBlocked: false })
-              }
-            }
-          } else {
-            let bRow = rowGrips.find(g => moveEvent.clientY >= g.top && moveEvent.clientY <= g.top + g.height)
-            if (!bRow && rowGrips.length > 0) bRow = moveEvent.clientY < rowGrips[0].top ? rowGrips[0] : rowGrips[rowGrips.length - 1]
-            if (bRow) {
-              const targetIdx = moveEvent.clientY > bRow.top + bRow.height / 2 ? bRow.index + 1 : bRow.index
-              pendingTargetIdx = targetIdx
-              const isNoOp = targetIdx >= start && targetIdx <= end + 1
-              const isBlocked = isHeaderStraddling(tableNode, 'row', index, Math.min(rowGrips.length - 1, targetIdx))
-              const label = isBlocked ? '헤더 이동 불가' : count > 1 ? `${count}행 이동` : `${index + 1}행 이동`
-              setDragGhost({ type, index, label, x: moveEvent.clientX, y: moveEvent.clientY, isBlocked, targetIdx })
-              if (isNoOp || isBlocked) {
-                setDragIndicator(null)
-              } else {
-                const lineY = targetIdx < rowGrips.length ? rowGrips[targetIdx].top : rowGrips[rowGrips.length - 1].top + rowGrips[rowGrips.length - 1].height
-                setDragIndicator({ type: 'row', left: tableRect.left, top: lineY - 1, width: tableRect.width, height: 2, isBlocked: false })
-              }
-            }
-          }
-        }
+        autoScroller.updateCoords(moveEvent.clientX, moveEvent.clientY)
+        handleDragMoveAtCoords(moveEvent.clientX, moveEvent.clientY)
       }
 
       const onMouseUp = () => {
@@ -216,12 +235,23 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       if (tableNode) {
         const map = TableMap.get(tableNode)
         editor.chain().focus().setTextSelection(tableRect!.pos + 1 + map.map[map.width - 1] + 1).addColumnAfter().run()
-        setTimeout(updateTableRect, 50); return
+        setTimeout(() => {
+          updateTableRect()
+          if (currentTableEl) {
+            const rows = currentTableEl.querySelectorAll('tr')
+            if (rows.length > 0) {
+              const cells = rows[0].querySelectorAll('th, td')
+              const lastCell = cells[cells.length - 1] as HTMLElement
+              lastCell?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+            }
+          }
+        }, 50)
+        return
       }
     } catch {}
     editor.chain().focus().addColumnAfter().run()
     setTimeout(updateTableRect, 50)
-  }, [editor, tableRect, updateTableRect])
+  }, [editor, tableRect, updateTableRect, currentTableEl])
 
   const onAddRowAtEnd = useCallback((e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation()
@@ -230,20 +260,31 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       if (tableNode) {
         const map = TableMap.get(tableNode)
         editor.chain().focus().setTextSelection(tableRect!.pos + 1 + map.map[(map.height - 1) * map.width] + 1).addRowAfter().run()
-        setTimeout(updateTableRect, 50); return
+        setTimeout(() => {
+          updateTableRect()
+          if (currentTableEl) {
+            const rows = currentTableEl.querySelectorAll('tr')
+            if (rows.length > 0) {
+              const lastRow = rows[rows.length - 1] as HTMLElement
+              lastRow?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+            }
+          }
+        }, 50)
+        return
       }
     } catch {}
     editor.chain().focus().addRowAfter().run()
     setTimeout(updateTableRect, 50)
-  }, [editor, tableRect, updateTableRect])
+  }, [editor, tableRect, updateTableRect, currentTableEl])
 
-  if (!tableRect || !isHovered || !editor.isEditable || isScrolling || typeof document === 'undefined') return null
+  if (!tableRect || !isHovered || !editor.isEditable || (isScrolling && !(window as any).__isTableDragging) || typeof document === 'undefined') return null
 
   const tableNode = tableRect.pos >= 0 ? editor.state.doc.nodeAt(tableRect.pos) : null
   let selCol: { start: number; end: number } | null = null
   let selRow: { start: number; end: number } | null = null
 
-  if (tableNode && isCellSelection(editor.state.selection)) {
+  const selectedTable = findTable(editor.state.selection)
+  if (tableNode && isCellSelection(editor.state.selection) && selectedTable && selectedTable.pos === tableRect.pos) {
     try {
       const map = TableMap.get(tableNode)
       const selStart = (editor.state.selection as any).$anchorCell.start(-1)
@@ -278,7 +319,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
   const singlePillClass = `${pillClass} bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-violet-500/90 border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white`
   const mergedPillClass = `${pillClass} bg-indigo-600/35 hover:bg-indigo-600/50 active:bg-indigo-600/90 dark:bg-violet-500/35 dark:hover:bg-violet-500/50 dark:active:bg-violet-500/90 border border-indigo-500/40 dark:border-violet-400/40 text-indigo-700 dark:text-violet-200 active:text-white`
 
-  const rowGripLeft = (tableRect.wrapperLeft !== undefined ? Math.max(tableRect.left, tableRect.wrapperLeft) : tableRect.left) - 15 - offset.x
+  const rowGripLeft = (tableRect.wrapperLeft !== undefined ? tableRect.wrapperLeft : tableRect.left) - 15 - offset.x
 
   return createPortal(
     <div id="table-add-buttons-portal" className="pointer-events-auto" style={{ zIndex: 15, position: 'relative' }}>

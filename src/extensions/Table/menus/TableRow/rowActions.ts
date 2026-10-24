@@ -75,7 +75,23 @@ export const duplicateRow = (editor: Editor, rowIndex: number) => {
   const range = getSelectedRowRange(editor)
   const min = Math.min(rowIndex, range.min)
   const max = Math.max(rowIndex, range.max)
-  duplicateRowCluster(editor, min, max)
+  const success = duplicateRowCluster(editor, min, max)
+  if (success) {
+    setTimeout(() => {
+      try {
+        const table = findTable(editor.state.selection)
+        if (table) {
+          const dom = editor.view.nodeDOM(table.pos) as HTMLElement | null
+          const tableEl = dom && dom.nodeType === 1 ? (dom.tagName === 'TABLE' ? dom : dom.querySelector('table')) : null
+          if (tableEl) {
+            const rows = tableEl.querySelectorAll('tr')
+            const targetRow = rows[Math.min(rows.length - 1, max + 1)] as HTMLElement
+            targetRow?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+          }
+        }
+      } catch {}
+    }, 50)
+  }
 }
 
 export const deleteRow = (editor: Editor, rowIndex?: number) => {

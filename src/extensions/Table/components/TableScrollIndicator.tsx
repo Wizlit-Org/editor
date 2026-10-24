@@ -174,6 +174,16 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
           ? (visibleTop + visibleBottom) / 2 - 16 - offset.y
           : t.rect.top + t.rect.height / 2 - 16 - offset.y
 
+        const containerEl = (appendTo?.current as HTMLElement) || (editor.view?.dom as HTMLElement) || null
+        const containerRect = containerEl ? containerEl.getBoundingClientRect() : { left: 0, right: typeof window !== 'undefined' ? window.innerWidth : 0 }
+        const visibleLeft = Math.max(t.rect.left, containerRect.left)
+        const visibleRight = Math.min(t.rect.left + t.rect.width, containerRect.right)
+
+        const leftFadeX = editor.isEditable
+          ? Math.max(0, visibleLeft - 48) - offset.x
+          : visibleLeft - offset.x
+        const leftFadeWidth = editor.isEditable ? '48px' : '36px'
+
         return (
           <React.Fragment key={t.id}>
             {/* Left Edge Fade Shadow Indicator & Edit mode glass blur */}
@@ -185,16 +195,16 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
                 transition: 'opacity 0.2s ease',
                 opacity: t.showLeft ? 1 : 0,
                 top: t.rect.top - offset.y,
-                left: t.rect.left - offset.x,
-                width: '36px',
+                left: leftFadeX,
+                width: leftFadeWidth,
                 height: t.rect.height,
                 background: 'linear-gradient(to right, rgba(0,0,0,0.18), transparent)',
                 ...(editor.isEditable
                   ? {
                       backdropFilter: 'blur(4px)',
                       WebkitBackdropFilter: 'blur(4px)',
-                      maskImage: 'linear-gradient(to right, transparent 0px, black 36px)',
-                      WebkitMaskImage: 'linear-gradient(to right, transparent 0px, black 36px)',
+                      maskImage: 'linear-gradient(to right, transparent 0px, black 48px)',
+                      WebkitMaskImage: 'linear-gradient(to right, transparent 0px, black 48px)',
                     }
                   : {}),
               }}
@@ -209,7 +219,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
                 transition: 'opacity 0.2s ease',
                 opacity: t.showRight ? 1 : 0,
                 top: t.rect.top - offset.y,
-                left: t.rect.left + t.rect.width - 32 - offset.x,
+                left: visibleRight - 32 - offset.x,
                 width: '32px',
                 height: t.rect.height,
                 background: 'linear-gradient(to left, rgba(0,0,0,0.18), transparent)',
@@ -229,7 +239,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
               }`}
               style={{
                 top: centerY,
-                left: t.rect.left + 8 - offset.x,
+                left: visibleLeft + 12 - offset.x,
               }}
             >
               <Icon name="ChevronLeft" className="w-4 h-4" />
@@ -248,7 +258,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
               }`}
               style={{
                 top: centerY,
-                left: t.rect.left + t.rect.width - 40 - offset.x,
+                left: visibleRight - 44 - offset.x,
               }}
             >
               <Icon name="ChevronRight" className="w-4 h-4" />

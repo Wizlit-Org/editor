@@ -283,7 +283,7 @@ export function selectRowRange(tr: Transaction, minRow: number, maxRow: number, 
 
   const anchorPos = table.start + map.map[safeMin * map.width]
   const headPos = table.start + map.map[safeMax * map.width]
-  return tr.setSelection(CellSelection.rowSelection(tr.doc.resolve(anchorPos), tr.doc.resolve(headPos)))
+  return tr.setSelection(CellSelection.rowSelection(tr.doc.resolve(anchorPos), tr.doc.resolve(headPos))).setMeta('isGripSelection', true)
 }
 
 /**
@@ -305,16 +305,24 @@ export function selectColRange(tr: Transaction, minCol: number, maxCol: number, 
 
   const anchorPos = table.start + map.map[safeMin]
   const headPos = table.start + map.map[safeMax]
-  return tr.setSelection(CellSelection.colSelection(tr.doc.resolve(anchorPos), tr.doc.resolve(headPos)))
+  return tr.setSelection(CellSelection.colSelection(tr.doc.resolve(anchorPos), tr.doc.resolve(headPos))).setMeta('isGripSelection', true)
 }
 
 /**
  * Check if the given row or column grip index is inside the current CellSelection.
  */
-export function isGripInCurrentSelection(editor: Editor, type: 'col' | 'row', index: number): boolean {
+export function isGripInCurrentSelection(
+  editor: Editor,
+  type: 'col' | 'row',
+  index: number,
+  activeTablePos?: number,
+): boolean {
   const { selection } = editor.state
   const table = findTable(selection)
   if (!table || !isCellSelection(selection)) return false
+  if (activeTablePos !== undefined && activeTablePos >= 0 && table.pos !== activeTablePos) {
+    return false
+  }
 
   try {
     const map = TableMap.get(table.node)
@@ -390,7 +398,8 @@ export function focusTableGrip(
 ): void {
   try {
     let tr = editor.state.tr
-    if (!findTable(tr.selection)) {
+    const currentSelTable = findTable(tr.selection)
+    if (!currentSelTable || (tablePos >= 0 && currentSelTable.pos !== tablePos)) {
       let targetPos = -1
       if (currentTableEl) {
         const firstCell = currentTableEl.querySelector('td, th')
@@ -401,7 +410,10 @@ export function focusTableGrip(
         tr = tr.setSelection(TextSelection.near(tr.doc.resolve(targetPos)))
       }
     }
-    const newTr = type === 'col' ? selectColumn(index)(tr) : selectRow(index)(tr)
+    const newTr =
+      type === 'col'
+        ? selectColRange(tr, index, index, tablePos)
+        : selectRowRange(tr, index, index, tablePos)
     editor.view.dispatch(newTr)
     editor.view.dom.focus({ preventScroll: true })
   } catch (err) {
