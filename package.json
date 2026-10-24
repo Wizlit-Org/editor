@@ -35,7 +35,7 @@
   },
   "scripts": {
     "build:css": "tailwindcss -i src/styles/globals.css -o dist/styles/globals.css --minify",
-    "build": "npm run build:css && tsup src/index.ts --dts --format esm,cjs --clean",
+    "build": "tsup src/index.ts --dts --format esm,cjs --clean && npm run build:css",
     "dev": "npm run build && yalc push",
     "clean": "rimraf dist",
     "lint": "eslint . --ext .ts,.tsx",

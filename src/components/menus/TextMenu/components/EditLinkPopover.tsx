@@ -12,7 +12,7 @@ export const EditLinkPopover = ({ onSetLink }: EditLinkPopoverProps) => {
     <Popover.Root>
       <Popover.Trigger asChild>
         <Toolbar.Button
-          className="h-7 w-7 p-0 flex items-center justify-center text-zinc-700 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white hover:bg-white/60 active:bg-white/80 dark:hover:bg-white/[0.1] dark:active:bg-white/[0.16] rounded-lg border border-transparent hover:border-white/50 dark:hover:border-white/[0.08] transition-all duration-150"
+          className="h-7 w-7 p-0 inline-flex items-center justify-center leading-none text-zinc-700 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white hover:bg-white/60 active:bg-white/80 dark:hover:bg-white/[0.1] dark:active:bg-white/[0.16] rounded-lg border border-transparent hover:border-white/50 dark:hover:border-white/[0.08] transition-all duration-150"
           activeClassname="bg-indigo-500/15 text-indigo-600 dark:bg-indigo-400/20 dark:text-indigo-300 border-indigo-500/25 dark:border-indigo-400/30"
           tooltip="Set link"
         >

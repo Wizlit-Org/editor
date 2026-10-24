@@ -45,7 +45,7 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
       <Dropdown.Trigger asChild>
         <Toolbar.Button
           active={activeItem?.id !== 'paragraph' && !!activeItem?.type}
-          className="h-7 px-2.5 flex items-center gap-1.5 text-zinc-700 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white hover:bg-white/60 active:bg-white/80 dark:hover:bg-white/[0.1] dark:active:bg-white/[0.16] rounded-lg border border-transparent hover:border-white/50 dark:hover:border-white/[0.08] transition-all duration-150 text-xs font-medium"
+          className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 leading-none text-zinc-700 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white hover:bg-white/60 active:bg-white/80 dark:hover:bg-white/[0.1] dark:active:bg-white/[0.16] rounded-lg border border-transparent hover:border-white/50 dark:hover:border-white/[0.08] transition-all duration-150 text-xs font-medium"
           activeClassname="bg-indigo-500/15 text-indigo-600 dark:bg-indigo-400/20 dark:text-indigo-300 border-indigo-500/25 dark:border-indigo-400/30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5)]"
         >
           <Icon name={activeIcon} className="w-3.5 h-3.5 shrink-0" />
@@ -61,7 +61,13 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
         collisionPadding={12}
         className="z-[1350] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
       >
-        <div className="glass-menu flex flex-col gap-0.5 p-1.5 min-w-[13rem] max-h-[22rem] overflow-y-auto rounded-2xl bg-white/70 dark:bg-zinc-900/75 backdrop-blur-2xl backdrop-saturate-150 border border-white/75 dark:border-white/[0.14] ring-1 ring-slate-900/[0.06] dark:ring-black/50 shadow-[0_12px_36px_-4px_rgba(0,0,0,0.16),inset_0_1px_0_0_rgba(255,255,255,0.85)] dark:shadow-[0_12px_36px_-4px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.14)] text-zinc-800 dark:text-zinc-100">
+        <div
+          style={{
+            backdropFilter: 'blur(20px) saturate(190%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(190%)',
+          }}
+          className="glass-menu flex flex-col gap-0.5 p-1.5 min-w-[13rem] max-h-[22rem] overflow-y-auto rounded-2xl bg-white/70 dark:bg-zinc-900/75 backdrop-blur-2xl backdrop-saturate-150 border border-white/75 dark:border-white/[0.14] ring-1 ring-slate-900/[0.06] dark:ring-black/50 shadow-[0_12px_36px_-4px_rgba(0,0,0,0.16),inset_0_1px_0_0_rgba(255,255,255,0.85)] dark:shadow-[0_12px_36px_-4px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.14)] text-zinc-800 dark:text-zinc-100"
+        >
           {options.map(option => {
             if (isOption(option)) {
               const isActive = option.isActive()

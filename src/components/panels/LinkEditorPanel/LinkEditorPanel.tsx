@@ -113,7 +113,13 @@ export const LinkEditorPanel: React.FC<LinkEditorPanelProps> = ({
   }, [])
 
   return (
-    <Surface className="link-editor-panel p-2.5 bg-white/95 dark:bg-[#202020]/95 backdrop-blur-xl border border-black/10 dark:border-white/10 shadow-2xl rounded-xl min-w-[18rem]">
+    <Surface
+      style={{
+        backdropFilter: 'blur(20px) saturate(190%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(190%)',
+      }}
+      className="link-editor-panel p-2.5 bg-white/75 dark:bg-[#202020]/80 backdrop-blur-2xl backdrop-saturate-150 border border-white/75 dark:border-white/[0.14] ring-1 ring-slate-900/[0.06] dark:ring-black/50 shadow-2xl rounded-2xl min-w-[18rem]"
+    >
       <form onSubmit={state.handleSubmit} className="flex flex-col gap-2">
         {/* 1. Link Display Text Input */}
         <label className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 cursor-text focus-within:border-indigo-500/50 dark:focus-within:border-violet-400/50 transition-colors">
