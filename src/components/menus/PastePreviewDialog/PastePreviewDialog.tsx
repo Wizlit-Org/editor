@@ -214,26 +214,28 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     }
   }, [options])
 
-  // Keyboard navigation: Tab / Shift+Tab / Left / Right to cycle, Enter to confirm, Escape to cancel
+  // Keyboard guard & navigation: trap all keystrokes while dialog is active/exiting, route only allowed shortcuts
   useEffect(() => {
-    if (!data || isExiting) return
+    if (!data) return
     const onKeyDown = (e: KeyboardEvent) => {
+      // Trap all keystrokes unconditionally at capture phase to protect background editor
+      e.preventDefault()
+      e.stopPropagation()
+
       if (isExiting) return
+
       const curIdx = options.findIndex(o => o.id === selectedId)
       if (e.key === 'Tab') {
-        e.preventDefault(); e.stopPropagation()
         const step = e.shiftKey ? -1 : 1
         setSelectedId(options[(curIdx + step + options.length) % options.length].id)
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-        e.preventDefault(); e.stopPropagation()
         setSelectedId(options[(curIdx + 1) % options.length].id)
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-        e.preventDefault(); e.stopPropagation()
         setSelectedId(options[(curIdx - 1 + options.length) % options.length].id)
       } else if (e.key === 'Enter') {
-        e.preventDefault(); e.stopPropagation(); handleConfirm()
+        handleConfirm()
       } else if (e.key === 'Escape') {
-        e.preventDefault(); e.stopPropagation(); handleClose()
+        handleClose()
       }
     }
     window.addEventListener('keydown', onKeyDown, true)
