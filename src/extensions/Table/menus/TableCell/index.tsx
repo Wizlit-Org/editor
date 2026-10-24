@@ -439,16 +439,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   const dangerClass = "w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-red-600 dark:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 select-none cursor-pointer"
   const isExpanded = isBtnHovered || menuOpen
 
-  const shouldRender =
-    mounted &&
-    (!isScrolling || isDraggingHandleRef.current) &&
-    typeof document !== 'undefined' &&
-    selectionRect &&
-    !editor.view?.dragging &&
-    (isCellSelected ||
-      editor.isActive('tableCell') ||
-      editor.isActive('tableHeader') ||
-      Boolean(tableGripPluginKey.getState(editor.state)))
+  const shouldRender = mounted && (!isScrolling || isDraggingHandleRef.current) && typeof document !== 'undefined' && selectionRect && !editor.view?.dragging && (isCellSelected || editor.isActive('tableCell') || editor.isActive('tableHeader') || Boolean(tableGripPluginKey.getState(editor.state)))
   if (!shouldRender) return <></>
 
   return (
@@ -456,26 +447,18 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
       {createPortal(
         <>
           <ContainingBlockAnchor ref={anchorRef} />
-          {/* 1. Selection Perimeter Continuous 2px Outline & Unified Selection Background */}
-          <div className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[15] border-2 border-indigo-500/85 dark:border-violet-400/85 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
-            style={{
-              top: selectionRect.top - offset.y,
-              left: selectionRect.left - offset.x,
-              width: selectionRect.width,
-              height: selectionRect.height,
-              backgroundColor: 'rgba(99, 102, 241, 0.12)',
-              zIndex: 15,
-            }} />
+          {/* 1. Selection Perimeter Outline & Background - z-index: 8 (below blur z-12) */}
+          <div className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[8] border-2 border-indigo-500/85 dark:border-violet-400/85 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
+            style={{ top: selectionRect.top - offset.y, left: selectionRect.left - offset.x, width: selectionRect.width, height: selectionRect.height, backgroundColor: 'rgba(99, 102, 241, 0.12)', zIndex: 8 }} />
 
-          {/* 2. Expandable 4-dot Circle Trigger & Popover Menu */}
+          {/* 2. Expandable 4-dot Circle Trigger & Popover Menu - z-index: 9 (below blur z-12) */}
           {isButtonVisible && (
-            <div className="fixed z-[16] -translate-y-1/2 flex items-center"
-              style={{ top: selectionRect.top + selectionRect.height / 2 - offset.y, left: selectionRect.left + selectionRect.width - offset.x, zIndex: 16 }}>
+            <div className="fixed z-[9] -translate-y-1/2 flex items-center" style={{ top: selectionRect.top + selectionRect.height / 2 - offset.y, left: selectionRect.left + selectionRect.width - offset.x, zIndex: 9 }}>
               <Popover.Root open={menuOpen} onOpenChange={open => { if (open) window.dispatchEvent(new CustomEvent('tiptap:close-menus', { detail: 'tableCell' })); setMenuOpen(open) }}>
                 <Popover.Anchor asChild>
                   <button type="button" onPointerDown={handlePointerDown} onClick={e => { e.preventDefault(); e.stopPropagation() }}
                     onMouseEnter={() => setIsBtnHovered(true)} onMouseLeave={() => setIsBtnHovered(false)}
-                    className={`rounded-full bg-indigo-600 dark:bg-violet-500 text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-[16] select-none ${isExpanded ? 'w-4 h-4 -ml-2' : 'w-2 h-2 -ml-1'}`}
+                    className={`rounded-full bg-indigo-600 dark:bg-violet-500 text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-[9] select-none ${isExpanded ? 'w-4 h-4 -ml-2' : 'w-2 h-2 -ml-1'}`}
                     title="Click for options, drag to adjust cell selection" aria-label="Table cells option">
                     <svg className={`w-2.5 h-2.5 fill-current transition-opacity duration-150 ${isExpanded ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`} viewBox="0 0 16 16">
                       <circle cx="5" cy="5" r="1.5" /><circle cx="11" cy="5" r="1.5" /><circle cx="5" cy="11" r="1.5" /><circle cx="11" cy="11" r="1.5" />

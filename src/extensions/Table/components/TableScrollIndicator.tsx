@@ -79,7 +79,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       const showLeft = scrollLeft > 2
       const showRight = scrollLeft < scrollWidth - clientWidth - 2
 
-      if (editor.isEditable && showLeft) {
+      if (showLeft) {
         const editorDomLeft = editor.view?.dom ? editor.view.dom.getBoundingClientRect().left : rect.left
         const gutter = Math.max(0, Math.round(editorDomLeft - rect.left))
         const mask = `linear-gradient(to right, transparent 0px, transparent ${gutter}px, rgba(0,0,0,0.3) ${gutter + 16}px, black ${gutter + 48}px)`
@@ -220,24 +220,18 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
                 position: 'fixed',
                 pointerEvents: t.showLeft ? 'auto' : 'none',
                 cursor: 'default',
-                zIndex: 10,
+                zIndex: 12,
                 transition: 'opacity 0.2s ease',
                 opacity: t.showLeft ? 1 : 0,
                 top: t.rect.top - offset.y,
                 left: visibleLeft - offset.x,
-                width: editor.isEditable ? `${blurWidth}px` : '36px',
+                width: `${blurWidth}px`,
                 height: t.rect.height,
-                ...(editor.isEditable
-                  ? {
-                      background: 'transparent',
-                      backdropFilter: 'blur(4px)',
-                      WebkitBackdropFilter: 'blur(4px)',
-                      maskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
-                      WebkitMaskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
-                    }
-                  : {
-                      background: 'linear-gradient(to right, rgba(0,0,0,0.18), transparent)',
-                    }),
+                background: 'transparent',
+                backdropFilter: 'blur(4px)',
+                WebkitBackdropFilter: 'blur(4px)',
+                maskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
+                WebkitMaskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
               }}
             />
 
