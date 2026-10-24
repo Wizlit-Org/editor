@@ -218,6 +218,12 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
 
   const previewDoc = useMemo(() => buildPreviewDoc(data, selectedId), [data, selectedId])
 
+  const isBlockMedia =
+    selectedId === 'image-external' ||
+    selectedId === 'image-upload' ||
+    selectedId === 'youtube-video' ||
+    selectedId === 'code-block'
+
   const previewEditor = useEditor(
     {
       editable: false,
@@ -227,7 +233,7 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
       content: previewDoc,
       editorProps: {
         attributes: {
-          class: '!min-h-0 !p-0 !m-0 focus:outline-none pointer-events-auto break-all',
+          class: '!min-h-0 !p-0 !m-0 focus:outline-none pointer-events-auto break-all !bg-transparent',
         },
       },
     },
@@ -239,12 +245,11 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
     const contentEl = contentRef.current
     if (!viewportEl || !contentEl) return
 
-    // Available inner area inside the fixed 280px height viewport (minus vertical/horizontal padding)
-    const availH = Math.max(120, viewportEl.clientHeight - 32)
-    const availW = Math.max(200, viewportEl.clientWidth - 48)
+    const availH = Math.max(140, viewportEl.clientHeight - 32)
+    const availW = Math.max(220, Math.min(720, viewportEl.clientWidth - 48))
 
     const naturalH = Math.max(1, contentEl.scrollHeight || contentEl.offsetHeight)
-    const naturalW = Math.max(1, contentEl.offsetWidth || 672)
+    const naturalW = Math.max(1, contentEl.offsetWidth || 1)
 
     const nextScale = Math.min(1, availH / naturalH, availW / naturalW)
     const rounded = Math.max(0.18, Math.round(nextScale * 1000) / 1000)
@@ -297,32 +302,46 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
     }
   }, [recomputeScale, selectedId, data])
 
-  const themeCanvasClass = isDark
-    ? 'dark theme-dark notion-dark-canvas'
-    : 'theme-light notion-light-canvas'
-
   return (
     <div
       ref={viewportRef}
       onScrollCapture={e => e.stopPropagation()}
       onWheelCapture={e => e.stopPropagation()}
-      className={`h-[280px] min-h-[280px] max-h-[280px] w-full overflow-hidden px-6 py-4 flex items-start justify-center ${themeCanvasClass} ${
-        isDark
-          ? 'bg-[#191919] text-[#e3e3e3]'
-          : 'bg-white text-[#222325]'
-      } [&_figure]:!my-0 [&_.node-imageBlock]:!my-0 [&_[data-node-view-wrapper]]:!my-0`}
+      style={{
+        width: '100%',
+        height: '100%',
+        flex: 1,
+        minHeight: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        backgroundColor: 'transparent',
+        padding: '16px 24px',
+        color: isDark ? '#f4f4f5' : '#18181b',
+      }}
+      className={`w-full h-full flex-1 min-h-0 overflow-hidden flex items-center justify-center !bg-transparent ${
+        isDark ? 'dark theme-dark text-zinc-100' : 'theme-light text-zinc-900'
+      } [&_figure]:!my-0 [&_.node-imageBlock]:!my-0 [&_[data-node-view-wrapper]]:!my-0 [&_.ProseMirror]:!bg-transparent`}
     >
-      {/* 1:1 Editor Column Width (672px = 42rem) Auto-Scaled to Fit Fixed Viewport Without Scrollbars */}
+      {/* Frameless Center Stage Preview: Auto-Scaled Around Exact Center Without Box Frame or Scrollbars */}
       <div
         ref={contentRef}
+        onClick={e => e.stopPropagation()}
         style={{
-          width: '672px',
+          width: isBlockMedia ? 'min(672px, 90vw)' : 'fit-content',
+          maxWidth: 'min(672px, 90vw)',
           transform: scale < 1 ? `scale(${scale})` : 'none',
-          transformOrigin: 'top center',
+          transformOrigin: 'center center',
+          backgroundColor: 'transparent',
         }}
-        className="shrink-0 transition-transform duration-100 ease-out"
+        className={`shrink-0 transition-transform duration-100 ease-out !bg-transparent ${
+          isBlockMedia
+            ? ''
+            : '[&_.ProseMirror]:!w-fit [&_.ProseMirror]:!max-w-[672px] [&_.ProseMirror]:!mx-auto'
+        }`}
       >
-        <EditorContent editor={previewEditor} className="w-full focus:outline-none" />
+        <EditorContent editor={previewEditor} className="w-full focus:outline-none !bg-transparent" />
       </div>
     </div>
   )

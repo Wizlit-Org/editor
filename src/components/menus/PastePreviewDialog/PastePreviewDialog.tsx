@@ -283,164 +283,152 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="붙여넣기 미리보기"
+      aria-label="붙여넣기 형식 선택"
       data-paste-preview-dialog="true"
       onScrollCapture={e => e.stopPropagation()}
-      className={`fixed inset-0 z-[1450] flex items-end justify-center p-4 sm:pb-6 transition-opacity duration-150 ${
-        isDark ? 'bg-black/50 backdrop-blur-sm' : 'bg-black/25 backdrop-blur-xs'
-      }`}
       onClick={handleClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1450,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
+        padding: '36px 24px 32px', userSelect: 'none',
+        backgroundColor: isDark ? 'rgba(9, 9, 11, 0.72)' : 'rgba(255, 255, 255, 0.72)',
+        backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+      }}
+      className="fixed inset-0 z-[1450] flex flex-col items-center justify-between select-none transition-opacity duration-150"
     >
-      {/* Bottom-Sheet Docked Container: Matches exact 42rem (672px) editor column width + 48px padding = 720px */}
+      {/* 1. 상단 위 (Top Center): 제목 및 선택된 삽입 방식 설명 */}
       <div
-        data-paste-preview-dialog="true"
-        onScrollCapture={e => e.stopPropagation()}
-        className={`w-[720px] max-w-[95vw] rounded-2xl overflow-hidden flex flex-col select-none ${
-          isDark
-            ? 'bg-[#1c1c20] border border-white/[0.14] text-zinc-100 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.85)]'
-            : 'bg-white border border-black/[0.12] text-zinc-900 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.25)]'
-        }`}
         onClick={e => e.stopPropagation()}
+        style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          textAlign: 'center', gap: '6px', flexShrink: 0, maxWidth: '92vw',
+        }}
       >
-        {/* 1. Top Mini Header: Clear Dialog Identity & Selected Mode Description */}
-        <div
-          className={`flex items-center justify-between gap-3 px-4 py-2.5 border-b ${
-            isDark
-              ? 'border-white/[0.08] bg-[#222226]'
-              : 'border-black/[0.07] bg-zinc-50'
-          }`}
+        <span
+          style={{
+            fontSize: '18px', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2,
+            color: isDark ? '#fafafa' : '#18181b',
+          }}
         >
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <div
-              className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border ${
-                isDark
-                  ? 'bg-indigo-500/20 border-indigo-400/30 text-indigo-300'
-                  : 'bg-indigo-50 border-indigo-200 text-indigo-600'
-              }`}
-            >
-              <Icon name="Clipboard" className="w-3.5 h-3.5" />
-            </div>
-            <span className="text-xs font-bold tracking-tight shrink-0">
-              붙여넣기 미리보기
-            </span>
-            <span
-              className={`text-xs truncate ${
-                isDark ? 'text-zinc-400' : 'text-zinc-500'
-              }`}
-            >
-              — {currentOption?.description || '에디터에 삽입될 실제 모습입니다'}
-            </span>
-          </div>
+          붙여넣기 형식 선택
+        </span>
+        <p
+          style={{
+            margin: 0, fontSize: '13px', fontWeight: 500, lineHeight: 1.4,
+            color: isDark ? 'rgba(228, 228, 231, 0.8)' : 'rgba(63, 63, 70, 0.85)',
+          }}
+        >
+          {currentOption?.description || '에디터에 삽입될 실제 모습입니다'}
+        </p>
+        <span
+          style={{
+            fontSize: '11px', fontWeight: 500, lineHeight: 1.2,
+            color: isDark ? 'rgba(161, 161, 170, 0.75)' : 'rgba(113, 113, 122, 0.8)',
+          }}
+        >
+          {options.length > 1
+            ? '←/→ 또는 Tab 형식 전환 · Enter 삽입 · Esc 취소'
+            : 'Enter 삽입 · Esc 취소'}
+        </span>
+      </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
-            <span
-              className={`hidden md:inline-block text-[11px] font-medium ${
-                isDark ? 'text-zinc-400' : 'text-zinc-500'
-              }`}
-            >
-              {options.length > 1
-                ? '←/→ 형식 전환 · Enter 삽입 · Esc 취소'
-                : 'Enter 삽입 · Esc 취소'}
-            </span>
-            <button
-              type="button"
-              onClick={handleClose}
-              className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors cursor-pointer ${
-                isDark
-                  ? 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.08]'
-                  : 'text-zinc-500 hover:text-zinc-900 hover:bg-black/[0.06]'
-              }`}
-              title="닫기 (Esc)"
-            >
-              <Icon name="X" className="w-3.5 h-3.5" />
-            </button>
-          </div>
+      {/* 2. 중앙 한가운데 (Center Stage): 박스 틀 없는 1:1 라이브 미리보기 */}
+      <div
+        style={{
+          flex: 1, width: '100%', minHeight: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+        }}
+      >
+        <LivePreviewCanvas data={data} selectedId={selectedId} isDark={isDark} />
+      </div>
+
+      {/* 3 & 4. 하단 중앙 컨트롤 영역: [선택지 바로 위: 취소 / 삽입 버튼] + [하단 중앙: 선택지 탭 독] */}
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: '14px', flexShrink: 0, maxWidth: '95vw',
+        }}
+      >
+        {/* 3. 선택지 바로 위 (Just Above Options): [취소] / [삽입 ↵] 버튼 */}
+        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+          <button
+            type="button"
+            onClick={handleClose}
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
+              height: '36px', padding: '0 18px', borderRadius: '9999px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+              backgroundColor: isDark ? 'rgba(39, 39, 42, 0.65)' : 'rgba(255, 255, 255, 0.75)',
+              backdropFilter: 'blur(16px) saturate(180%)', WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+              color: isDark ? '#e4e4e7' : '#3f3f46',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid rgba(203, 213, 225, 0.9)',
+              boxShadow: isDark ? '0 4px 14px rgba(0, 0, 0, 0.35)' : '0 4px 14px rgba(15, 23, 42, 0.08)',
+            }}
+            className="transition-all duration-150 hover:scale-[1.02] active:scale-95"
+          >
+            취소
+          </button>
+
+          <button
+            type="button"
+            onClick={handleConfirm}
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', lineHeight: 1,
+              height: '36px', padding: '0 22px', borderRadius: '9999px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+              backgroundColor: '#4f46e5', color: '#ffffff',
+              border: '1px solid rgba(129, 140, 248, 0.45)',
+              boxShadow: '0 6px 20px -2px rgba(79, 70, 229, 0.45)',
+            }}
+            className="transition-all duration-150 hover:bg-indigo-500 hover:scale-[1.02] active:scale-95"
+          >
+            <span>삽입</span>
+            <span style={{ fontSize: '12px', opacity: 0.9 }} className="font-mono">↵</span>
+          </button>
         </div>
 
-        {/* 2. Center: 1:1 Real Editor Aspect Ratio Live Preview Canvas (Internal Scrollable) */}
-        <LivePreviewCanvas data={data} selectedId={selectedId} isDark={isDark} />
-
-        {/* 3. Bottom Control Dock: Left [삽입 방식 + Short Option Tabs] | Right [취소] + [삽입 ↵] */}
+        {/* 4. 하단 중앙 (Bottom Center): 선택지 플로팅 캡슐 독 */}
         <div
-          className={`px-4 py-3 border-t flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 ${
-            isDark
-              ? 'bg-[#222226] border-white/[0.09]'
-              : 'bg-zinc-50 border-black/[0.08]'
-          }`}
+          role="tablist"
+          aria-label="삽입 방식 선택"
+          style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+            padding: '6px', borderRadius: '16px', maxWidth: '92vw', overflowX: 'auto',
+            backgroundColor: isDark ? 'rgba(24, 24, 27, 0.62)' : 'rgba(255, 255, 255, 0.62)',
+            backdropFilter: 'blur(20px) saturate(190%)', WebkitBackdropFilter: 'blur(20px) saturate(190%)',
+            border: isDark ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid rgba(203, 213, 225, 0.85)',
+            boxShadow: isDark
+              ? '0 12px 32px -4px rgba(0, 0, 0, 0.55), inset 0 1px 0 0 rgba(255, 255, 255, 0.14)'
+              : '0 10px 28px -4px rgba(15, 23, 42, 0.12), inset 0 1px 0 0 rgba(255, 255, 255, 0.9)',
+          }}
         >
-          {/* Left: Mode Selector Segmented Dock */}
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span
-              className={`text-[11px] font-semibold shrink-0 ${
-                isDark ? 'text-zinc-400' : 'text-zinc-500'
-              }`}
-            >
-              삽입 방식
-            </span>
-
-            <div
-              role="tablist"
-              aria-label="삽입 방식 선택"
-              className={`flex items-center gap-1 p-1 rounded-xl overflow-x-auto ${
-                isDark
-                  ? 'bg-black/45 border border-white/[0.08]'
-                  : 'bg-zinc-200/70 border border-black/[0.06]'
-              }`}
-            >
-              {options.map(opt => {
-                const isSelected = opt.id === selectedId
-                return (
-                  <button
-                    key={opt.id}
-                    role="tab"
-                    aria-selected={isSelected}
-                    type="button"
-                    onClick={() => setSelectedId(opt.id)}
-                    className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 cursor-pointer border ${
-                      isSelected
-                        ? isDark
-                          ? 'bg-indigo-600 text-white border-indigo-400/40 shadow-xs'
-                          : 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                        : isDark
-                          ? 'bg-transparent text-zinc-400 border-transparent hover:text-zinc-200 hover:bg-white/[0.06]'
-                          : 'bg-transparent text-zinc-600 border-transparent hover:text-zinc-900 hover:bg-black/[0.05]'
-                    }`}
-                  >
-                    <Icon
-                      name={opt.icon as any}
-                      className={`w-3.5 h-3.5 ${
-                        isSelected ? 'text-white' : 'opacity-75'
-                      }`}
-                    />
-                    <span>{opt.label}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Right: Distinct [취소] & [삽입 ↵] Action Buttons */}
-          <div className="flex items-center gap-2 shrink-0 ml-auto">
-            <button
-              type="button"
-              onClick={handleClose}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-colors cursor-pointer ${
-                isDark
-                  ? 'border-zinc-600 bg-zinc-800/80 text-zinc-200 hover:bg-zinc-700 hover:text-white'
-                  : 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900'
-              }`}
-            >
-              취소
-            </button>
-            <button
-              type="button"
-              onClick={handleConfirm}
-              className="px-4 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-lg border border-indigo-400/30 shadow-sm transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              <span>삽입</span>
-              <span className="text-[11px] opacity-90 font-mono">↵</span>
-            </button>
-          </div>
+          {options.map(opt => {
+            const isSelected = opt.id === selectedId
+            return (
+              <button
+                key={opt.id}
+                role="tab"
+                aria-selected={isSelected}
+                type="button"
+                onClick={() => setSelectedId(opt.id)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', lineHeight: 1,
+                  height: '34px', padding: '0 14px', borderRadius: '11px', fontSize: '12.5px', fontWeight: 600,
+                  cursor: 'pointer', flexShrink: 0,
+                  backgroundColor: isSelected ? '#4f46e5' : 'transparent',
+                  color: isSelected ? '#ffffff' : isDark ? '#d4d4d8' : '#3f3f46',
+                  border: isSelected ? '1px solid rgba(129, 140, 248, 0.4)' : '1px solid transparent',
+                  boxShadow: isSelected ? '0 2px 8px rgba(79, 70, 229, 0.35)' : 'none',
+                }}
+                className="transition-colors duration-150"
+              >
+                <Icon
+                  name={opt.icon as any}
+                  className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'opacity-75'}`}
+                />
+                <span>{opt.label}</span>
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>,
