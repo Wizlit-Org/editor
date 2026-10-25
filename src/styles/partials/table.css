@@ -50,18 +50,30 @@
 
   table {
     @apply border-collapse border-black/10 rounded box-border;
-    width: max-content !important;
+    table-layout: fixed !important;
+    width: 100% !important;
     min-width: 100% !important;
     @apply dark:border-white/20;
+
+    /* When all columns have explicit width (resized table), allow table to expand naturally */
+    &:has(col):not(:has(col:not([style^="width:"]):not([style*="; width:"]):not([style*=";width:"]))),
+    &[style^="width:"],
+    &[style*="; width:"],
+    &[style*=";width:"] {
+      width: max-content !important;
+      min-width: 100% !important;
+    }
 
     td,
     th {
       border: 1px solid rgba(47, 50, 55, 0.2) !important;
-      min-width: 120px !important;
+      min-width: 0 !important;
       padding: 8px 10px !important;
       position: relative;
       text-align: left;
       vertical-align: top;
+      overflow-wrap: break-word !important;
+      word-break: break-word !important;
 
       &:first-of-type:not(a) {
         @apply mt-0;
@@ -69,6 +81,8 @@
 
       p {
         @apply m-0;
+        overflow-wrap: break-word !important;
+        word-break: break-word !important;
 
         & + p {
           @apply mt-3;

@@ -106,6 +106,6 @@ export const Table = TiptapTable.extend({
       }),
     ]
   },
-}).configure({ resizable: true, lastColumnResizable: false })
+}).configure({ resizable: true, lastColumnResizable: true })
 
 export default Table
