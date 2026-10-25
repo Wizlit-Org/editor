@@ -60,6 +60,8 @@ export const Heading = TiptapHeading.extend({
     })
 
     if (modified) {
+      tr.setMeta('addToHistory', false)
+      tr.setMeta('preventUpdate', true)
       this.editor.view.dispatch(tr)
     }
   },

@@ -96,6 +96,9 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   } = image || {}
   
   const menuContainerRef = useRef(null)
+  const baselineHTMLRef = useRef<string | null>(null)
+  const lastPropContentRef = useRef<string>(content)
+  const isTogglingEditableRef = useRef<boolean>(false)
   const [stats, setStats] = useState<EditorStats>({})
   const [systemDark, setSystemDark] = useState<boolean>(() => {
     if (typeof document !== 'undefined') {
@@ -165,10 +168,28 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     // aiToken,
     editable: !readOnly,
     content,
-    onUpdate: ({ editor }) => {
+    onCreate: ({ editor }) => {
+      baselineHTMLRef.current = editor.getHTML()
+      lastPropContentRef.current = content
+      setStats(getStats(editor, maxCharacters, altCharacterCounter))
+    },
+    onUpdate: ({ editor, transaction }) => {
+      if (transaction?.getMeta('preventUpdate')) {
+        baselineHTMLRef.current = editor.getHTML()
+        return
+      }
       if (readOnly) return;
       
-      const { isChanged, isStrictChanged, compareHTML } = compareDocs(content, editor.getHTML())
+      if (isTogglingEditableRef.current || readOnly) {
+        baselineHTMLRef.current = editor.getHTML()
+        return
+      }
+      if (baselineHTMLRef.current === null) {
+        baselineHTMLRef.current = editor.getHTML()
+      }
+      const currentHTML = editor.getHTML()
+      const baselineHTML = baselineHTMLRef.current ?? content
+      const { isChanged, isStrictChanged, compareHTML } = compareDocs(baselineHTML, currentHTML)
       const stats = getStats(editor, maxCharacters, altCharacterCounter)
 
       setStats(stats)
@@ -228,7 +249,12 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     if (!editor) return;
     
     try {
-      editor.setEditable(_editable);
+      isTogglingEditableRef.current = true
+      editor.setEditable(_editable, false)
+      if (baselineHTMLRef.current === null) {
+        baselineHTMLRef.current = editor.getHTML()
+      }
+      isTogglingEditableRef.current = false
     } catch (error) {
       console.error('Error updating editor state:', error);
     }
@@ -242,8 +268,26 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
   useEffect(() => {
     if (editor && !editor.isDestroyed) {
-      if (editor.isEditable) return;
-      editor.commands.setContent(content, { emitUpdate: true });
+      if (editor.isEditable) {
+        if (lastPropContentRef.current !== content) {
+          lastPropContentRef.current = content
+          const { isChanged } = compareDocs(content, editor.getHTML())
+          if (!isChanged) {
+            baselineHTMLRef.current = editor.getHTML()
+          }
+        }
+        return
+      }
+      if (lastPropContentRef.current === content && baselineHTMLRef.current !== null) {
+        return
+      }
+      lastPropContentRef.current = content
+      isTogglingEditableRef.current = true
+      editor.commands.setContent(content, { emitUpdate: false })
+      baselineHTMLRef.current = editor.getHTML()
+      isTogglingEditableRef.current = false
+      const nextStats = getStats(editor, maxCharacters, altCharacterCounter)
+      setStats(nextStats)
     }
   }, [content, editor]);
 

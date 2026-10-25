@@ -192,4 +192,7 @@ export function MyEditor() {
 │   │   └── useEditorEscGuard.ts   # 계층형 Esc 단축키 격리 가드
 │   └── styles/                    # 리얼 글라스모피즘 스타일 및 전역 CSS
 └── tsup.config.ts                 # 프로덕션 번들 빌드 설정 (DTS / ESM / CJS)
+
+### 💡 Gotchas
+- **비교 기준선(`baselineHTMLRef`) 스냅샷 정합화**: 마운트·모드 전환 시 `Heading` UUID 주입 및 `TrailingNode` 추가로 인한 거짓 `isChanged: true` 발화를 막기 위해 `onCreate` 및 `setContent` 직후의 `editor.getHTML()` 스냅샷을 기준선으로 삼고 `setEditable(_editable, false)` 및 `preventUpdate` 메타를 적용함.
 ```
