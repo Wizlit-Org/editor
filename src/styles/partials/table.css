@@ -32,6 +32,21 @@
     }
   }
 
+  &[contenteditable="false"] .tableWrapper {
+    transition: none !important;
+    margin-left: calc((100% - 100cqw) / 2) !important;
+    padding-left: calc((100cqw - 100%) / 2) !important;
+    width: 100cqw !important;
+    max-width: 100cqw !important;
+
+    &.table-compact-left {
+      margin-left: calc((100% - 100cqw) / 2) !important;
+      padding-left: calc((100cqw - 100%) / 2) !important;
+      width: 100cqw !important;
+      max-width: 100cqw !important;
+    }
+  }
+
 
   table {
     @apply border-collapse border-black/10 rounded box-border;

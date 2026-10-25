@@ -130,6 +130,15 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
 
   useEffect(() => {
     tables.forEach(t => {
+      if (!editor.isEditable) {
+        t.wrapper.classList.remove('table-compact-left')
+        t.wrapper.style.maskImage = ''
+        ;(t.wrapper.style as any).webkitMaskImage = ''
+        const tm = maskClearTimersRef.current.get(t.id)
+        if (tm) { clearTimeout(tm); maskClearTimersRef.current.delete(t.id) }
+        return
+      }
+
       const isHoveredOrActive = hoveredWrapper === t.wrapper || activeWrapper === t.wrapper
       const shouldCompact = Boolean(editor.isEditable && isHoveredOrActive)
       t.wrapper.classList.toggle('table-compact-left', shouldCompact)
@@ -377,52 +386,54 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
         const editorContentLeft = editor.view?.dom ? editor.view.dom.getBoundingClientRect().left : visibleLeft
         const gutterWidth = Math.max(0, Math.round(editorContentLeft - visibleLeft))
         const blurWidth = gutterWidth + 48
-        const isBlurVisible = t.showLeft && (hoveredWrapper === t.wrapper || activeWrapper === t.wrapper)
+        const isBlurVisible = Boolean(editor.isEditable && t.showLeft && (hoveredWrapper === t.wrapper || activeWrapper === t.wrapper))
 
         return (
           <React.Fragment key={t.id}>
-            {/* Visual Blur Layer (pointerEvents: none - zero interference with gutter drag-handle and plus button) */}
-            <div
-              style={{
-                position: 'fixed',
-                pointerEvents: 'none',
-                cursor: 'default',
-                zIndex: 12,
-                transition: isBlurVisible
-                  ? 'opacity 300ms ease-out'
-                  : 'opacity 600ms cubic-bezier(0.16, 1, 0.3, 1)',
-                opacity: isBlurVisible ? 1 : 0,
-                top: t.rect.top - 24 - offset.y,
-                left: visibleLeft - offset.x,
-                width: `${blurWidth}px`,
-                height: t.rect.height + 48,
-                background: 'transparent',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-                maskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
-                WebkitMaskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
-              }}
-            />
+            {/* Visual Blur Layer (pointerEvents: none - only in editable mode) */}
+            {editor.isEditable && (
+              <div
+                style={{
+                  position: 'fixed',
+                  pointerEvents: 'none',
+                  cursor: 'default',
+                  zIndex: 12,
+                  transition: isBlurVisible ? 'opacity 300ms ease-out' : 'opacity 600ms cubic-bezier(0.16, 1, 0.3, 1)',
+                  opacity: isBlurVisible ? 1 : 0,
+                  top: t.rect.top - 24 - offset.y,
+                  left: visibleLeft - offset.x,
+                  width: `${blurWidth}px`,
+                  height: t.rect.height + 48,
+                  background: 'transparent',
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
+                  maskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
+                  WebkitMaskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
+                }}
+              />
+            )}
 
-            {/* Blurred Table Cells Shield (Starts at editorContentLeft, exactly past the drag-handle and plus button) */}
-            <div
-              data-table-blur-indicator={t.id}
-              onMouseDown={e => { e.preventDefault(); e.stopPropagation() }}
-              onPointerDown={e => { e.preventDefault(); e.stopPropagation() }}
-              onClick={e => { e.preventDefault(); e.stopPropagation() }}
-              onDoubleClick={e => { e.preventDefault(); e.stopPropagation() }}
-              style={{
-                position: 'fixed',
-                pointerEvents: isBlurVisible ? 'auto' : 'none',
-                cursor: 'default',
-                zIndex: 12,
-                top: t.rect.top - 24 - offset.y,
-                left: editorContentLeft - offset.x,
-                width: '48px',
-                height: t.rect.height + 48,
-                background: 'transparent',
-              }}
-            />
+            {/* Blurred Table Cells Shield (Only active in editable mode) */}
+            {editor.isEditable && (
+              <div
+                data-table-blur-indicator={t.id}
+                onMouseDown={e => { e.preventDefault(); e.stopPropagation() }}
+                onPointerDown={e => { e.preventDefault(); e.stopPropagation() }}
+                onClick={e => { e.preventDefault(); e.stopPropagation() }}
+                onDoubleClick={e => { e.preventDefault(); e.stopPropagation() }}
+                style={{
+                  position: 'fixed',
+                  pointerEvents: isBlurVisible ? 'auto' : 'none',
+                  cursor: 'default',
+                  zIndex: 12,
+                  top: t.rect.top - 24 - offset.y,
+                  left: editorContentLeft - offset.x,
+                  width: '48px',
+                  height: t.rect.height + 48,
+                  background: 'transparent',
+                }}
+              />
+            )}
 
             {/* Left Scroll Arrow Button */}
             <button
@@ -439,9 +450,9 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
               style={{
                 top: centerY,
                 left: visibleLeft + 12 - offset.x,
-                transition: isBlurVisible
-                  ? 'opacity 300ms ease-out'
-                  : 'opacity 600ms cubic-bezier(0.16, 1, 0.3, 1)',
+                transition: editor.isEditable
+                  ? (isBlurVisible ? 'opacity 300ms ease-out' : 'opacity 600ms cubic-bezier(0.16, 1, 0.3, 1)')
+                  : 'opacity 200ms ease-out',
               }}
             >
               <Icon name="ChevronLeft" className="w-4 h-4" />
@@ -462,9 +473,9 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
               style={{
                 top: centerY,
                 left: visibleRight - 44 - offset.x,
-                transition: isBlurVisible
-                  ? 'opacity 300ms ease-out'
-                  : 'opacity 600ms cubic-bezier(0.16, 1, 0.3, 1)',
+                transition: editor.isEditable
+                  ? (isBlurVisible ? 'opacity 300ms ease-out' : 'opacity 600ms cubic-bezier(0.16, 1, 0.3, 1)')
+                  : 'opacity 200ms ease-out',
               }}
             >
               <Icon name="ChevronRight" className="w-4 h-4" />
