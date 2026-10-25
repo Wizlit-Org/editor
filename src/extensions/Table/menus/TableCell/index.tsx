@@ -9,6 +9,7 @@ import { useContainingBlockOffset, ContainingBlockAnchor } from '../../utils/con
 import { startAutoScroll } from '../../utils/TableAutoScroll'
 import { tableGripPluginKey } from '../../Table'
 import { Icon } from '@/components/ui/Icon'
+import { cn } from '@/lib/utils'
 import { MenuProps } from '@/components/menus/types'
 import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
 import { DeleteRowIcon, DeleteColumnIcon } from '../../components/TableActionIcons'
@@ -33,9 +34,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   const [isButtonVisible, setIsButtonVisible] = useState(false)
   const [isScrolling, setIsScrolling] = useState(false)
   const isDraggingHandleRef = useRef(false)
-  const scrollTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const animFrameRef = useRef<number | null>(null)
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const scrollTimerRef = useRef<NodeJS.Timeout | null>(null), animFrameRef = useRef<number | null>(null), timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const anchorRef = useRef<HTMLDivElement>(null)
   const offset = useContainingBlockOffset(anchorRef)
