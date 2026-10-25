@@ -73,3 +73,24 @@
   color: var(--editor-text) !important;
   border-color: var(--glass-panel-border) !important;
 }
+
+/* Strict Selection Highlight Isolation */
+.editor-theme-light ::selection,
+.dark .editor-theme-light ::selection,
+.editor-theme-light *::selection,
+.dark .editor-theme-light *::selection,
+.editor-theme-light .selection,
+.dark .editor-theme-light .selection,
+.editor-theme-light pre *::selection,
+.editor-theme-light code::selection {
+  background-color: rgba(0, 0, 0, 0.12) !important;
+  color: inherit !important;
+}
+
+.editor-theme-dark ::selection,
+.editor-theme-dark *::selection,
+.editor-theme-dark .selection,
+.editor-theme-dark pre *::selection,
+.editor-theme-dark code::selection {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}

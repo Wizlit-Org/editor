@@ -238,7 +238,14 @@ export const CodeBlockView = ({ editor, node, getPos, updateAttributes, extensio
 
       {actualOpen && (
         <div
-          className="fixed w-[200px] rounded-xl border border-black/5 dark:border-white/10 bg-white/90 dark:bg-[#202020]/95 backdrop-blur-xl shadow-2xl overflow-hidden z-50 text-zinc-800 dark:text-zinc-200 animate-in fade-in zoom-in-95 duration-150"
+          data-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
+          data-editor-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
+          className={cn(
+            'fixed w-[200px] rounded-xl border border-black/5 dark:border-white/10 bg-white/90 dark:bg-[#202020]/95 backdrop-blur-xl shadow-2xl overflow-hidden z-50 text-zinc-800 dark:text-zinc-200 animate-in fade-in zoom-in-95 duration-150',
+            editor?.view?.dom?.closest('.editor-theme-dark')
+              ? 'editor-theme-dark dark theme-dark'
+              : 'editor-theme-light theme-light',
+          )}
           style={{ top: menuPosition.top, left: menuPosition.left }}
           ref={menuRef}
         >

@@ -8,6 +8,7 @@ export type LinkPreviewPanelProps = {
   onOpen: (url: string) => boolean | void
   editable: boolean
   disableDefaultAction?: boolean | ((url: string) => boolean)
+  onUpdatePosition?: () => void
 }
 
 interface LinkMetadata {
@@ -29,6 +30,7 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
   url,
   editable,
   disableDefaultAction,
+  onUpdatePosition,
 }) => {
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -90,6 +92,11 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
       isMounted = false
     }
   }, [url])
+
+  // Floating UI position sync when metadata, loading, or image state transitions
+  useEffect(() => {
+    onUpdatePosition?.()
+  }, [meta, loading, imageError, onUpdatePosition])
 
   const faviconUrl =
     meta?.favicon ||
@@ -283,6 +290,7 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
               <img
                 src={meta!.image!}
                 alt={titleText}
+                onLoad={() => onUpdatePosition?.()}
                 onError={() => setImageError(true)}
                 className="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
               />

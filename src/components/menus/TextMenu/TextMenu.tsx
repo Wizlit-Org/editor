@@ -36,9 +36,7 @@ export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
       (pmDom?.parentElement as HTMLElement | null)
     if (!containerEl) return
 
-    const darkDetected =
-      document.documentElement.classList.contains('dark') ||
-      Boolean(containerEl.closest('.dark, .theme-dark'))
+    const darkDetected = Boolean(containerEl.closest('.editor-theme-dark'))
     setIsDark(prev => (prev === darkDetected ? prev : darkDetected))
 
     // Prefer exact .ProseMirror content column rect for 0.0px true text-column horizontal centering

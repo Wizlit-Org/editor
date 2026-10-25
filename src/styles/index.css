@@ -92,7 +92,8 @@
    ========================================================================== */
 
 :root,
-.theme-light {
+.theme-light,
+.editor-theme-light {
   --editor-bg: #ffffff;
   --editor-text: #222325;
   --editor-subtext: #71717a;
@@ -116,8 +117,8 @@
   --glass-item-active: rgba(0, 0, 0, 0.08);
 }
 
-.dark,
-.theme-dark {
+.theme-dark,
+.editor-theme-dark {
   --editor-bg: #191919;
   --editor-text: #e3e3e3;
   --editor-subtext: #9b9b9b;

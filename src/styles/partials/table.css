@@ -90,10 +90,10 @@
       }
     }
 
-    .dark td,
-    .dark th,
     .theme-dark td,
-    .theme-dark th {
+    .theme-dark th,
+    .editor-theme-dark td,
+    .editor-theme-dark th {
       border-color: rgba(255, 255, 255, 0.16) !important;
     }
 
@@ -103,8 +103,8 @@
       color: rgba(55, 53, 47, 0.9) !important;
     }
 
-    .dark th,
-    .theme-dark th {
+    .theme-dark th,
+    .editor-theme-dark th {
       background-color: rgba(255, 255, 255, 0.08) !important;
       color: rgba(255, 255, 255, 0.95) !important;
     }
@@ -139,12 +139,12 @@
       background-color: rgba(200, 200, 255, 0.4) !important;
     }
 
-    .dark td.selectedCell,
-    .dark th.selectedCell,
     .theme-dark td.selectedCell,
     .theme-dark th.selectedCell,
-    .dark .selectedCell,
-    .theme-dark .selectedCell {
+    .editor-theme-dark td.selectedCell,
+    .editor-theme-dark th.selectedCell,
+    .theme-dark .selectedCell,
+    .editor-theme-dark .selectedCell {
       background-color: rgba(100, 120, 255, 0.3) !important;
     }
 

@@ -97,3 +97,60 @@ export function getCurrentLinkText(editor: Editor): string {
     return ''
   }
 }
+
+/**
+ * Apply updated hyperlink attributes or insert text with link
+ */
+export function applySetLink(
+  editor: Editor,
+  url: string,
+  text?: string,
+  openInNewTab?: boolean,
+): void {
+  try {
+    editor.chain().focus().extendMarkRange('link').run()
+    const { from, to } = editor.state.selection
+    const currentText = editor.state.doc.textBetween(from, to)
+
+    if (text && text !== currentText) {
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(
+          { from, to },
+          {
+            type: 'text',
+            text,
+            marks: [
+              {
+                type: 'link',
+                attrs: {
+                  href: url,
+                  target: openInNewTab ? '_blank' : '',
+                },
+              },
+            ],
+          },
+        )
+        .run()
+    } else {
+      editor
+        .chain()
+        .focus()
+        .extendMarkRange('link')
+        .setLink({ href: url, target: openInNewTab ? '_blank' : '' })
+        .run()
+    }
+  } catch (err) {
+    console.error('Error setting link:', err)
+  }
+}
+
+/**
+ * Unset link mark from active selection
+ */
+export function applyUnsetLink(editor: Editor): void {
+  try {
+    editor.chain().focus().extendMarkRange('link').unsetLink().run()
+  } catch {}
+}

@@ -6,7 +6,7 @@ import { MenuProps } from '../types'
 import { LinkPreviewPanel } from '@/components/panels/LinkPreviewPanel'
 import { LinkEditorPanel } from '@/components/panels'
 import { cn } from '@/lib/utils'
-import { safeExtendLinkRange, getCurrentLinkText } from './utils/linkHelpers'
+import { safeExtendLinkRange, getCurrentLinkText, applySetLink, applyUnsetLink } from './utils/linkHelpers'
 
 export const LinkMenu = ({
   editor,
@@ -14,10 +14,17 @@ export const LinkMenu = ({
   onLinkClick = () => false,
   disableDefaultAction = false,
 }: MenuProps): JSX.Element => {
+  const menuRef = useRef<HTMLDivElement>(null)
   const [showEdit, setShowEdit] = useState(false)
   const showEditRef = useRef(false)
   const [isClosedByScroll, setIsClosedByScroll] = useState(false)
   const isClosedByScrollRef = useRef(false)
+
+  const updateMenuPosition = useCallback(() => {
+    try {
+      editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'updatePosition'))
+    } catch {}
+  }, [editor])
 
   const setEditMode = useCallback((val: boolean) => {
     showEditRef.current = val
@@ -27,19 +34,21 @@ export const LinkMenu = ({
   const checkIsLinkActive = useCallback(() => {
     if (editor.isActive('link')) return true
     try {
-      const { $from } = editor.state.selection
+      const { $from, from } = editor.state.selection
       const hasMark =
         $from.marks().some(m => m.type.name === 'link') ||
         $from.nodeBefore?.marks?.some(m => m.type.name === 'link') ||
         $from.nodeAfter?.marks?.some(m => m.type.name === 'link')
       if (hasMark) return true
-    } catch {}
 
-    try {
-      const clickedEl = (editor.storage as any)?.link?.clickedElement as HTMLAnchorElement | null
-      if (clickedEl && clickedEl.isConnected && editor.view?.dom?.contains(clickedEl)) {
-        return true
-      }
+      // Verify if current selection DOM node is actually within an <a> element
+      const domAtPos = editor.view.domAtPos(from)
+      const el = domAtPos.node as HTMLElement
+      const linkEl =
+        el?.nodeType === 1
+          ? (el as HTMLElement).closest('a')
+          : (el?.parentElement?.closest('a') as HTMLAnchorElement | null)
+      if (linkEl) return true
     } catch {}
 
     return false
@@ -141,6 +150,72 @@ export const LinkMenu = ({
       }
     }
   }, [editor, editor.state.selection, checkIsLinkActive, setEditMode])
+
+  // Dismiss handler: close link menu when clicking anywhere outside the menu and outside any link
+  useEffect(() => {
+    const handleDocumentPointerDown = (e: PointerEvent | MouseEvent) => {
+      if (!checkIsLinkActive() && !showEditRef.current) return
+
+      const target = e.target as HTMLElement | null
+      if (!target) return
+
+      // Don't dismiss if click is inside the link menu itself (preview panel, editor panel, buttons, inputs)
+      if (
+        menuRef.current?.contains(target) ||
+        target.closest?.(
+          '.link-preview-panel, .link-editor-panel, [data-ignore-external-label="true"], [role="dialog"]'
+        )
+      ) {
+        return
+      }
+
+      // Don't dismiss if click is on an <a> element inside the editor
+      if (target.closest?.('a')) {
+        return
+      }
+
+      // Clicked outside! Dismiss menu immediately
+      setEditMode(false)
+      const storage = (editor.storage as any)?.link
+      if (storage) {
+        storage.clickedCoords = null
+        storage.clickedElement = null
+      }
+      try {
+        editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'hide'))
+      } catch {}
+    }
+
+    document.addEventListener('pointerdown', handleDocumentPointerDown, { capture: true })
+    return () => {
+      document.removeEventListener('pointerdown', handleDocumentPointerDown, { capture: true })
+    }
+  }, [editor, checkIsLinkActive, setEditMode])
+
+  // Floating UI autoUpdate & ResizeObserver: keep position firmly docked when content size changes
+  useEffect(() => {
+    const el = menuRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+
+    let prevW = 0
+    let prevH = 0
+
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect
+        if (Math.abs(width - prevW) > 1 || Math.abs(height - prevH) > 1) {
+          prevW = width
+          prevH = height
+          updateMenuPosition()
+        }
+      }
+    })
+
+    ro.observe(el)
+    return () => {
+      ro.disconnect()
+    }
+  }, [updateMenuPosition])
 
   // Reset scroll lock on editor interaction & mousedown on links
   useEffect(() => {
@@ -251,50 +326,14 @@ export const LinkMenu = ({
 
   const onSetLink = useCallback(
     (url: string, text?: string, openInNewTab?: boolean) => {
-      try {
-        editor.chain().focus().extendMarkRange('link').run()
-        const { from, to } = editor.state.selection
-        const currentText = editor.state.doc.textBetween(from, to)
-
-        if (text && text !== currentText) {
-          editor
-            .chain()
-            .focus()
-            .insertContentAt(
-              { from, to },
-              {
-                type: 'text',
-                text,
-                marks: [
-                  {
-                    type: 'link',
-                    attrs: {
-                      href: url,
-                      target: openInNewTab ? '_blank' : '',
-                    },
-                  },
-                ],
-              },
-            )
-            .run()
-        } else {
-          editor
-            .chain()
-            .focus()
-            .extendMarkRange('link')
-            .setLink({ href: url, target: openInNewTab ? '_blank' : '' })
-            .run()
-        }
-      } catch (err) {
-        console.error('Error setting link:', err)
-      }
+      applySetLink(editor, url, text, openInNewTab)
       setEditMode(false)
     },
     [editor, setEditMode],
   )
 
   const onUnsetLink = useCallback(() => {
-    editor.chain().focus().extendMarkRange('link').unsetLink().run()
+    applyUnsetLink(editor)
     setEditMode(false)
     return null
   }, [editor, setEditMode])
@@ -423,6 +462,7 @@ export const LinkMenu = ({
 
   return (
     <BaseBubbleMenu
+      ref={menuRef}
       editor={editor}
       pluginKey="linkMenu"
       shouldShow={shouldShow}
@@ -448,6 +488,7 @@ export const LinkMenu = ({
           onOpen={onLinkClick}
           editable={editable}
           disableDefaultAction={disableDefaultAction}
+          onUpdatePosition={updateMenuPosition}
         />
       )}
     </BaseBubbleMenu>
