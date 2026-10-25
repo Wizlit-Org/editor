@@ -75,7 +75,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag "${{ steps.versioning.outputs.TAG_NAME }}"
-          git push origin "${{ steps.versioning.outputs.TAG_NAME }}"
+          git push origin "${{ steps.versioning.outputs.TAG_NAME }}" || echo "Tag push skipped or restricted by repo ruleset"
 
       - name: Sync version to dev branch
         if: github.ref == 'refs/heads/main'
