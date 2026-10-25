@@ -1,7 +1,7 @@
 import { Editor } from '@tiptap/core'
 import { TableMap } from '@tiptap/pm/tables'
 import { getClusterRowRange, getClusterColRange, selectColRange, selectRowRange } from './TableClusterUtils'
-import { isTargetSplittingMergedCell, isHeaderStraddling } from './TableHeaderStraddleUtils'
+import { isTargetSplittingMergedCell } from './TableHeaderStraddleUtils'
 
 export { getClusterRowRange as getMergedRowRange, getClusterColRange as getMergedColRange } from './TableClusterUtils'
 
@@ -43,9 +43,6 @@ export function moveTableColumn(
       return false
     }
     if (isTargetSplittingMergedCell(tableNode, 'col', toIndex)) {
-      return false
-    }
-    if (isHeaderStraddling(tableNode, 'col', fromIndex, toIndex)) {
       return false
     }
 
@@ -132,9 +129,6 @@ export function moveTableRow(
       return false
     }
     if (isTargetSplittingMergedCell(tableNode, 'row', toIndex)) {
-      return false
-    }
-    if (isHeaderStraddling(tableNode, 'row', fromIndex, toIndex)) {
       return false
     }
 

@@ -37,6 +37,8 @@ const isSameTables = (prev: TableShadowState[], next: TableShadowState[]): boole
 
 export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ editor, appendTo }) => {
   const [tables, setTables] = useState<TableShadowState[]>([])
+  const tablesRef = useRef(tables)
+  tablesRef.current = tables
   const anchorRef = useRef<HTMLDivElement>(null)
   const offset = useContainingBlockOffset(anchorRef)
 
@@ -150,6 +152,34 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
     window.addEventListener('scroll', scheduledUpdate, { passive: true, capture: true })
     window.addEventListener('resize', scheduledUpdate, { passive: true })
 
+    const handleInterceptBlurredCellClick = (e: MouseEvent) => {
+      for (const t of tablesRef.current) {
+        if (!t.showLeft) continue
+        const editorDom = editor.view?.dom
+        const editorContentLeft = editorDom ? editorDom.getBoundingClientRect().left : t.rect.left
+        const blurCellMinX = editorContentLeft
+        const blurCellMaxX = editorContentLeft + 48
+        const blurCellMinY = t.rect.top
+        const blurCellMaxY = t.rect.bottom
+
+        if (
+          e.clientX >= blurCellMinX &&
+          e.clientX <= blurCellMaxX &&
+          e.clientY >= blurCellMinY &&
+          e.clientY <= blurCellMaxY
+        ) {
+          e.preventDefault()
+          e.stopPropagation()
+          e.stopImmediatePropagation()
+          return
+        }
+      }
+    }
+
+    window.addEventListener('mousedown', handleInterceptBlurredCellClick, { capture: true })
+    window.addEventListener('click', handleInterceptBlurredCellClick, { capture: true })
+    window.addEventListener('dblclick', handleInterceptBlurredCellClick, { capture: true })
+
     return () => {
       active = false
       clearTimeout(timer1)
@@ -163,6 +193,9 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       editor.off('update', scheduledUpdate)
       window.removeEventListener('scroll', scheduledUpdate, { capture: true })
       window.removeEventListener('resize', scheduledUpdate)
+      window.removeEventListener('mousedown', handleInterceptBlurredCellClick, { capture: true })
+      window.removeEventListener('click', handleInterceptBlurredCellClick, { capture: true })
+      window.removeEventListener('dblclick', handleInterceptBlurredCellClick, { capture: true })
 
       // Clean up inline maskImage on table wrappers
       const editorDom = editor.view?.dom
@@ -205,50 +238,29 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
         const visibleRight = Math.min(t.rect.left + t.rect.width, containerRect.right)
 
         const editorContentLeft = editor.view?.dom ? editor.view.dom.getBoundingClientRect().left : visibleLeft
-        const blurLeft = Math.max(visibleLeft, editorContentLeft)
-        const blurWidth = 48
+        const gutterWidth = Math.max(0, Math.round(editorContentLeft - visibleLeft))
+        const blurWidth = gutterWidth + 48
 
         return (
           <React.Fragment key={t.id}>
-            {/* Left Edge Fade Shadow / Frosted Glass Blur Indicator (Clipped to editorContentLeft to prevent gutter drag handle mousemove interception) */}
+            {/* Left Edge Fade Shadow / Frosted Glass Blur Indicator (Extended across full left boundary with pointerEvents: none) */}
             <div
-              onMouseDown={e => { e.preventDefault(); e.stopPropagation() }}
-              onClick={e => { e.preventDefault(); e.stopPropagation() }}
-              onDoubleClick={e => { e.preventDefault(); e.stopPropagation() }}
-              onPointerDown={e => { e.preventDefault(); e.stopPropagation() }}
-              onMouseMove={e => {
-                const currentTarget = e.currentTarget as HTMLElement
-                currentTarget.style.pointerEvents = 'none'
-                const el = document.elementFromPoint(e.clientX, e.clientY)
-                currentTarget.style.pointerEvents = 'auto'
-                if (el && el !== currentTarget) {
-                  el.dispatchEvent(new MouseEvent('mousemove', {
-                    bubbles: true,
-                    cancelable: true,
-                    view: window,
-                    clientX: e.clientX,
-                    clientY: e.clientY,
-                    screenX: e.screenX,
-                    screenY: e.screenY,
-                  }))
-                }
-              }}
               style={{
                 position: 'fixed',
-                pointerEvents: t.showLeft ? 'auto' : 'none',
+                pointerEvents: 'none',
                 cursor: 'default',
                 zIndex: 12,
                 transition: 'opacity 0.2s ease',
                 opacity: t.showLeft ? 1 : 0,
                 top: t.rect.top - 24 - offset.y,
-                left: blurLeft - offset.x,
+                left: visibleLeft - offset.x,
                 width: `${blurWidth}px`,
                 height: t.rect.height + 48,
                 background: 'transparent',
                 backdropFilter: 'blur(8px)',
                 WebkitBackdropFilter: 'blur(8px)',
-                maskImage: 'linear-gradient(to right, black 0px, rgba(0,0,0,0.6) 24px, transparent 48px)',
-                WebkitMaskImage: 'linear-gradient(to right, black 0px, rgba(0,0,0,0.6) 24px, transparent 48px)',
+                maskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
+                WebkitMaskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
               }}
             />
 

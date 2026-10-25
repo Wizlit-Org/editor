@@ -94,52 +94,17 @@ export function hasColStraddlingMerge(tableNode: Node, colIndex = 0): boolean {
 /**
  * Checks if moving a row or column bundle from sourceIndex to targetIndex would straddle the header/body boundary.
  *
- * Rules (117-v-63: BLOCK_MOVE_DROP_TO_HEADER_ON_STRADDLE):
- * - If targetIndex is 0 (or bundle lands on slot 0) and the moved row/col has a straddling merge (rowspan > 1 for rows, colspan > 1 for cols), block!
- * - If sourceIndex is 0 and moving slot 0 away leaves a row/col at slot 0 that has a straddling merge, block!
+ * Restored (117-v-64: RESTORE_HEADER_MOVE):
+ * Header rows/cols can be freely moved without overblocking.
+ * Straddling merge restriction is kept exclusively on menu toggling.
  */
 export function isHeaderStraddling(
-  tableNode: Node,
-  type: 'col' | 'row',
-  sourceIndex: number,
-  targetIndex: number,
+  _tableNode: Node,
+  _type: 'col' | 'row',
+  _sourceIndex: number,
+  _targetIndex: number,
 ): boolean {
-  try {
-    const map = TableMap.get(tableNode)
-    if (type === 'row') {
-      if (!hasHeaderRow(tableNode)) return false
-      const cluster = getClusterRowRange(tableNode, sourceIndex)
-      if (targetIndex === 0) {
-        for (let r = cluster.start; r < cluster.start + cluster.count; r++) {
-          if (hasRowStraddlingMerge(tableNode, r)) return true
-        }
-      }
-      if (sourceIndex === 0 && targetIndex > 0) {
-        const nextRowIdx = cluster.count
-        if (nextRowIdx < map.height && hasRowStraddlingMerge(tableNode, nextRowIdx)) {
-          return true
-        }
-      }
-      return false
-    } else {
-      if (!hasHeaderCol(tableNode)) return false
-      const cluster = getClusterColRange(tableNode, sourceIndex)
-      if (targetIndex === 0) {
-        for (let c = cluster.start; c < cluster.start + cluster.count; c++) {
-          if (hasColStraddlingMerge(tableNode, c)) return true
-        }
-      }
-      if (sourceIndex === 0 && targetIndex > 0) {
-        const nextColIdx = cluster.count
-        if (nextColIdx < map.width && hasColStraddlingMerge(tableNode, nextColIdx)) {
-          return true
-        }
-      }
-      return false
-    }
-  } catch {
-    return false
-  }
+  return false
 }
 
 /**
