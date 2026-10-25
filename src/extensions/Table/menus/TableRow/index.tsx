@@ -117,15 +117,23 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
     [editor],
   )
 
+  const closeMenu = useCallback(() => {
+    isMenuOpenRef.current = false
+    setIsMenuOpen(false)
+    window.dispatchEvent(new CustomEvent('tiptap:close-table-menus'))
+  }, [])
+
   const onMoveRowUp = useCallback(() => {
     const idx = getSelectedRowIndex(editor)
     moveRowUp(editor, idx)
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const onMoveRowDown = useCallback(() => {
     const idx = getSelectedRowIndex(editor)
     moveRowDown(editor, idx)
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const onAddRowBefore = useCallback(() => {
     const range = getSelectedRowRange(editor)
@@ -138,7 +146,8 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
     } else {
       editor.chain().focus().addRowBefore().run()
     }
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const onAddRowAfter = useCallback(() => {
     const range = getSelectedRowRange(editor)
@@ -151,12 +160,14 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
     } else {
       editor.chain().focus().addRowAfter().run()
     }
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const onDuplicate = useCallback(() => {
     const idx = getSelectedRowIndex(editor)
     duplicateRow(editor, idx)
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const isRowHeaderBlocked = useMemo(() => {
     const table = findTable(editor.state.selection)
@@ -191,24 +202,24 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
     const table = findTable(editor.state.selection)
     if (table && hasRowStraddlingMerge(table.node, 0)) return
     editor.chain().focus().toggleHeaderRow().run()
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const onClearRow = useCallback(() => {
     const idx = getSelectedRowIndex(editor)
     clearRowContents(editor, idx)
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const onDeleteRow = useCallback(() => {
     deleteRow(editor)
-    isMenuOpenRef.current = false
-    setIsMenuOpen(false)
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const onDeleteTable = useCallback(() => {
     editor.chain().focus().deleteTable().run()
-    isMenuOpenRef.current = false
-    setIsMenuOpen(false)
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const itemClass =
     'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none cursor-pointer'
@@ -233,7 +244,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
           (!isMenuOpen || isClosedByScroll) && '!hidden',
         )}
       >
-        <TableAlignmentSubmenu editor={editor} scope="row" index={selectedRowIdx} />
+        <TableAlignmentSubmenu editor={editor} scope="row" index={selectedRowIdx} onClose={closeMenu} />
 
         <div className="h-[1px] bg-black/5 dark:bg-white/10 my-0.5" />
 

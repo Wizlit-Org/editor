@@ -191,27 +191,37 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
     }
 
     const handleMouseMove = (e: MouseEvent) => {
+      let wrapper: HTMLElement | null = null
+
       const target = e.target as HTMLElement | null
-      if (!target || !(target instanceof Element) || typeof target.closest !== 'function') {
-        return
-      }
-      let wrapper = target.closest('.tableWrapper') as HTMLElement | null
-      if (!wrapper) {
-        const btn = target.closest('[data-table-scroll-wrapper-id]') as HTMLElement | null
-        if (btn) {
-          const wrapperId = btn.getAttribute('data-table-scroll-wrapper-id')
-          const found = tablesRef.current.find(t => t.id === wrapperId)
-          if (found) wrapper = found.wrapper
+      if (target && target instanceof Element && typeof target.closest === 'function') {
+        wrapper = target.closest('.tableWrapper') as HTMLElement | null
+        if (!wrapper) {
+          const btn = target.closest('[data-table-scroll-wrapper-id]') as HTMLElement | null
+          if (btn) {
+            const wrapperId = btn.getAttribute('data-table-scroll-wrapper-id')
+            const found = tablesRef.current.find(t => t.id === wrapperId)
+            if (found) wrapper = found.wrapper
+          }
         }
       }
+
+      // Global window coordinate tracking for gutter, drag handles (.drag-handle, ContentItemMenu) and entire table horizontal slice
       if (!wrapper) {
-        const isHandleOrGrip = Boolean(
-          target.closest('.drag-handle, [data-drag-handle], #table-col-grips, #table-row-grips, #table-overlays-wrapper, .table-drag-handle'),
+        const hasDragHandleHover = Boolean(
+          typeof document !== 'undefined' &&
+            document.querySelector(
+              '.drag-handle:hover, [data-drag-handle]:hover, .table-drag-handle:hover, [data-testid="content-item-menu"]:hover',
+            ),
         )
+
         for (const t of tablesRef.current) {
-          const inY = e.clientY >= t.rect.top - 30 && e.clientY <= t.rect.bottom + 30
-          const inX = e.clientX >= t.rect.left - 60 && e.clientX <= t.rect.left + t.rect.width + 30
-          if (inY && inX && (isHandleOrGrip || e.clientX < t.rect.left + 50)) {
+          const editorDom = editor.view?.dom
+          const editorLeft = editorDom ? editorDom.getBoundingClientRect().left : t.rect.left
+          const inY = e.clientY >= t.rect.top - 24 && e.clientY <= t.rect.bottom + 24
+          const inX = e.clientX >= editorLeft - 100 && e.clientX <= t.rect.left + t.rect.width + 30
+
+          if (inY && (inX || hasDragHandleHover)) {
             wrapper = t.wrapper
             break
           }
@@ -366,7 +376,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
                 pointerEvents: 'none',
                 cursor: 'default',
                 zIndex: 12,
-                transition: 'opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+                transition: 'opacity 350ms cubic-bezier(0.16, 1, 0.3, 1)',
                 opacity: isBlurVisible ? 1 : 0,
                 top: t.rect.top - 24 - offset.y,
                 left: visibleLeft - offset.x,

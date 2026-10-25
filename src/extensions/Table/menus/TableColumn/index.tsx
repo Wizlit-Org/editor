@@ -119,15 +119,23 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
     [editor],
   )
 
+  const closeMenu = useCallback(() => {
+    isMenuOpenRef.current = false
+    setIsMenuOpen(false)
+    window.dispatchEvent(new CustomEvent('tiptap:close-table-menus'))
+  }, [])
+
   const onMoveColumnLeft = useCallback(() => {
     const idx = getSelectedColumnIndex(editor)
     moveColumnLeft(editor, idx)
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const onMoveColumnRight = useCallback(() => {
     const idx = getSelectedColumnIndex(editor)
     moveColumnRight(editor, idx)
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const onAddColumnBefore = useCallback(() => {
     const range = getSelectedColRange(editor)
@@ -140,7 +148,8 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
     } else {
       editor.chain().focus().addColumnBefore().run()
     }
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const onAddColumnAfter = useCallback(() => {
     const range = getSelectedColRange(editor)
@@ -153,33 +162,37 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
     } else {
       editor.chain().focus().addColumnAfter().run()
     }
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const onSortAsc = useCallback(() => {
     const idx = getSelectedColumnIndex(editor)
     sortColumn(editor, idx, 'asc')
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const onSortDesc = useCallback(() => {
     const idx = getSelectedColumnIndex(editor)
     sortColumn(editor, idx, 'desc')
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const onClearColumn = useCallback(() => {
     const idx = getSelectedColumnIndex(editor)
     clearColumnContents(editor, idx)
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const onDuplicate = useCallback(() => {
     const idx = getSelectedColumnIndex(editor)
     duplicateColumn(editor, idx)
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const onDeleteColumn = useCallback(() => {
     deleteColumn(editor)
-    isMenuOpenRef.current = false
-    setIsMenuOpen(false)
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const isColHeaderBlocked = useMemo(() => {
     const table = findTable(editor.state.selection)
@@ -214,13 +227,13 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
     const table = findTable(editor.state.selection)
     if (table && hasColStraddlingMerge(table.node, 0)) return
     editor.chain().focus().toggleHeaderColumn().run()
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const onDeleteTable = useCallback(() => {
     editor.chain().focus().deleteTable().run()
-    isMenuOpenRef.current = false
-    setIsMenuOpen(false)
-  }, [editor])
+    closeMenu()
+  }, [editor, closeMenu])
 
   const itemClass =
     'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none cursor-pointer'
@@ -245,7 +258,7 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
           (!isMenuOpen || isClosedByScroll) && '!hidden',
         )}
       >
-        <TableAlignmentSubmenu editor={editor} scope="column" index={selectedColIdx} />
+        <TableAlignmentSubmenu editor={editor} scope="column" index={selectedColIdx} onClose={closeMenu} />
 
         <div className="h-[1px] bg-black/5 dark:bg-white/10 my-0.5" />
 
