@@ -45,6 +45,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
   const [hoveredWrapper, setHoveredWrapper] = useState<HTMLElement | null>(null)
   const hoveredWrapperRef = useRef<HTMLElement | null>(null)
   hoveredWrapperRef.current = hoveredWrapper
+  const hoverLeaveTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const [activeWrapper, setActiveWrapper] = useState<HTMLElement | null>(null)
   const activeWrapperRef = useRef<HTMLElement | null>(null)
@@ -203,14 +204,47 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
           if (found) wrapper = found.wrapper
         }
       }
-      if (wrapper !== hoveredWrapperRef.current) {
-        setHoveredWrapper(wrapper)
+      if (!wrapper) {
+        const isHandleOrGrip = Boolean(
+          target.closest('.drag-handle, [data-drag-handle], #table-col-grips, #table-row-grips, #table-overlays-wrapper, .table-drag-handle'),
+        )
+        for (const t of tablesRef.current) {
+          const inY = e.clientY >= t.rect.top - 30 && e.clientY <= t.rect.bottom + 30
+          const inX = e.clientX >= t.rect.left - 60 && e.clientX <= t.rect.left + t.rect.width + 30
+          if (inY && inX && (isHandleOrGrip || e.clientX < t.rect.left + 50)) {
+            wrapper = t.wrapper
+            break
+          }
+        }
+      }
+
+      if (wrapper) {
+        if (hoverLeaveTimerRef.current) {
+          clearTimeout(hoverLeaveTimerRef.current)
+          hoverLeaveTimerRef.current = null
+        }
+        if (wrapper !== hoveredWrapperRef.current) {
+          hoveredWrapperRef.current = wrapper
+          setHoveredWrapper(wrapper)
+        }
+      } else {
+        if (hoveredWrapperRef.current !== null && !hoverLeaveTimerRef.current) {
+          hoverLeaveTimerRef.current = setTimeout(() => {
+            hoverLeaveTimerRef.current = null
+            hoveredWrapperRef.current = null
+            setHoveredWrapper(null)
+          }, 300)
+        }
       }
     }
 
     const handleMouseLeave = () => {
-      if (hoveredWrapperRef.current !== null) {
-        setHoveredWrapper(null)
+      if (hoveredWrapperRef.current !== null && !hoverLeaveTimerRef.current) {
+        hoverLeaveTimerRef.current = setTimeout(() => {
+          hoverLeaveTimerRef.current = null
+          hoveredWrapperRef.current = null
+          setHoveredWrapper(null)
+        }, 300)
       }
     }
 
@@ -258,6 +292,10 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       clearTimeout(timer1)
       clearTimeout(timer2)
       clearTimeout(timer3)
+      if (hoverLeaveTimerRef.current) {
+        clearTimeout(hoverLeaveTimerRef.current)
+        hoverLeaveTimerRef.current = null
+      }
       if (rafId !== null) window.cancelAnimationFrame(rafId)
       ro?.disconnect()
       mo?.disconnect()
@@ -328,7 +366,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
                 pointerEvents: 'none',
                 cursor: 'default',
                 zIndex: 12,
-                transition: 'opacity 200ms ease',
+                transition: 'opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)',
                 opacity: isBlurVisible ? 1 : 0,
                 top: t.rect.top - 24 - offset.y,
                 left: visibleLeft - offset.x,

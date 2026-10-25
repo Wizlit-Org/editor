@@ -18,7 +18,7 @@ import { getRowAnchorVirtualElement } from '../useTableMenuPosition'
 import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
 import { DeleteRowIcon } from '../../components/TableActionIcons'
 import { scrollTargetCellIntoView } from '../../utils/TableAutoScroll'
-import { hasRowStraddlingMerge } from '../../utils/TableHeaderStraddleUtils'
+import { hasRowStraddlingMerge, hasHeaderRow } from '../../utils/TableHeaderStraddleUtils'
 import { cn } from '@/lib/utils'
 
 const TABLE_ROW_MENU_OPTIONS = {
@@ -171,15 +171,20 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
     if (selectedRowIdx !== 0) return false
     const table = findTable(editor.state.selection)
     if (!table) return false
-    const map = TableMap.get(table.node)
-    for (let c = 0; c < map.width; c++) {
-      const cellPos = map.map[c]
-      const cellNode = table.node.nodeAt(cellPos)
-      if (!cellNode || cellNode.type.name !== 'table_header') {
-        return false
+    if (hasHeaderRow(table.node)) return true
+    try {
+      const map = TableMap.get(table.node)
+      for (let c = 0; c < map.width; c++) {
+        const cellPos = map.map[c]
+        const cellNode = table.node.nodeAt(cellPos)
+        if (!cellNode) return false
+        const isTh = cellNode.type.name === 'tableHeader' || cellNode.type.spec?.tableRole === 'header_cell'
+        if (!isTh) return false
       }
+      return true
+    } catch {
+      return false
     }
-    return true
   }, [editor.state.selection, selectedRowIdx])
 
   const onToggleHeaderRow = useCallback(() => {
@@ -243,19 +248,19 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
                 itemClass,
                 isRowHeaderBlocked && 'opacity-50 cursor-not-allowed hover:bg-transparent',
                 isHeaderRowActive &&
-                  'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 font-medium hover:bg-indigo-100/70 dark:hover:bg-indigo-900/50',
+                  '!bg-indigo-500/10 !text-indigo-600 dark:!text-indigo-400 font-medium hover:!bg-indigo-500/20',
               )}
             >
               <Icon
                 name="Table"
                 className={cn(
                   'w-3.5 h-3.5',
-                  isHeaderRowActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-500 dark:text-[#9b9b9b]',
+                  isHeaderRowActive ? '!text-indigo-600 dark:!text-indigo-400' : 'text-zinc-500 dark:text-[#9b9b9b]',
                 )}
               />
               <span>Header row</span>
               {isHeaderRowActive && (
-                <Icon name="Check" className="w-3.5 h-3.5 ml-auto text-indigo-600 dark:text-indigo-400" />
+                <Icon name="Check" className="w-3.5 h-3.5 ml-auto !text-indigo-600 dark:!text-indigo-400" />
               )}
             </button>
             <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
