@@ -34,22 +34,45 @@ export function turnIntoList(
     }
   }
 
-  if (currentListType === targetListType) {
-    return
-  }
-
-  // 1. Direct atomic conversion between bulletList and orderedList
+  // 1. Direct atomic conversion between bulletList and orderedList (including nested sublists)
   if (
-    (currentListType === 'orderedList' && targetListType === 'bulletList') ||
-    (currentListType === 'bulletList' && targetListType === 'orderedList')
+    (currentListType === 'orderedList' || currentListType === 'bulletList') &&
+    (targetListType === 'bulletList' || targetListType === 'orderedList')
   ) {
     editor.commands.command(({ tr, state }) => {
       const targetType = state.schema.nodes[targetListType]
       if (!targetType) return false
       const attrs = targetListType === 'orderedList' ? { start: 1 } : {}
-      tr.setNodeMarkup(listPos, targetType, attrs)
+
+      // Collect all list positions inside this list (root and any descendant sublists)
+      const positions: number[] = []
+      if (currentListType !== targetListType) {
+        positions.push(listPos)
+      }
+
+      listNode.descendants((child, offset) => {
+        if (
+          (child.type.name === 'orderedList' || child.type.name === 'bulletList') &&
+          child.type.name !== targetListType
+        ) {
+          positions.push(listPos + 1 + offset)
+        }
+      })
+
+      if (positions.length === 0) return false
+
+      // Sort descending (bottom-up) to safely transform nodes
+      positions.sort((a, b) => b - a)
+
+      for (const pos of positions) {
+        tr.setNodeMarkup(pos, targetType, attrs)
+      }
       return true
     })
+    return
+  }
+
+  if (currentListType === targetListType) {
     return
   }
 
