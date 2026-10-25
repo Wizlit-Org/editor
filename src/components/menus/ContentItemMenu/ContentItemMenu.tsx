@@ -1,4 +1,5 @@
 import { Icon } from '@/components/ui/Icon'
+import { cn } from '@/lib/utils'
 import { DragHandle } from '@tiptap/extension-drag-handle-react'
 import { Editor } from '@tiptap/react'
 
