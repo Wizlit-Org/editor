@@ -21,16 +21,10 @@ const isSameTables = (prev: TableShadowState[], next: TableShadowState[]): boole
   if (prev.length !== next.length) return false
   return prev.every((p, i) => {
     const n = next[i]
-    if (!n) return false
-    return (
-      p.id === n.id &&
-      p.wrapper === n.wrapper &&
-      p.showLeft === n.showLeft &&
-      p.showRight === n.showRight &&
-      Math.abs(p.rect.top - n.rect.top) < 0.5 &&
-      Math.abs(p.rect.left - n.rect.left) < 0.5 &&
-      Math.abs(p.rect.width - n.rect.width) < 0.5 &&
-      Math.abs(p.rect.height - n.rect.height) < 0.5
+    return Boolean(
+      n && p.id === n.id && p.wrapper === n.wrapper && p.showLeft === n.showLeft && p.showRight === n.showRight &&
+      Math.abs(p.rect.top - n.rect.top) < 0.5 && Math.abs(p.rect.left - n.rect.left) < 0.5 &&
+      Math.abs(p.rect.width - n.rect.width) < 0.5 && Math.abs(p.rect.height - n.rect.height) < 0.5
     )
   })
 }
@@ -136,7 +130,11 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
 
   useEffect(() => {
     tables.forEach(t => {
-      const isBlurVisible = t.showLeft && (hoveredWrapper === t.wrapper || activeWrapper === t.wrapper)
+      const isHoveredOrActive = hoveredWrapper === t.wrapper || activeWrapper === t.wrapper
+      const shouldCompact = Boolean(editor.isEditable && isHoveredOrActive)
+      t.wrapper.classList.toggle('table-compact-left', shouldCompact)
+
+      const isBlurVisible = t.showLeft && isHoveredOrActive
       const existingTimer = maskClearTimersRef.current.get(t.id)
 
       if (isBlurVisible) {
@@ -145,8 +143,10 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
           maskClearTimersRef.current.delete(t.id)
         }
         const editorDomLeft = editor.view?.dom ? editor.view.dom.getBoundingClientRect().left : t.rect.left
-        const gutter = Math.max(0, Math.round(editorDomLeft - t.rect.left))
-        const mask = `linear-gradient(to right, transparent 0px, transparent ${gutter}px, rgba(0,0,0,0.3) ${gutter + 16}px, black ${gutter + 48}px)`
+        const gutter = shouldCompact ? 0 : Math.max(0, Math.round(editorDomLeft - t.rect.left))
+        const mask = gutter > 0
+          ? `linear-gradient(to right, transparent 0px, transparent ${gutter}px, rgba(0,0,0,0.3) ${gutter + 16}px, black ${gutter + 48}px)`
+          : `linear-gradient(to right, transparent 0px, rgba(0,0,0,0.3) 16px, black 48px)`
         t.wrapper.style.maskImage = mask
         ;(t.wrapper.style as any).webkitMaskImage = mask
       } else {
@@ -302,6 +302,8 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
     window.addEventListener('resize', scheduledUpdate, { passive: true })
     window.addEventListener('mouseover', handleMouseOver, { passive: true })
     window.addEventListener('mousemove', handleMouseMove, { passive: true })
+    window.addEventListener('transitionrun', scheduledUpdate, { passive: true })
+    window.addEventListener('transitionend', scheduledUpdate, { passive: true })
     document.addEventListener('mouseleave', handleMouseLeave)
 
     return () => {
@@ -327,13 +329,16 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       window.removeEventListener('resize', scheduledUpdate)
       window.removeEventListener('mouseover', handleMouseOver)
       window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('transitionrun', scheduledUpdate)
+      window.removeEventListener('transitionend', scheduledUpdate)
       document.removeEventListener('mouseleave', handleMouseLeave)
 
-      // Clean up inline maskImage on table wrappers
+      // Clean up inline maskImage and compact class on table wrappers
       const editorDom = editor.view?.dom
       if (editorDom) {
         editorDom.querySelectorAll('.tableWrapper').forEach((el) => {
           const w = el as HTMLElement
+          w.classList.remove('table-compact-left')
           w.style.maskImage = ''
           ;(w.style as any).webkitMaskImage = ''
         })
@@ -402,22 +407,10 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
             {/* Blurred Table Cells Shield (Starts at editorContentLeft, exactly past the drag-handle and plus button) */}
             <div
               data-table-blur-indicator={t.id}
-              onMouseDown={e => {
-                e.preventDefault()
-                e.stopPropagation()
-              }}
-              onPointerDown={e => {
-                e.preventDefault()
-                e.stopPropagation()
-              }}
-              onClick={e => {
-                e.preventDefault()
-                e.stopPropagation()
-              }}
-              onDoubleClick={e => {
-                e.preventDefault()
-                e.stopPropagation()
-              }}
+              onMouseDown={e => { e.preventDefault(); e.stopPropagation() }}
+              onPointerDown={e => { e.preventDefault(); e.stopPropagation() }}
+              onClick={e => { e.preventDefault(); e.stopPropagation() }}
+              onDoubleClick={e => { e.preventDefault(); e.stopPropagation() }}
               style={{
                 position: 'fixed',
                 pointerEvents: isBlurVisible ? 'auto' : 'none',
