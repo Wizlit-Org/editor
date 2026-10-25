@@ -53,16 +53,41 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
       setTick(t => t + 1)
     }
 
+    const handleDocumentMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null
+      if (!target) return
+      if (target.closest('.glass-menu') || target.closest('#table-col-grips')) return
+      handleClose()
+    }
+
+    const handleSelectionUpdate = ({ transaction }: { transaction: any }) => {
+      if (transaction?.getMeta('tableColumnMenu') === 'show') return
+      if (Date.now() - lastOpenTimeRef.current < 80) return
+      handleClose()
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose()
+      }
+    }
+
     window.addEventListener('tiptap:open-table-col-menu', handleOpen)
     window.addEventListener('tiptap:close-table-menus', handleClose)
     window.addEventListener('tiptap:close-menus', handleClose)
+    window.addEventListener('mousedown', handleDocumentMouseDown, { capture: true })
+    window.addEventListener('keydown', handleKeyDown)
+    editor.on('selectionUpdate', handleSelectionUpdate)
 
     return () => {
       window.removeEventListener('tiptap:open-table-col-menu', handleOpen)
       window.removeEventListener('tiptap:close-table-menus', handleClose)
       window.removeEventListener('tiptap:close-menus', handleClose)
+      window.removeEventListener('mousedown', handleDocumentMouseDown, { capture: true })
+      window.removeEventListener('keydown', handleKeyDown)
+      editor.off('selectionUpdate', handleSelectionUpdate)
     }
-  }, [])
+  }, [editor])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -161,6 +186,25 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
     return table ? hasColStraddlingMerge(table.node, 0) : false
   }, [editor.state.selection])
 
+  const selectedColIdx = getSelectedColumnIndex(editor)
+  const isFirstCol = selectedColIdx === 0
+  const canMoveLeft = selectedColIdx > 0
+
+  const isHeaderColActive = useMemo(() => {
+    if (selectedColIdx !== 0) return false
+    const table = findTable(editor.state.selection)
+    if (!table) return false
+    const map = TableMap.get(table.node)
+    for (let r = 0; r < map.height; r++) {
+      const cellPos = map.map[r * map.width]
+      const cellNode = table.node.nodeAt(cellPos)
+      if (!cellNode || cellNode.type.name !== 'table_header') {
+        return false
+      }
+    }
+    return true
+  }, [editor.state.selection, selectedColIdx])
+
   const onToggleHeaderColumn = useCallback(() => {
     const table = findTable(editor.state.selection)
     if (table && hasColStraddlingMerge(table.node, 0)) return
@@ -172,10 +216,6 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
     isMenuOpenRef.current = false
     setIsMenuOpen(false)
   }, [editor])
-
-  const selectedColIdx = getSelectedColumnIndex(editor)
-  const isFirstCol = selectedColIdx === 0
-  const canMoveLeft = selectedColIdx > 0
 
   const itemClass =
     'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none cursor-pointer'
@@ -211,10 +251,24 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
               onClick={onToggleHeaderColumn}
               disabled={isColHeaderBlocked}
               title={isColHeaderBlocked ? '병합 셀이 있어 헤더 열을 설정할 수 없습니다' : undefined}
-              className={cn(itemClass, isColHeaderBlocked && 'opacity-50 cursor-not-allowed hover:bg-transparent')}
+              className={cn(
+                itemClass,
+                isColHeaderBlocked && 'opacity-50 cursor-not-allowed hover:bg-transparent',
+                isHeaderColActive &&
+                  'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 font-medium hover:bg-indigo-100/70 dark:hover:bg-indigo-900/50',
+              )}
             >
-              <Icon name="Table" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+              <Icon
+                name="Table"
+                className={cn(
+                  'w-3.5 h-3.5',
+                  isHeaderColActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-500 dark:text-[#9b9b9b]',
+                )}
+              />
               <span>Header column</span>
+              {isHeaderColActive && (
+                <Icon name="Check" className="w-3.5 h-3.5 ml-auto text-indigo-600 dark:text-indigo-400" />
+              )}
             </button>
             <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
           </>

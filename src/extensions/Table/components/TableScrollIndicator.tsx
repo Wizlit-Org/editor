@@ -42,6 +42,40 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
   const anchorRef = useRef<HTMLDivElement>(null)
   const offset = useContainingBlockOffset(anchorRef)
 
+  const [hoveredWrapper, setHoveredWrapper] = useState<HTMLElement | null>(null)
+  const hoveredWrapperRef = useRef<HTMLElement | null>(null)
+  hoveredWrapperRef.current = hoveredWrapper
+
+  const [activeWrapper, setActiveWrapper] = useState<HTMLElement | null>(null)
+  const activeWrapperRef = useRef<HTMLElement | null>(null)
+  activeWrapperRef.current = activeWrapper
+
+  const updateActiveTable = useCallback(() => {
+    const dom = editor.view?.dom
+    if (!dom || !editor.isFocused || !editor.isActive('table')) {
+      if (activeWrapperRef.current !== null) {
+        setActiveWrapper(null)
+      }
+      return
+    }
+
+    let foundWrapper: HTMLElement | null = null
+    const sel = window.getSelection()
+    if (sel && sel.anchorNode) {
+      const el = sel.anchorNode instanceof Element ? sel.anchorNode : sel.anchorNode.parentElement
+      foundWrapper = el?.closest('.tableWrapper') as HTMLElement | null
+    }
+    if (!foundWrapper) {
+      const selectedCell = dom.querySelector('.selectedCell, .ProseMirror-selectednode')
+      if (selectedCell) {
+        foundWrapper = selectedCell.closest('.tableWrapper') as HTMLElement | null
+      }
+    }
+    if (foundWrapper !== activeWrapperRef.current) {
+      setActiveWrapper(foundWrapper)
+    }
+  }, [editor])
+
   const updateTableScrollStates = useCallback(() => {
     const dom = editor.view?.dom
     if (!dom) {
@@ -81,17 +115,6 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       const showLeft = scrollLeft > 2
       const showRight = scrollLeft < scrollWidth - clientWidth - 2
 
-      if (showLeft) {
-        const editorDomLeft = editor.view?.dom ? editor.view.dom.getBoundingClientRect().left : rect.left
-        const gutter = Math.max(0, Math.round(editorDomLeft - rect.left))
-        const mask = `linear-gradient(to right, transparent 0px, transparent ${gutter}px, rgba(0,0,0,0.3) ${gutter + 16}px, black ${gutter + 48}px)`
-        wrapper.style.maskImage = mask
-        ;(wrapper.style as any).webkitMaskImage = mask
-      } else {
-        wrapper.style.maskImage = ''
-        ;(wrapper.style as any).webkitMaskImage = ''
-      }
-
       nextStates.push({
         id: `table-wrapper-${index}`,
         wrapper,
@@ -110,6 +133,22 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
   }, [editor])
 
   useEffect(() => {
+    tables.forEach(t => {
+      const isBlurVisible = t.showLeft && (hoveredWrapper === t.wrapper || activeWrapper === t.wrapper)
+      if (isBlurVisible) {
+        const editorDomLeft = editor.view?.dom ? editor.view.dom.getBoundingClientRect().left : t.rect.left
+        const gutter = Math.max(0, Math.round(editorDomLeft - t.rect.left))
+        const mask = `linear-gradient(to right, transparent 0px, transparent ${gutter}px, rgba(0,0,0,0.3) ${gutter + 16}px, black ${gutter + 48}px)`
+        t.wrapper.style.maskImage = mask
+        ;(t.wrapper.style as any).webkitMaskImage = mask
+      } else {
+        t.wrapper.style.maskImage = ''
+        ;(t.wrapper.style as any).webkitMaskImage = ''
+      }
+    })
+  }, [tables, hoveredWrapper, activeWrapper, editor])
+
+  useEffect(() => {
     let rafId: number | null = null
     let active = true
 
@@ -117,11 +156,15 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       if (rafId !== null) return
       rafId = window.requestAnimationFrame(() => {
         rafId = null
-        if (active) updateTableScrollStates()
+        if (active) {
+          updateTableScrollStates()
+          updateActiveTable()
+        }
       })
     }
 
     scheduledUpdate()
+    updateActiveTable()
 
     // 3-stage poll after mount to catch ProseMirror/TipTap table wrapper rendering
     const timer1 = setTimeout(scheduledUpdate, 50)
@@ -146,15 +189,45 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       }
     }
 
+    const handleMouseMove = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null
+      if (!target || !(target instanceof Element) || typeof target.closest !== 'function') {
+        return
+      }
+      let wrapper = target.closest('.tableWrapper') as HTMLElement | null
+      if (!wrapper) {
+        const btn = target.closest('[data-table-scroll-wrapper-id]') as HTMLElement | null
+        if (btn) {
+          const wrapperId = btn.getAttribute('data-table-scroll-wrapper-id')
+          const found = tablesRef.current.find(t => t.id === wrapperId)
+          if (found) wrapper = found.wrapper
+        }
+      }
+      if (wrapper !== hoveredWrapperRef.current) {
+        setHoveredWrapper(wrapper)
+      }
+    }
+
+    const handleMouseLeave = () => {
+      if (hoveredWrapperRef.current !== null) {
+        setHoveredWrapper(null)
+      }
+    }
+
     editor.on('selectionUpdate', scheduledUpdate)
     editor.on('transaction', scheduledUpdate)
     editor.on('update', scheduledUpdate)
+    editor.on('focus', updateActiveTable)
+    editor.on('blur', updateActiveTable)
     window.addEventListener('scroll', scheduledUpdate, { passive: true, capture: true })
     window.addEventListener('resize', scheduledUpdate, { passive: true })
+    window.addEventListener('mousemove', handleMouseMove, { passive: true })
+    document.addEventListener('mouseleave', handleMouseLeave)
 
     const handleInterceptBlurredCellClick = (e: MouseEvent) => {
       for (const t of tablesRef.current) {
-        if (!t.showLeft) continue
+        const isBlurVisible = t.showLeft && (hoveredWrapperRef.current === t.wrapper || activeWrapperRef.current === t.wrapper)
+        if (!isBlurVisible) continue
         const editorDom = editor.view?.dom
         const editorContentLeft = editorDom ? editorDom.getBoundingClientRect().left : t.rect.left
         const blurCellMinX = editorContentLeft
@@ -191,8 +264,12 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       editor.off('selectionUpdate', scheduledUpdate)
       editor.off('transaction', scheduledUpdate)
       editor.off('update', scheduledUpdate)
+      editor.off('focus', updateActiveTable)
+      editor.off('blur', updateActiveTable)
       window.removeEventListener('scroll', scheduledUpdate, { capture: true })
       window.removeEventListener('resize', scheduledUpdate)
+      window.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseleave', handleMouseLeave)
       window.removeEventListener('mousedown', handleInterceptBlurredCellClick, { capture: true })
       window.removeEventListener('click', handleInterceptBlurredCellClick, { capture: true })
       window.removeEventListener('dblclick', handleInterceptBlurredCellClick, { capture: true })
@@ -207,7 +284,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
         })
       }
     }
-  }, [editor, updateTableScrollStates])
+  }, [editor, updateTableScrollStates, updateActiveTable])
 
   const handleScrollLeft = useCallback((wrapper: HTMLElement) => {
     wrapper.scrollBy({ left: -240, behavior: 'smooth' })
@@ -240,6 +317,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
         const editorContentLeft = editor.view?.dom ? editor.view.dom.getBoundingClientRect().left : visibleLeft
         const gutterWidth = Math.max(0, Math.round(editorContentLeft - visibleLeft))
         const blurWidth = gutterWidth + 48
+        const isBlurVisible = t.showLeft && (hoveredWrapper === t.wrapper || activeWrapper === t.wrapper)
 
         return (
           <React.Fragment key={t.id}>
@@ -250,8 +328,8 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
                 pointerEvents: 'none',
                 cursor: 'default',
                 zIndex: 12,
-                transition: 'opacity 0.2s ease',
-                opacity: t.showLeft ? 1 : 0,
+                transition: 'opacity 200ms ease',
+                opacity: isBlurVisible ? 1 : 0,
                 top: t.rect.top - 24 - offset.y,
                 left: visibleLeft - offset.x,
                 width: `${blurWidth}px`,
@@ -267,6 +345,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
             {/* Left Scroll Arrow Button */}
             <button
               type="button"
+              data-table-scroll-wrapper-id={t.id}
               onClick={() => handleScrollLeft(t.wrapper)}
               title="Scroll table left"
               aria-label="Scroll table left"
@@ -286,6 +365,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
             {/* Right Scroll Arrow Button */}
             <button
               type="button"
+              data-table-scroll-wrapper-id={t.id}
               onClick={() => handleScrollRight(t.wrapper)}
               title="Scroll table right"
               aria-label="Scroll table right"

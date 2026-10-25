@@ -51,16 +51,41 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       setTick(t => t + 1)
     }
 
+    const handleDocumentMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null
+      if (!target) return
+      if (target.closest('.glass-menu') || target.closest('#table-row-grips')) return
+      handleClose()
+    }
+
+    const handleSelectionUpdate = ({ transaction }: { transaction: any }) => {
+      if (transaction?.getMeta('tableRowMenu') === 'show') return
+      if (Date.now() - lastOpenTimeRef.current < 80) return
+      handleClose()
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose()
+      }
+    }
+
     window.addEventListener('tiptap:open-table-row-menu', handleOpen)
     window.addEventListener('tiptap:close-table-menus', handleClose)
     window.addEventListener('tiptap:close-menus', handleClose)
+    window.addEventListener('mousedown', handleDocumentMouseDown, { capture: true })
+    window.addEventListener('keydown', handleKeyDown)
+    editor.on('selectionUpdate', handleSelectionUpdate)
 
     return () => {
       window.removeEventListener('tiptap:open-table-row-menu', handleOpen)
       window.removeEventListener('tiptap:close-table-menus', handleClose)
       window.removeEventListener('tiptap:close-menus', handleClose)
+      window.removeEventListener('mousedown', handleDocumentMouseDown, { capture: true })
+      window.removeEventListener('keydown', handleKeyDown)
+      editor.off('selectionUpdate', handleSelectionUpdate)
     }
-  }, [])
+  }, [editor])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -138,6 +163,25 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
     return table ? hasRowStraddlingMerge(table.node, 0) : false
   }, [editor.state.selection])
 
+  const selectedRowIdx = getSelectedRowIndex(editor)
+  const isFirstRow = selectedRowIdx === 0
+  const canMoveUp = selectedRowIdx > 0
+
+  const isHeaderRowActive = useMemo(() => {
+    if (selectedRowIdx !== 0) return false
+    const table = findTable(editor.state.selection)
+    if (!table) return false
+    const map = TableMap.get(table.node)
+    for (let c = 0; c < map.width; c++) {
+      const cellPos = map.map[c]
+      const cellNode = table.node.nodeAt(cellPos)
+      if (!cellNode || cellNode.type.name !== 'table_header') {
+        return false
+      }
+    }
+    return true
+  }, [editor.state.selection, selectedRowIdx])
+
   const onToggleHeaderRow = useCallback(() => {
     const table = findTable(editor.state.selection)
     if (table && hasRowStraddlingMerge(table.node, 0)) return
@@ -160,10 +204,6 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
     isMenuOpenRef.current = false
     setIsMenuOpen(false)
   }, [editor])
-
-  const selectedRowIdx = getSelectedRowIndex(editor)
-  const isFirstRow = selectedRowIdx === 0
-  const canMoveUp = selectedRowIdx > 0
 
   const itemClass =
     'w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none cursor-pointer'
@@ -199,10 +239,24 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
               onClick={onToggleHeaderRow}
               disabled={isRowHeaderBlocked}
               title={isRowHeaderBlocked ? '병합 셀이 있어 헤더 행을 설정할 수 없습니다' : undefined}
-              className={cn(itemClass, isRowHeaderBlocked && 'opacity-50 cursor-not-allowed hover:bg-transparent')}
+              className={cn(
+                itemClass,
+                isRowHeaderBlocked && 'opacity-50 cursor-not-allowed hover:bg-transparent',
+                isHeaderRowActive &&
+                  'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 font-medium hover:bg-indigo-100/70 dark:hover:bg-indigo-900/50',
+              )}
             >
-              <Icon name="Table" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" />
+              <Icon
+                name="Table"
+                className={cn(
+                  'w-3.5 h-3.5',
+                  isHeaderRowActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-500 dark:text-[#9b9b9b]',
+                )}
+              />
               <span>Header row</span>
+              {isHeaderRowActive && (
+                <Icon name="Check" className="w-3.5 h-3.5 ml-auto text-indigo-600 dark:text-indigo-400" />
+              )}
             </button>
             <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
           </>

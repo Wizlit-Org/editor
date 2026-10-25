@@ -291,6 +291,7 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
             }
           }
         } else {
+          window.dispatchEvent(new CustomEvent('tiptap:close-table-menus'))
           window.dispatchEvent(new CustomEvent(type === 'col' ? 'tiptap:open-table-col-menu' : 'tiptap:open-table-row-menu'))
           if (!isGripSelected) {
             focusTableGrip(editor, type, index, currentTableEl, tableRect?.pos ?? -1)
