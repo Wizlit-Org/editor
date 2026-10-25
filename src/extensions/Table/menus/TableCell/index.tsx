@@ -467,19 +467,9 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                 </Popover.Anchor>
                 <Popover.Portal container={typeof document !== 'undefined' ? ((appendTo?.current as HTMLElement) || document.body) : undefined}>
                   <Popover.Content
-                    side="right"
-                    align="center"
-                    sideOffset={10}
-                    collisionPadding={16}
+                    side="right" align="center" sideOffset={10} collisionPadding={16} style={{ zIndex: 1350 }}
                     data-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
-                    data-editor-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
-                    className={cn(
-                      'z-[1350] outline-none animate-in fade-in-0 zoom-in-95 duration-150',
-                      editor?.view?.dom?.closest('.editor-theme-dark')
-                        ? 'editor-theme-dark dark theme-dark'
-                        : 'editor-theme-light theme-light',
-                    )}
-                    style={{ zIndex: 1350 }}
+                    className={cn('z-[1350] outline-none animate-in fade-in-0 zoom-in-95 duration-150', editor?.view?.dom?.closest('.editor-theme-dark') ? 'editor-theme-dark dark theme-dark' : 'editor-theme-light theme-light')}
                   >
                     <div className="glass-menu min-w-[12rem] p-1.5 shadow-2xl rounded-xl flex flex-col gap-0.5 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
                       <TableAlignmentSubmenu editor={editor} scope="cell" />
