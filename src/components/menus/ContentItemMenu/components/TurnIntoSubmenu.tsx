@@ -2,7 +2,7 @@ import React from 'react'
 import { Editor } from '@tiptap/react'
 import { Icon } from '@/components/ui/Icon'
 import { icons } from 'lucide-react'
-import { turnIntoList } from '../hooks/useContentItemActions'
+import { turnIntoBlock } from '../hooks/useContentItemActions'
 
 export interface TurnIntoSubmenuProps {
   editor: Editor
@@ -22,63 +22,63 @@ const TURN_INTO_OPTIONS: TurnIntoOption[] = [
     label: 'Text',
     icon: 'Type',
     action: (editor, pos) => {
-      editor.chain().focus().setNodeSelection(pos).setParagraph().run()
+      turnIntoBlock(editor, pos, 'paragraph')
     },
   },
   {
     label: 'Heading 1',
     icon: 'Heading1',
     action: (editor, pos) => {
-      editor.chain().focus().setNodeSelection(pos).setHeading({ level: 1 }).run()
+      turnIntoBlock(editor, pos, 'heading', { level: 1 })
     },
   },
   {
     label: 'Heading 2',
     icon: 'Heading2',
     action: (editor, pos) => {
-      editor.chain().focus().setNodeSelection(pos).setHeading({ level: 2 }).run()
+      turnIntoBlock(editor, pos, 'heading', { level: 2 })
     },
   },
   {
     label: 'Heading 3',
     icon: 'Heading3',
     action: (editor, pos) => {
-      editor.chain().focus().setNodeSelection(pos).setHeading({ level: 3 }).run()
+      turnIntoBlock(editor, pos, 'heading', { level: 3 })
     },
   },
   {
     label: 'Bulleted list',
     icon: 'List',
     action: (editor, pos) => {
-      turnIntoList(editor, pos, 'bulletList')
+      turnIntoBlock(editor, pos, 'bulletList')
     },
   },
   {
     label: 'Numbered list',
     icon: 'ListOrdered',
     action: (editor, pos) => {
-      turnIntoList(editor, pos, 'orderedList')
+      turnIntoBlock(editor, pos, 'orderedList')
     },
   },
   {
     label: 'To-do list',
     icon: 'ListTodo',
     action: (editor, pos) => {
-      turnIntoList(editor, pos, 'taskList')
+      turnIntoBlock(editor, pos, 'taskList')
     },
   },
   {
     label: 'Quote',
     icon: 'Quote',
     action: (editor, pos) => {
-      editor.chain().focus().setNodeSelection(pos).toggleBlockquote().run()
+      turnIntoBlock(editor, pos, 'blockquote')
     },
   },
   {
     label: 'Code block',
     icon: 'Code',
     action: (editor, pos) => {
-      editor.chain().focus().setNodeSelection(pos).toggleCodeBlock().run()
+      turnIntoBlock(editor, pos, 'codeBlock')
     },
   },
 ]
