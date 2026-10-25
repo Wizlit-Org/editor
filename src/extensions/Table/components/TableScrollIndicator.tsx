@@ -46,6 +46,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
   const hoveredWrapperRef = useRef<HTMLElement | null>(null)
   hoveredWrapperRef.current = hoveredWrapper
   const hoverLeaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const maskClearTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
 
   const [activeWrapper, setActiveWrapper] = useState<HTMLElement | null>(null)
   const activeWrapperRef = useRef<HTMLElement | null>(null)
@@ -136,15 +137,27 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
   useEffect(() => {
     tables.forEach(t => {
       const isBlurVisible = t.showLeft && (hoveredWrapper === t.wrapper || activeWrapper === t.wrapper)
+      const existingTimer = maskClearTimersRef.current.get(t.id)
+
       if (isBlurVisible) {
+        if (existingTimer) {
+          clearTimeout(existingTimer)
+          maskClearTimersRef.current.delete(t.id)
+        }
         const editorDomLeft = editor.view?.dom ? editor.view.dom.getBoundingClientRect().left : t.rect.left
         const gutter = Math.max(0, Math.round(editorDomLeft - t.rect.left))
         const mask = `linear-gradient(to right, transparent 0px, transparent ${gutter}px, rgba(0,0,0,0.3) ${gutter + 16}px, black ${gutter + 48}px)`
         t.wrapper.style.maskImage = mask
         ;(t.wrapper.style as any).webkitMaskImage = mask
       } else {
-        t.wrapper.style.maskImage = ''
-        ;(t.wrapper.style as any).webkitMaskImage = ''
+        if (!existingTimer && t.wrapper.style.maskImage) {
+          const timer = setTimeout(() => {
+            maskClearTimersRef.current.delete(t.id)
+            t.wrapper.style.maskImage = ''
+            ;(t.wrapper.style as any).webkitMaskImage = ''
+          }, 650)
+          maskClearTimersRef.current.set(t.id, timer)
+        }
       }
     })
   }, [tables, hoveredWrapper, activeWrapper, editor])
@@ -218,7 +231,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
         for (const t of tablesRef.current) {
           const editorDom = editor.view?.dom
           const editorLeft = editorDom ? editorDom.getBoundingClientRect().left : t.rect.left
-          const inY = e.clientY >= t.rect.top - 24 && e.clientY <= t.rect.bottom + 24
+          const inY = e.clientY >= t.rect.top - 40 && e.clientY <= t.rect.bottom + 40
           const inX = e.clientX >= editorLeft - 100 && e.clientX <= t.rect.left + t.rect.width + 30
 
           if (inY && (inX || hasDragHandleHover)) {
@@ -243,7 +256,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
             hoverLeaveTimerRef.current = null
             hoveredWrapperRef.current = null
             setHoveredWrapper(null)
-          }, 300)
+          }, 600)
         }
       }
     }
@@ -254,7 +267,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
           hoverLeaveTimerRef.current = null
           hoveredWrapperRef.current = null
           setHoveredWrapper(null)
-        }, 300)
+        }, 600)
       }
     }
 
@@ -306,6 +319,8 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
         clearTimeout(hoverLeaveTimerRef.current)
         hoverLeaveTimerRef.current = null
       }
+      maskClearTimersRef.current.forEach(timer => clearTimeout(timer))
+      maskClearTimersRef.current.clear()
       if (rafId !== null) window.cancelAnimationFrame(rafId)
       ro?.disconnect()
       mo?.disconnect()
@@ -376,7 +391,9 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
                 pointerEvents: 'none',
                 cursor: 'default',
                 zIndex: 12,
-                transition: 'opacity 350ms cubic-bezier(0.16, 1, 0.3, 1)',
+                transition: isBlurVisible
+                  ? 'opacity 300ms ease-out'
+                  : 'opacity 600ms cubic-bezier(0.16, 1, 0.3, 1)',
                 opacity: isBlurVisible ? 1 : 0,
                 top: t.rect.top - 24 - offset.y,
                 left: visibleLeft - offset.x,
@@ -405,6 +422,9 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
               style={{
                 top: centerY,
                 left: visibleLeft + 12 - offset.x,
+                transition: isBlurVisible
+                  ? 'opacity 300ms ease-out'
+                  : 'opacity 600ms cubic-bezier(0.16, 1, 0.3, 1)',
               }}
             >
               <Icon name="ChevronLeft" className="w-4 h-4" />
@@ -425,6 +445,9 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
               style={{
                 top: centerY,
                 left: visibleRight - 44 - offset.x,
+                transition: isBlurVisible
+                  ? 'opacity 300ms ease-out'
+                  : 'opacity 600ms cubic-bezier(0.16, 1, 0.3, 1)',
               }}
             >
               <Icon name="ChevronRight" className="w-4 h-4" />
