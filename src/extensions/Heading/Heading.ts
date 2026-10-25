@@ -60,6 +60,8 @@ export const Heading = TiptapHeading.extend({
     })
 
     if (modified) {
+      tr.setMeta('addToHistory', false)
+      tr.setMeta('preventUpdate', true)
       this.editor.view.dispatch(tr)
     }
   },
@@ -68,7 +70,7 @@ export const Heading = TiptapHeading.extend({
     return [
       new Plugin({
         key: new PluginKey('heading-id-generator'),
-        appendTransaction: (transactions, oldState, newState) => {
+        appendTransaction: (transactions, _oldState, newState) => {
           const docChanged = transactions.some(tr => tr.docChanged)
           if (!docChanged) return null
 
@@ -85,7 +87,7 @@ export const Heading = TiptapHeading.extend({
             }
           })
 
-          return modified ? tr : null
+          return modified ? tr.setMeta('addToHistory', false).setMeta('headingIdGeneration', true) : null
         },
       }),
     ]

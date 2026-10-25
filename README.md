@@ -192,4 +192,7 @@ export function MyEditor() {
 │   │   └── useEditorEscGuard.ts   # 계층형 Esc 단축키 격리 가드
 │   └── styles/                    # 리얼 글라스모피즘 스타일 및 전역 CSS
 └── tsup.config.ts                 # 프로덕션 번들 빌드 설정 (DTS / ESM / CJS)
+
+### 💡 Gotchas
+- **비교 기준선(`baselineHTMLRef`) 스냅샷 정합화 및 마운트 순서 역전 방어**: TipTap v3 `Editor.mount()`에서 `commands.focus(autofocus)`가 `emit('create')`보다 먼저 실행되고 `ExtensionManager.setupExtensions()`의 `Heading.onCreate`가 `options.onCreate`보다 먼저 등록되며, `tr.setMeta('preventUpdate', true)`는 TipTap 코어의 `emit('update')` 자체를 스킵하여 `BlockEditor.onUpdate` 내부 기준선 갱신이 누락되는 함정이 존재함. 이를 원천 차단하기 위해 `isReadyForUpdateRef`로 `onCreate` 완료 전 트랜잭션을 무시하고, `getDoc`/`getAnnotatedText` 비교 시 동적 생성되는 헤딩 `id`/`data-id`/`data-toc-id` 속성을 제거하여 비교하며, `onCreate` 및 `setEditable(true)` 시점에 초기 `stats`를 `isChanged: false`와 함께 `onChange`로 즉시 전달하여 수정 모드 진입 직후 글자 수 카운터가 즉시 표시되면서도 저장 버튼 비활성(`hasChanges === false`)이 100% 유지되도록 보장함.
 ```

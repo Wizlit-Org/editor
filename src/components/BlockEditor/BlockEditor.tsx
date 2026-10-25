@@ -19,7 +19,7 @@ import { LinkMenu } from '@/components/menus/LinkMenu'
 import { PastePreviewDialog } from '@/components/menus/PastePreviewDialog'
 import { TableOfContents } from '../TableOfContents'
 import { UploadListDialog, UploadListDialogProps, UploadListItem } from '../../extensions/ImageUpload/components/UploadListDialog.tsx'
-import { compareDocs, getStats } from '@/lib/utils/getStats'
+import { compareDocs, getStats, trimHTML } from '@/lib/utils/getStats'
 import { ConvertSrc, OnImageClick } from '@/extensions/ImageBlock/components/ImageBlockView'
 
 export interface EditorStats {
@@ -96,6 +96,10 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   } = image || {}
   
   const menuContainerRef = useRef(null)
+  const baselineHTMLRef = useRef<string | null>(null)
+  const lastPropContentRef = useRef<string>(content)
+  const isTogglingEditableRef = useRef<boolean>(false)
+  const isReadyForUpdateRef = useRef<boolean>(false)
   const [stats, setStats] = useState<EditorStats>({})
   const [systemDark, setSystemDark] = useState<boolean>(() => {
     if (typeof document !== 'undefined') {
@@ -165,14 +169,39 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     // aiToken,
     editable: !readOnly,
     content,
-    onUpdate: ({ editor }) => {
+    onCreate: ({ editor }) => {
+      const currentHTML = editor.getHTML()
+      baselineHTMLRef.current = currentHTML
+      lastPropContentRef.current = content
+      isReadyForUpdateRef.current = true
+      const initialStats = getStats(editor, maxCharacters, altCharacterCounter)
+      setStats(initialStats)
+      if (!readOnly) {
+        onChange?.(trimHTML(currentHTML), { isChanged: false, isStrictChanged: false }, initialStats)
+      }
+    },
+    onUpdate: ({ editor, transaction }) => {
+      if (transaction?.getMeta('preventUpdate') || !isReadyForUpdateRef.current) {
+        baselineHTMLRef.current = editor.getHTML()
+        return
+      }
       if (readOnly) return;
       
-      const { isChanged, isStrictChanged, compareHTML } = compareDocs(content, editor.getHTML())
+      if (isTogglingEditableRef.current || readOnly) {
+        baselineHTMLRef.current = editor.getHTML()
+        return
+      }
+      if (baselineHTMLRef.current === null) {
+        baselineHTMLRef.current = editor.getHTML()
+      }
+      const currentHTML = editor.getHTML()
+      const baselineHTML = baselineHTMLRef.current ?? content
+      const { isChanged, isStrictChanged } = compareDocs(baselineHTML, currentHTML)
       const stats = getStats(editor, maxCharacters, altCharacterCounter)
 
+      if (!isChanged) baselineHTMLRef.current = currentHTML
       setStats(stats)
-      onChange?.(compareHTML, { isChanged, isStrictChanged }, stats)
+      onChange?.(trimHTML(currentHTML), { isChanged, isStrictChanged }, stats)
     },
     onUploadImage,
     convertSrc: image?.convertSrc,
@@ -228,7 +257,25 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     if (!editor) return;
     
     try {
-      editor.setEditable(_editable);
+      isTogglingEditableRef.current = true
+      editor.setEditable(_editable, false)
+      if (baselineHTMLRef.current === null) {
+        baselineHTMLRef.current = editor.getHTML()
+      }
+      if (_editable) {
+        const currentStats = getStats(editor, maxCharacters, altCharacterCounter)
+        setStats(currentStats)
+        const currentHTML = editor.getHTML()
+        const baselineHTML = baselineHTMLRef.current ?? content
+        const { isChanged, isStrictChanged } = isReadyForUpdateRef.current
+          ? compareDocs(baselineHTML, currentHTML)
+          : { isChanged: false, isStrictChanged: false }
+        if (!isChanged) {
+          baselineHTMLRef.current = currentHTML
+        }
+        onChange?.(trimHTML(currentHTML), { isChanged, isStrictChanged }, currentStats)
+      }
+      isTogglingEditableRef.current = false
     } catch (error) {
       console.error('Error updating editor state:', error);
     }
@@ -242,8 +289,28 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
   useEffect(() => {
     if (editor && !editor.isDestroyed) {
-      if (editor.isEditable) return;
-      editor.commands.setContent(content, { emitUpdate: true });
+      if (editor.isEditable) {
+        if (lastPropContentRef.current !== content) {
+          lastPropContentRef.current = content
+      isReadyForUpdateRef.current = true
+          const { isChanged } = compareDocs(content, editor.getHTML())
+          if (!isChanged) {
+            baselineHTMLRef.current = editor.getHTML()
+          }
+        }
+        return
+      }
+      if (lastPropContentRef.current === content && baselineHTMLRef.current !== null) {
+        return
+      }
+      lastPropContentRef.current = content
+      isReadyForUpdateRef.current = true
+      isTogglingEditableRef.current = true
+      editor.commands.setContent(content, { emitUpdate: false })
+      baselineHTMLRef.current = editor.getHTML()
+      isTogglingEditableRef.current = false
+      const nextStats = getStats(editor, maxCharacters, altCharacterCounter)
+      setStats(nextStats)
     }
   }, [content, editor]);
 
