@@ -101,26 +101,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   const isTogglingEditableRef = useRef<boolean>(false)
   const isReadyForUpdateRef = useRef<boolean>(false)
   const [stats, setStats] = useState<EditorStats>({})
-  const [systemDark, setSystemDark] = useState<boolean>(() => {
-    if (typeof document !== 'undefined') {
-      return document.documentElement.classList.contains('dark') || document.body.classList.contains('dark')
-    }
-    return false
-  })
 
-  useEffect(() => {
-    if (typeof document === 'undefined') return
-
-    const updateDark = () => {
-      const isDarkClass = document.documentElement.classList.contains('dark') || document.body.classList.contains('dark')
-      setSystemDark(isDarkClass)
-    }
-
-    updateDark()
-    const observer = new MutationObserver(updateDark)
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-    return () => observer.disconnect()
-  }, [])
   
   useEffect(() => {
     const preventDefault = (e: DragEvent) => {
@@ -348,12 +329,19 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     return null
   }
 
-  const isDark = theme === 'dark' || (theme === undefined && systemDark)
-  const themeClass = isDark ? 'dark theme-dark notion-dark-canvas' : 'theme-light notion-light-canvas'
+  const isDark = theme === 'dark'
+  const themeClass = isDark
+    ? 'dark theme-dark notion-dark-canvas editor-theme-dark'
+    : 'theme-light notion-light-canvas editor-theme-light'
 
   return (
     <>
-      <div className={`relative flex min-h-full h-auto flex-[1_0_auto] overflow-x-clip [overflow-x:clip] ${themeClass} ${className}`.trim()} ref={menuContainerRef}>
+      <div
+        className={`relative flex min-h-full h-auto flex-[1_0_auto] overflow-x-clip [overflow-x:clip] ${themeClass} ${className}`.trim()}
+        data-theme={isDark ? 'dark' : 'light'}
+        data-editor-theme={isDark ? 'dark' : 'light'}
+        ref={menuContainerRef}
+      >
         <div className="relative flex flex-col flex-[1_0_auto] h-auto min-h-full">
           {/* <EditorHeader
             editor={editor}

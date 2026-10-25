@@ -168,3 +168,25 @@
   box-shadow: 0 0 8px rgba(99, 102, 241, 0.8) !important;
   transition: all 0.1s ease-out !important;
 }
+
+/* Ensure ProseMirror inside .editor-theme-light remains strictly light */
+.editor-theme-light .ProseMirror {
+  color: var(--editor-text, #222325);
+}
+
+.dark .editor-theme-light .ProseMirror input::placeholder,
+.editor-theme-light .ProseMirror input::placeholder,
+.dark .editor-theme-light .ProseMirror textarea::placeholder,
+.editor-theme-light .ProseMirror textarea::placeholder {
+  color: rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark .editor-theme-light .ProseMirror .is-empty::before,
+.editor-theme-light .ProseMirror .is-empty::before {
+  color: #737373 !important;
+}
+
+.dark .editor-theme-light .ProseMirror [data-type='blockquoteFigure'] > blockquote,
+.editor-theme-light .ProseMirror [data-type='blockquoteFigure'] > blockquote {
+  color: #000000 !important;
+}

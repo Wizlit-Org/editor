@@ -1,0 +1,99 @@
+import { Editor } from '@tiptap/react'
+
+/**
+ * Safe mark range extension supporting split text nodes, hashes, and image URLs
+ */
+export function safeExtendLinkRange(editor: Editor): void {
+  try {
+    const { state } = editor
+    const { selection, schema } = state
+    const linkType = schema.marks.link
+    if (!linkType) {
+      editor.chain().focus().extendMarkRange('link').run()
+      return
+    }
+
+    const { from, to, $from } = selection
+    const markFound =
+      $from.marks().find(m => m.type === linkType) ||
+      $from.nodeBefore?.marks?.find(m => m.type === linkType) ||
+      $from.nodeAfter?.marks?.find(m => m.type === linkType)
+
+    const targetHref = markFound?.attrs?.href
+
+    let startPos = from
+    let endPos = to
+
+    // Scan contiguous nodes within parent that share the link mark
+    if ($from.parent) {
+      const parentStart = $from.start()
+      $from.parent.forEach((child, offset) => {
+        const childMark = child.marks?.find(m => m.type === linkType)
+        if (childMark && (!targetHref || childMark.attrs?.href === targetHref)) {
+          const nodeStart = parentStart + offset
+          const nodeEnd = nodeStart + child.nodeSize
+          if (
+            (from >= nodeStart && from <= nodeEnd) ||
+            (to >= nodeStart && to <= nodeEnd) ||
+            (nodeStart >= from && nodeEnd <= to) ||
+            Math.abs(from - nodeEnd) <= 1 ||
+            Math.abs(to - nodeStart) <= 1
+          ) {
+            startPos = Math.min(startPos, nodeStart)
+            endPos = Math.max(endPos, nodeEnd)
+          }
+        }
+      })
+    }
+
+    if (startPos < endPos) {
+      editor.chain().focus().setTextSelection({ from: startPos, to: endPos }).run()
+    } else {
+      editor.chain().focus().extendMarkRange('link').run()
+    }
+  } catch {
+    try {
+      editor.chain().focus().extendMarkRange('link').run()
+    } catch {}
+  }
+}
+
+/**
+ * Extract current link text from the editor document at selection
+ */
+export function getCurrentLinkText(editor: Editor): string {
+  try {
+    const { state } = editor
+    const { from, to, $from } = state.selection
+    const markType = state.schema.marks.link
+    if (!markType) return ''
+
+    // If user has a non-empty text selection, return that text
+    if (from !== to) {
+      return state.doc.textBetween(from, to)
+    }
+
+    // Find the exact link node at cursor
+    const node =
+      $from.parent.childAfter($from.parentOffset).node ||
+      $from.parent.childBefore($from.parentOffset).node
+    if (node && node.marks?.some(m => m.type === markType) && node.text) {
+      return node.text
+    }
+
+    let linkText = ''
+    state.doc.nodesBetween(
+      Math.max(0, from - 2),
+      Math.min(state.doc.content.size, to + 2),
+      n => {
+        const mark = n.marks?.find(m => m.type === markType)
+        if (mark && n.text && !linkText) {
+          linkText = n.text
+        }
+      },
+    )
+    return linkText
+  } catch {
+    return ''
+  }
+}

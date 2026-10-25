@@ -6,6 +6,7 @@ import { MenuProps } from '../types'
 import { LinkPreviewPanel } from '@/components/panels/LinkPreviewPanel'
 import { LinkEditorPanel } from '@/components/panels'
 import { cn } from '@/lib/utils'
+import { safeExtendLinkRange, getCurrentLinkText } from './utils/linkHelpers'
 
 export const LinkMenu = ({
   editor,
@@ -31,10 +32,17 @@ export const LinkMenu = ({
         $from.marks().some(m => m.type.name === 'link') ||
         $from.nodeBefore?.marks?.some(m => m.type.name === 'link') ||
         $from.nodeAfter?.marks?.some(m => m.type.name === 'link')
-      return Boolean(hasMark)
-    } catch {
-      return false
-    }
+      if (hasMark) return true
+    } catch {}
+
+    try {
+      const clickedEl = (editor.storage as any)?.link?.clickedElement as HTMLAnchorElement | null
+      if (clickedEl && clickedEl.isConnected && editor.view?.dom?.contains(clickedEl)) {
+        return true
+      }
+    } catch {}
+
+    return false
   }, [editor])
 
   const { link, target, linkPos } = useEditorState({
@@ -62,6 +70,17 @@ export const LinkMenu = ({
           if (mark) {
             foundHref = mark.attrs.href as string
             foundTarget = (mark.attrs.target as string) || ''
+          }
+        } catch {}
+      }
+
+      // Fallback from clicked element in storage when clicked at boundary edges
+      if (!foundHref && (ctx.editor.storage as any)?.link?.clickedElement) {
+        try {
+          const clickedEl = (ctx.editor.storage as any).link.clickedElement as HTMLAnchorElement
+          if (clickedEl && clickedEl.isConnected) {
+            foundHref = clickedEl.getAttribute('href') || ''
+            foundTarget = clickedEl.getAttribute('target') || ''
           }
         } catch {}
       }
@@ -115,19 +134,42 @@ export const LinkMenu = ({
   useEffect(() => {
     if (!checkIsLinkActive()) {
       setEditMode(false)
+      const storage = (editor.storage as any)?.link
+      if (storage) {
+        storage.clickedCoords = null
+        storage.clickedElement = null
+      }
     }
   }, [editor, editor.state.selection, checkIsLinkActive, setEditMode])
 
-  // Reset scroll lock on editor interaction
+  // Reset scroll lock on editor interaction & mousedown on links
   useEffect(() => {
     const handleReset = () => {
       isClosedByScrollRef.current = false
       setIsClosedByScroll(false)
     }
+
+    const dom = editor.view?.dom
+    const handleMouseDown = (e: MouseEvent) => {
+      if (e.button !== 0) return
+      const target = e.target as HTMLElement | null
+      const linkEl = target?.closest?.('a') as HTMLAnchorElement | null
+      if (linkEl && dom?.contains(linkEl)) {
+        handleReset()
+        const storage = (editor.storage as any)?.link
+        if (storage) {
+          storage.clickedCoords = { x: e.clientX, y: e.clientY }
+          storage.clickedElement = linkEl
+        }
+      }
+    }
+
+    dom?.addEventListener('mousedown', handleMouseDown, { capture: true })
     editor.on('selectionUpdate', handleReset)
     editor.on('focus', handleReset)
     window.addEventListener('tiptap:reset-scroll-lock', handleReset)
     return () => {
+      dom?.removeEventListener('mousedown', handleMouseDown, { capture: true })
       editor.off('selectionUpdate', handleReset)
       editor.off('focus', handleReset)
       window.removeEventListener('tiptap:reset-scroll-lock', handleReset)
@@ -170,121 +212,41 @@ export const LinkMenu = ({
   }, [editor, setEditMode])
 
   const shouldShow = useCallback(() => {
-    if (isClosedByScrollRef.current) return false
     if (showEditRef.current) return true
+    const isLink = checkIsLinkActive()
+    if (!isLink) return false
+
+    // An active link is selected/clicked: unfreeze any scroll-lock immediately
+    if (isClosedByScrollRef.current) {
+      isClosedByScrollRef.current = false
+      setIsClosedByScroll(false)
+    }
+
     const isMedia =
       editor.isActive('youtube') ||
       editor.isActive('imageBlock') ||
       editor.state.doc.nodeAt(editor.state.selection.from)?.type.name === 'youtube'
     if (isMedia) return false
-    return checkIsLinkActive()
+
+    return true
   }, [editor, checkIsLinkActive])
 
   const editable = editor.isEditable
 
-  // Safe mark range extension supporting split text nodes, hashes, and image URLs
-  const safeExtendLinkRange = useCallback(() => {
-    try {
-      const { state } = editor
-      const { selection, schema } = state
-      const linkType = schema.marks.link
-      if (!linkType) {
-        editor.chain().focus().extendMarkRange('link').run()
-        return
-      }
-
-      const { from, to, $from } = selection
-      const markFound =
-        $from.marks().find(m => m.type === linkType) ||
-        $from.nodeBefore?.marks?.find(m => m.type === linkType) ||
-        $from.nodeAfter?.marks?.find(m => m.type === linkType)
-
-      const targetHref = markFound?.attrs?.href
-
-      let startPos = from
-      let endPos = to
-
-      // Scan contiguous nodes within parent that share the link mark
-      if ($from.parent) {
-        const parentStart = $from.start()
-        $from.parent.forEach((child, offset) => {
-          const childMark = child.marks?.find(m => m.type === linkType)
-          if (childMark && (!targetHref || childMark.attrs?.href === targetHref)) {
-            const nodeStart = parentStart + offset
-            const nodeEnd = nodeStart + child.nodeSize
-            if (
-              (from >= nodeStart && from <= nodeEnd) ||
-              (to >= nodeStart && to <= nodeEnd) ||
-              (nodeStart >= from && nodeEnd <= to) ||
-              Math.abs(from - nodeEnd) <= 1 ||
-              Math.abs(to - nodeStart) <= 1
-            ) {
-              startPos = Math.min(startPos, nodeStart)
-              endPos = Math.max(endPos, nodeEnd)
-            }
-          }
-        })
-      }
-
-      if (startPos < endPos) {
-        editor.chain().focus().setTextSelection({ from: startPos, to: endPos }).run()
-      } else {
-        editor.chain().focus().extendMarkRange('link').run()
-      }
-    } catch {
-      try {
-        editor.chain().focus().extendMarkRange('link').run()
-      } catch {}
-    }
-  }, [editor])
-
   const handleEdit = useCallback(() => {
     setEditMode(true)
-    safeExtendLinkRange()
+    safeExtendLinkRange(editor)
     requestAnimationFrame(() => {
       try {
         editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'show'))
         editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'updatePosition'))
       } catch {}
     })
-  }, [editor, setEditMode, safeExtendLinkRange])
+  }, [editor, setEditMode])
 
   // Extract current link text from the editor document
   const currentLinkText = useMemo(() => {
-    try {
-      const { state } = editor
-      const { from, to, $from } = state.selection
-      const markType = state.schema.marks.link
-      if (!markType) return ''
-
-      // If user has a non-empty text selection, return that text
-      if (from !== to) {
-        return state.doc.textBetween(from, to)
-      }
-
-      // Find the exact link node at cursor
-      const node =
-        $from.parent.childAfter($from.parentOffset).node ||
-        $from.parent.childBefore($from.parentOffset).node
-      if (node && node.marks?.some(m => m.type === markType) && node.text) {
-        return node.text
-      }
-
-      let linkText = ''
-      state.doc.nodesBetween(
-        Math.max(0, from - 2),
-        Math.min(state.doc.content.size, to + 2),
-        n => {
-          const mark = n.marks?.find(m => m.type === markType)
-          if (mark && n.text && !linkText) {
-            linkText = n.text
-          }
-        },
-      )
-      return linkText
-    } catch {
-      return ''
-    }
+    return getCurrentLinkText(editor)
   }, [editor, editor.state.selection])
 
   const onSetLink = useCallback(
@@ -358,22 +320,83 @@ export const LinkMenu = ({
   }, [showEdit, editor])
 
   const getReferenceClientRect = useCallback(() => {
-    const { from } = editor.state.selection
-    try {
-      const domAtPos = editor.view.domAtPos(from)
-      const el = domAtPos.node as HTMLElement
-      const linkEl =
-        el?.nodeType === 1
-          ? (el as HTMLElement).closest('a')
-          : el?.parentElement?.closest('a')
-      if (linkEl) {
-        return linkEl.getBoundingClientRect()
+    let linkEl: HTMLAnchorElement | null =
+      ((editor.storage as any)?.link?.clickedElement as HTMLAnchorElement | null) || null
+
+    if (!linkEl || !linkEl.isConnected) {
+      const { from } = editor.state.selection
+      try {
+        const domAtPos = editor.view.domAtPos(from)
+        const el = domAtPos.node as HTMLElement
+        linkEl =
+          el?.nodeType === 1
+            ? (el as HTMLElement).closest('a')
+            : (el?.parentElement?.closest('a') as HTMLAnchorElement | null)
+      } catch {}
+    }
+
+    const clickedCoords = (editor.storage as any)?.link?.clickedCoords as
+      | { x: number; y: number }
+      | null
+      | undefined
+
+    if (linkEl && linkEl.isConnected) {
+      const linkRect = linkEl.getBoundingClientRect()
+
+      if (
+        clickedCoords &&
+        typeof clickedCoords.x === 'number' &&
+        typeof clickedCoords.y === 'number'
+      ) {
+        // Multi-line link support: inspect getClientRects() to find the specific line rect clicked
+        const clientRects = Array.from(linkEl.getClientRects())
+        let targetLineRect = linkRect
+
+        if (clientRects.length > 1) {
+          const matchingRect =
+            clientRects.find(
+              r =>
+                clickedCoords.y >= r.top - 4 &&
+                clickedCoords.y <= r.bottom + 4 &&
+                clickedCoords.x >= r.left - 8 &&
+                clickedCoords.x <= r.right + 8,
+            ) ||
+            clientRects.find(
+              r => clickedCoords.y >= r.top - 4 && clickedCoords.y <= r.bottom + 4,
+            )
+          if (matchingRect) {
+            targetLineRect = matchingRect
+          }
+        }
+
+        // Clamp clicked mouse X strictly within target link's horizontal boundary
+        const clampedX = Math.max(
+          targetLineRect.left,
+          Math.min(clickedCoords.x, targetLineRect.right),
+        )
+
+        // Precision 1:1 anchor rect directly docked to clicked mouse coordinates
+        // and link DOM boundary
+        return new DOMRect(
+          clampedX,
+          targetLineRect.top,
+          1,
+          Math.max(1, targetLineRect.bottom - targetLineRect.top),
+        )
       }
-    } catch {}
+
+      return linkRect
+    }
 
     try {
+      const { from } = editor.state.selection
       const coords = editor.view.coordsAtPos(from)
-      return new DOMRect(coords.left, coords.top, Math.max(1, coords.right - coords.left), Math.max(1, coords.bottom - coords.top))
+      return new DOMRect(
+        coords.left,
+        coords.top,
+        Math.max(1, coords.right - coords.left),
+        Math.max(1, coords.bottom - coords.top),
+      )
     } catch {
       return new DOMRect(-1000, -1000, 0, 0)
     }
@@ -391,6 +414,7 @@ export const LinkMenu = ({
     () => ({
       placement: 'bottom-start' as const,
       flip: true,
+      shift: { padding: 8 },
       offset: 8,
       onHide,
     }),

@@ -5,7 +5,7 @@ export type LinkPreviewPanelProps = {
   url: string
   onEdit: () => void
   onClear: () => void
-  onOpen: (url: string) => void
+  onOpen: (url: string) => boolean | void
   editable: boolean
   disableDefaultAction?: boolean | ((url: string) => boolean)
 }
@@ -52,7 +52,13 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
 
   // Fetch OpenGraph metadata from /api/link-preview
   useEffect(() => {
-    if (!url) return
+    setImageError(false)
+    setFaviconError(false)
+    if (!url) {
+      setMeta(null)
+      setLoading(false)
+      return
+    }
     if (previewCache.has(url)) {
       setMeta(previewCache.get(url)!)
       setLoading(false)
@@ -61,8 +67,6 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
 
     let isMounted = true
     setLoading(true)
-    setImageError(false)
-    setFaviconError(false)
 
     const fetchMeta = async () => {
       try {
@@ -124,7 +128,7 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
 
     if (onOpen) {
       const handled = onOpen(sanitizedLink || '')
-      if (handled) {
+      if (Boolean(handled)) {
         preventDefault = true
       }
     }

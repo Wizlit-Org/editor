@@ -25,28 +25,30 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
   const dialogRef = useRef<HTMLDivElement>(null)
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof document !== 'undefined') {
-      return (
-        document.documentElement.classList.contains('dark') ||
-        document.body.classList.contains('dark') ||
-        Boolean(editor?.view?.dom?.closest('.dark, .theme-dark, .notion-dark-canvas'))
-      )
+      const editorDom = editor?.view?.dom as HTMLElement | undefined
+      if (editorDom?.closest('.editor-theme-dark')) return true
+      if (editorDom?.closest('.editor-theme-light')) return false
+      if (editorDom?.closest('.dark, .theme-dark, .notion-dark-canvas')) return true
+      if (editorDom?.closest('.theme-light, .notion-light-canvas')) return false
+      return false
     }
-    return true
+    return false
   })
 
-  // Synchronize light/dark theme with editor container or document root
+  // Synchronize light/dark theme with editor container
   useEffect(() => {
     if (typeof document === 'undefined' || !data) return
     const editorDom = editor?.view?.dom as HTMLElement | undefined
-    if (editorDom?.closest('.dark, .theme-dark, .notion-dark-canvas')) {
+    if (editorDom?.closest('.editor-theme-dark')) {
+      setIsDark(true)
+    } else if (editorDom?.closest('.editor-theme-light')) {
+      setIsDark(false)
+    } else if (editorDom?.closest('.dark, .theme-dark, .notion-dark-canvas')) {
       setIsDark(true)
     } else if (editorDom?.closest('.theme-light, .notion-light-canvas')) {
       setIsDark(false)
     } else {
-      setIsDark(
-        document.documentElement.classList.contains('dark') ||
-          document.body.classList.contains('dark'),
-      )
+      setIsDark(false)
     }
   }, [data, editor])
 
