@@ -2,6 +2,7 @@ import React from 'react'
 import { Editor } from '@tiptap/react'
 import { Icon } from '@/components/ui/Icon'
 import { icons } from 'lucide-react'
+import { turnIntoList } from '../hooks/useContentItemActions'
 
 export interface TurnIntoSubmenuProps {
   editor: Editor
@@ -49,21 +50,21 @@ const TURN_INTO_OPTIONS: TurnIntoOption[] = [
     label: 'Bulleted list',
     icon: 'List',
     action: (editor, pos) => {
-      editor.chain().focus().setNodeSelection(pos).toggleBulletList().run()
+      turnIntoList(editor, pos, 'bulletList')
     },
   },
   {
     label: 'Numbered list',
     icon: 'ListOrdered',
     action: (editor, pos) => {
-      editor.chain().focus().setNodeSelection(pos).toggleOrderedList().run()
+      turnIntoList(editor, pos, 'orderedList')
     },
   },
   {
     label: 'To-do list',
     icon: 'ListTodo',
     action: (editor, pos) => {
-      editor.chain().focus().setNodeSelection(pos).toggleTaskList().run()
+      turnIntoList(editor, pos, 'taskList')
     },
   },
   {
