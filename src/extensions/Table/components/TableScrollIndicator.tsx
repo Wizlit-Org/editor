@@ -376,7 +376,30 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
 
         return (
           <React.Fragment key={t.id}>
-            {/* Left Edge Fade Shadow / Frosted Glass Blur Indicator (Extended across full left boundary with physical event shield) */}
+            {/* Visual Blur Layer (pointerEvents: none - zero interference with gutter drag-handle and plus button) */}
+            <div
+              style={{
+                position: 'fixed',
+                pointerEvents: 'none',
+                cursor: 'default',
+                zIndex: 12,
+                transition: isBlurVisible
+                  ? 'opacity 300ms ease-out'
+                  : 'opacity 600ms cubic-bezier(0.16, 1, 0.3, 1)',
+                opacity: isBlurVisible ? 1 : 0,
+                top: t.rect.top - 24 - offset.y,
+                left: visibleLeft - offset.x,
+                width: `${blurWidth}px`,
+                height: t.rect.height + 48,
+                background: 'transparent',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                maskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
+                WebkitMaskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
+              }}
+            />
+
+            {/* Blurred Table Cells Shield (Starts at editorContentLeft, exactly past the drag-handle and plus button) */}
             <div
               data-table-blur-indicator={t.id}
               onMouseDown={e => {
@@ -400,19 +423,11 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
                 pointerEvents: isBlurVisible ? 'auto' : 'none',
                 cursor: 'default',
                 zIndex: 12,
-                transition: isBlurVisible
-                  ? 'opacity 300ms ease-out'
-                  : 'opacity 600ms cubic-bezier(0.16, 1, 0.3, 1)',
-                opacity: isBlurVisible ? 1 : 0,
                 top: t.rect.top - 24 - offset.y,
-                left: visibleLeft - offset.x,
-                width: `${blurWidth}px`,
+                left: editorContentLeft - offset.x,
+                width: '48px',
                 height: t.rect.height + 48,
                 background: 'transparent',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-                maskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
-                WebkitMaskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
               }}
             />
 
