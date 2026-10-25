@@ -207,7 +207,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       if (!target || typeof target.closest !== 'function') return false
       return Boolean(
         target.closest(
-          '.drag-handle, [data-drag-handle], .table-drag-handle, [data-testid="content-item-menu"], button, [role="button"], #table-col-grips, #table-row-grips, [data-table-scroll-wrapper-id]',
+          '.drag-handle, [data-drag-handle], .table-drag-handle, [data-testid="content-item-menu"], button, [role="button"], .add-button, div:has(>.drag-handle), #table-col-grips, #table-row-grips, [data-table-scroll-wrapper-id]',
         ),
       )
     }
@@ -217,7 +217,8 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       if (isInteractiveHandleOrButton(target)) {
         const matched =
           tablesRef.current.find(t => e.clientY >= t.rect.top - 40 && e.clientY <= t.rect.bottom + 40) ||
-          (hoveredWrapperRef.current ? tablesRef.current.find(t => t.wrapper === hoveredWrapperRef.current) : null)
+          (hoveredWrapperRef.current ? tablesRef.current.find(t => t.wrapper === hoveredWrapperRef.current) : null) ||
+          (activeWrapperRef.current ? tablesRef.current.find(t => t.wrapper === activeWrapperRef.current) : null)
         if (matched) {
           if (hoverLeaveTimerRef.current) {
             clearTimeout(hoverLeaveTimerRef.current)
@@ -238,9 +239,9 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       if (target && typeof target.closest === 'function') {
         wrapper = target.closest('.tableWrapper') as HTMLElement | null
         if (!wrapper) {
-          const btn = target.closest('[data-table-scroll-wrapper-id]') as HTMLElement | null
+          const btn = target.closest('[data-table-scroll-wrapper-id], [data-table-blur-indicator]') as HTMLElement | null
           if (btn) {
-            const wrapperId = btn.getAttribute('data-table-scroll-wrapper-id')
+            const wrapperId = btn.getAttribute('data-table-scroll-wrapper-id') || btn.getAttribute('data-table-blur-indicator')
             wrapper = tablesRef.current.find(t => t.id === wrapperId)?.wrapper || null
           }
         }
@@ -248,14 +249,18 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
 
       if (!wrapper) {
         const isHandleHover = isInteractiveHandleOrButton(target)
-        for (const t of tablesRef.current) {
-          const editorDom = editor.view?.dom
-          const editorLeft = editorDom ? editorDom.getBoundingClientRect().left : t.rect.left
-          const inY = e.clientY >= t.rect.top - 40 && e.clientY <= t.rect.bottom + 40
-          const inX = e.clientX >= editorLeft - 100 && e.clientX <= t.rect.left + t.rect.width + 30
-          if (inY && (inX || isHandleHover)) {
-            wrapper = t.wrapper
-            break
+        if (isHandleHover && hoveredWrapperRef.current) {
+          wrapper = hoveredWrapperRef.current
+        } else {
+          for (const t of tablesRef.current) {
+            const editorDom = editor.view?.dom
+            const editorLeft = editorDom ? editorDom.getBoundingClientRect().left : t.rect.left
+            const inY = e.clientY >= t.rect.top - 40 && e.clientY <= t.rect.bottom + 40
+            const inX = e.clientX >= editorLeft - 100 && e.clientX <= t.rect.left + t.rect.width + 30
+            if (inY && (inX || isHandleHover)) {
+              wrapper = t.wrapper
+              break
+            }
           }
         }
       }
@@ -299,32 +304,6 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
     window.addEventListener('mousemove', handleMouseMove, { passive: true })
     document.addEventListener('mouseleave', handleMouseLeave)
 
-    const handleInterceptBlurredCellClick = (e: MouseEvent | PointerEvent) => {
-      const target = e.target as HTMLElement | null
-      if (isInteractiveHandleOrButton(target)) return
-
-      for (const t of tablesRef.current) {
-        const isBlurVisible = t.showLeft && (hoveredWrapperRef.current === t.wrapper || activeWrapperRef.current === t.wrapper)
-        if (!isBlurVisible) continue
-        const editorDom = editor.view?.dom
-        const editorContentLeft = editorDom ? editorDom.getBoundingClientRect().left : t.rect.left
-        const blurCellMaxX = editorContentLeft + 48
-        const inY = e.clientY >= t.rect.top - 10 && e.clientY <= t.rect.bottom + 10
-
-        if (e.clientX <= blurCellMaxX && inY) {
-          e.preventDefault()
-          e.stopPropagation()
-          e.stopImmediatePropagation()
-          return
-        }
-      }
-    }
-
-    window.addEventListener('mousedown', handleInterceptBlurredCellClick, { capture: true })
-    window.addEventListener('pointerdown', handleInterceptBlurredCellClick as any, { capture: true })
-    window.addEventListener('click', handleInterceptBlurredCellClick, { capture: true })
-    window.addEventListener('dblclick', handleInterceptBlurredCellClick, { capture: true })
-
     return () => {
       active = false
       clearTimeout(timer1)
@@ -349,10 +328,6 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       window.removeEventListener('mouseover', handleMouseOver)
       window.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseleave', handleMouseLeave)
-      window.removeEventListener('mousedown', handleInterceptBlurredCellClick, { capture: true })
-      window.removeEventListener('pointerdown', handleInterceptBlurredCellClick as any, { capture: true })
-      window.removeEventListener('click', handleInterceptBlurredCellClick, { capture: true })
-      window.removeEventListener('dblclick', handleInterceptBlurredCellClick, { capture: true })
 
       // Clean up inline maskImage on table wrappers
       const editorDom = editor.view?.dom
@@ -401,11 +376,28 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
 
         return (
           <React.Fragment key={t.id}>
-            {/* Left Edge Fade Shadow / Frosted Glass Blur Indicator (Extended across full left boundary with pointerEvents: none) */}
+            {/* Left Edge Fade Shadow / Frosted Glass Blur Indicator (Extended across full left boundary with physical event shield) */}
             <div
+              data-table-blur-indicator={t.id}
+              onMouseDown={e => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+              onPointerDown={e => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+              onClick={e => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+              onDoubleClick={e => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
               style={{
                 position: 'fixed',
-                pointerEvents: 'none',
+                pointerEvents: isBlurVisible ? 'auto' : 'none',
                 cursor: 'default',
                 zIndex: 12,
                 transition: isBlurVisible
