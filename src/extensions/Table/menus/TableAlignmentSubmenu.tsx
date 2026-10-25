@@ -17,6 +17,7 @@ export const TableAlignmentSubmenu: React.FC<TableAlignmentSubmenuProps> = ({
   editor,
   scope = 'cell',
   index,
+  onClose,
 }) => {
   const activeTextAlign =
     editor.getAttributes('tableCell').textAlign ||
@@ -107,8 +108,11 @@ export const TableAlignmentSubmenu: React.FC<TableAlignmentSubmenuProps> = ({
 
       view.dispatch(tr)
       view.dom.focus({ preventScroll: true })
-      if (onClose) onClose()
-      else window.dispatchEvent(new CustomEvent('tiptap:close-table-menus'))
+      if (typeof onClose === 'function') {
+        onClose()
+      } else {
+        window.dispatchEvent(new CustomEvent('tiptap:close-table-menus'))
+      }
     },
     [editor, scope, index, onClose],
   )
