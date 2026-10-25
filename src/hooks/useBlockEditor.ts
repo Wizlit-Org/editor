@@ -1,22 +1,12 @@
-import { useEditor, useEditorState } from '@tiptap/react'
-import type { AnyExtension, Editor, EditorOptions } from '@tiptap/core'
-// import Collaboration from '@tiptap/extension-collaboration'
-// import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
-// import { TiptapCollabProvider, WebSocketStatus } from '@hocuspocus/provider'
-// import type { Doc as YDoc } from 'yjs'
+import { useEditor } from '@tiptap/react'
+import type { Editor, EditorOptions } from '@tiptap/core'
 
 import { ExtensionKit } from '@/extensions/extension-kit'
 import { UploadQueue } from '@/extensions/ImageUpload/ImageUploadQueue'
-import { useEffect, useMemo } from 'react'
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { UploadListDialogProps, UploadListItem } from '@/extensions/ImageUpload/components/UploadListDialog.tsx'
 import { ConvertSrc, OnImageClick } from '@/extensions/ImageBlock/components/ImageBlockView'
-// import { userColors, userNames } from '../lib/constants'
-// import { randomElement } from '../lib/utils'
-// import type { EditorUser } from '../components/BlockEditor/types'
-// import { initialContent } from '@/lib/data/initialContent'
-// import { Ai } from '@/extensions/Ai'
-// import { AiImage, AiWriter } from '@/extensions'
+import { detectPasteType } from '@/components/menus/SmartPasteMenu'
 
 declare global {
   interface Window {
@@ -33,51 +23,50 @@ export const useBlockEditor = ({
   onUploadImage,
   convertSrc,
   onImageClick,
+  imageProxyUrl,
   maxSize,
   maxEmbeddings,
   maxCharacters,
   className = '',
-  // ydoc,
-  // provider,
   ...editorOptions
 }: {
-  // ydoc: YDoc | null
-  // provider?: TiptapCollabProvider | null | undefined
   onUploadImage?: (file: File) => Promise<string>
   convertSrc?: ConvertSrc
   onImageClick?: OnImageClick
+  imageProxyUrl?: (url: string) => string
   maxSize?: number
   maxEmbeddings?: number
   maxCharacters?: number
   className?: string
   key?: string
 } & Partial<Omit<EditorOptions, 'extensions'>>) => {
+  const editorRef = useRef<Editor | null>(null)
+  const onUploadImageRef = useRef(onUploadImage)
+  onUploadImageRef.current = onUploadImage
+
+  const stableUploadImage = useMemo(
+    () => (file: File) => {
+      if (!onUploadImageRef.current) {
+        return Promise.reject(new Error('No upload handler provided'))
+      }
+      return onUploadImageRef.current(file)
+    },
+    [],
+  )
+
   const editor = useEditor(
     {
       ...editorOptions,
       editable,
-      immediatelyRender: true,
-      // shouldRerenderOnTransaction: false,
+      immediatelyRender: false,
+      shouldRerenderOnTransaction: false,
       autofocus: true,
-      // onCreate: ctx => {
-      //   if (provider && !provider.isSynced) {
-      //     provider.on('synced', () => {
-      //       setTimeout(() => {
-      //         if (ctx.editor.isEmpty) {
-      //           ctx.editor.commands.setContent(initialContent)
-      //         }
-      //       }, 0)
-      //     })
-      //   } else if (ctx.editor.isEmpty) {
-      //     ctx.editor.commands.setContent(initialContent)
-      //     ctx.editor.commands.focus('start', { scrollIntoView: true })
-      //   }
-      // },
-      extensions: ExtensionKit({ 
+      extensions: ExtensionKit({
         limit: maxCharacters,
-        onUploadImage,
+        onUploadImage: stableUploadImage,
         convertSrc,
         onImageClick,
+        imageProxyUrl,
         maxSize,
         maxEmbeddings,
       }),
@@ -88,68 +77,167 @@ export const useBlockEditor = ({
           autocapitalize: 'off',
           class: `min-h-full ${className}`,
         },
-        handlePaste: (view, event) => {
-          const clipboard = (event as ClipboardEvent).clipboardData;
-          if (!clipboard) return false;
-          console.log('handlePaste', clipboard);
-          
-          const text = clipboard.getData('text');
-          
-          // 1) Handle YouTube URLs
-          const url = (() => {
-            try { return new URL(text); }
-            catch { return null; }
-          })();
-          if (url) {
-            event.preventDefault();
+        handlePaste: (_view, event) => {
+          const activeEditor = editorRef.current
+          const clipboard = (event as ClipboardEvent).clipboardData
+          if (!clipboard) return false
 
-            const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-            const isYoutube = text.match(youtubeRegex);
+          const pos = _view ? _view.state.selection.from : 0
 
-            if (isYoutube) {
-              const videoId = isYoutube[1];
-              editor.commands.setYoutubeVideo({
-                src: `https://www.youtube.com/embed/${videoId}`,
-              });
-              return true;
+          // 1) Clipboard Image Files or Screenshot Items (e.g. Win+Shift+S, Copy Image, file paste)
+          const directFiles = Array.from(clipboard.files || []).filter(f => f.type.startsWith('image/'))
+          const itemFiles =
+            directFiles.length > 0
+              ? directFiles
+              : Array.from(clipboard.items || [])
+                  .filter(item => item.kind === 'file' && item.type.startsWith('image/'))
+                  .map(item => item.getAsFile())
+                  .filter((file): file is File => file !== null)
+
+          if (itemFiles.length > 0) {
+            event.preventDefault()
+            if (activeEditor) {
+              activeEditor.commands.uploadImages({ files: itemFiles, pos })
+            }
+            return true
+          }
+
+          const rawText = clipboard.getData('text/plain')
+          const text = rawText ? rawText.trim() : ''
+          const html = clipboard.getData('text/html') || ''
+
+          // 2) Base64 Data URL in text/plain (data:image/...;base64,...)
+          if (text.startsWith('data:image/') && text.includes(';base64,')) {
+            event.preventDefault()
+            if (_view) {
+              const coords = _view.coordsAtPos(pos)
+              window.dispatchEvent(
+                new CustomEvent('tiptap:smart-paste', {
+                  detail: {
+                    text,
+                    type: 'image_data',
+                    coords: { top: coords.top, left: coords.left, bottom: coords.bottom },
+                    selection: { from: _view.state.selection.from, to: _view.state.selection.to },
+                  },
+                }),
+              )
+              return true
+            }
+            if (activeEditor) {
+              activeEditor.commands.uploadImageByBase64({ base64: text, pos })
+            }
+            return true
+          }
+
+          // 3) HTML <img src="..."> without plain text (e.g. right-click copy image from web)
+          if (!text && html.includes('<img')) {
+            const imgMatch = html.match(/<img[^>]+src=["']([^"']+)["']/i)
+            if (imgMatch && imgMatch[1]) {
+              const imgSrc = imgMatch[1].trim()
+              event.preventDefault()
+              if (imgSrc.startsWith('data:image/') && imgSrc.includes(';base64,')) {
+                if (_view) {
+                  const coords = _view.coordsAtPos(pos)
+                  window.dispatchEvent(
+                    new CustomEvent('tiptap:smart-paste', {
+                      detail: {
+                        text: imgSrc,
+                        type: 'image_data',
+                        coords: { top: coords.top, left: coords.left, bottom: coords.bottom },
+                        selection: { from: _view.state.selection.from, to: _view.state.selection.to },
+                      },
+                    }),
+                  )
+                  return true
+                }
+                activeEditor?.commands.uploadImageByBase64({ base64: imgSrc, pos })
+                return true
+              }
+              if (imgSrc.startsWith('http://') || imgSrc.startsWith('https://')) {
+                if (_view) {
+                  const coords = _view.coordsAtPos(pos)
+                  window.dispatchEvent(
+                    new CustomEvent('tiptap:smart-paste', {
+                      detail: {
+                        text: imgSrc,
+                        type: 'image_url',
+                        meta: { url: imgSrc },
+                        coords: { top: coords.top, left: coords.left, bottom: coords.bottom },
+                        selection: { from: _view.state.selection.from, to: _view.state.selection.to },
+                      },
+                    }),
+                  )
+                  return true
+                }
+                activeEditor?.commands.uploadImageByUrl({ url: imgSrc, pos })
+                return true
+              }
             }
           }
-        
-          // 4) Default: let Tiptap handle the paste normally
-          return false;
+
+          if (!text) return false
+
+          // 4) Smart Paste Detection (Image URL, YouTube, Web URL, Code snippet, Markdown list)
+          const detected = detectPasteType(text)
+          if (detected && _view) {
+            event.preventDefault()
+            const coords = _view.coordsAtPos(pos)
+            window.dispatchEvent(
+              new CustomEvent('tiptap:smart-paste', {
+                detail: {
+                  text,
+                  type: detected.type,
+                  meta: detected.meta,
+                  coords: {
+                    top: coords.top,
+                    left: coords.left,
+                    bottom: coords.bottom,
+                  },
+                  selection: {
+                    from: _view.state.selection.from,
+                    to: _view.state.selection.to,
+                  },
+                },
+              }),
+            )
+            return true
+          }
+
+          // Default: let standard TipTap paste handlers run
+          return false
         },
       },
       content,
     },
     [maxSize, maxEmbeddings],
-    // [ydoc, provider],
   )
 
-  const [uploadItems, setUploadItems] = useState<UploadListItem[]>([]);
-  
+  editorRef.current = editor
+
+  const [uploadItems, setUploadItems] = useState<UploadListItem[]>([])
+
   const uploadDialog = useMemo<UploadListDialogProps>(
     () => ({
       items: uploadItems,
       onRetry: (id: string) => uploadImageQueue.retry(id),
       onRemove: (id: string) => uploadImageQueue.remove(id),
     }),
-    [uploadItems]
-  );
+    [uploadItems],
+  )
 
   useEffect(() => {
     uploadImageQueue.onStatusChange(items => {
-      setUploadItems(items);
-    });
-  }, []);
+      setUploadItems(items)
+    })
+  }, [])
 
   useEffect(() => {
-    uploadImageQueue.clear();
-  }, [key, editable]);
+    uploadImageQueue.clear()
+  }, [key, editable])
 
-  // Only set window.editor if editor is initialized
   if (editor) {
-    window.editor = editor;
+    window.editor = editor
   }
-  
-  return {editor, uploadDialog}
+
+  return { editor, uploadDialog }
 }

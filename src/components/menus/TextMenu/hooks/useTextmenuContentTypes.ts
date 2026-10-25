@@ -12,14 +12,17 @@ export const useTextmenuContentTypes = (editor: Editor) => {
       },
       {
         icon: 'Pilcrow',
-        onClick: () => ctx.editor.chain().focus().lift('taskItem').liftListItem('listItem').setParagraph().run(),
+        onClick: () =>
+          ctx.editor.chain().focus().lift('taskItem').liftListItem('listItem').setParagraph().run(),
         id: 'paragraph',
         disabled: () => !ctx.editor.can().setParagraph(),
         isActive: () =>
           ctx.editor.isActive('paragraph') &&
           !ctx.editor.isActive('orderedList') &&
           !ctx.editor.isActive('bulletList') &&
-          !ctx.editor.isActive('taskList'),
+          !ctx.editor.isActive('taskList') &&
+          !ctx.editor.isActive('blockquote') &&
+          !ctx.editor.isActive('codeBlock'),
         label: 'Paragraph',
         type: 'option',
       },
@@ -43,16 +46,16 @@ export const useTextmenuContentTypes = (editor: Editor) => {
         label: 'Heading 2',
         type: 'option',
       },
-      // {
-      //   icon: 'Heading3',
-      //   onClick: () =>
-      //     ctx.editor.chain().focus().lift('taskItem').liftListItem('listItem').setHeading({ level: 3 }).run(),
-      //   id: 'heading3',
-      //   disabled: () => !ctx.editor.can().setHeading({ level: 3 }),
-      //   isActive: () => ctx.editor.isActive('heading', { level: 3 }),
-      //   label: 'Heading 3',
-      //   type: 'option',
-      // },
+      {
+        icon: 'Heading3',
+        onClick: () =>
+          ctx.editor.chain().focus().lift('taskItem').liftListItem('listItem').setHeading({ level: 3 }).run(),
+        id: 'heading3',
+        disabled: () => !ctx.editor.can().setHeading({ level: 3 }),
+        isActive: () => ctx.editor.isActive('heading', { level: 3 }),
+        label: 'Heading 3',
+        type: 'option',
+      },
       {
         type: 'category',
         label: 'Lists',
@@ -85,6 +88,63 @@ export const useTextmenuContentTypes = (editor: Editor) => {
         label: 'Todo list',
         type: 'option',
       },
+      {
+        type: 'category',
+        label: 'Advanced',
+        id: 'advanced',
+      },
+      {
+        icon: 'Quote',
+        onClick: () => {
+          const chain = ctx.editor.chain().focus() as any
+          if (typeof chain.toggleBlockquote === 'function') {
+            chain.toggleBlockquote().run()
+          } else if (typeof chain.setBlockquote === 'function') {
+            chain.setBlockquote().run()
+          }
+        },
+        id: 'blockquote',
+        disabled: () => {
+          const can = ctx.editor.can() as any
+          if (typeof can.toggleBlockquote === 'function') {
+            return !can.toggleBlockquote()
+          }
+          if (typeof can.setBlockquote === 'function') {
+            return !can.setBlockquote()
+          }
+          return false
+        },
+        isActive: () => ctx.editor.isActive('blockquote'),
+        label: 'Quote',
+        type: 'option',
+      },
+      {
+        icon: 'SquareCode',
+        onClick: () => {
+          const chain = ctx.editor.chain().focus() as any
+          if (typeof chain.toggleCodeBlock === 'function') {
+            chain.toggleCodeBlock().run()
+          } else if (typeof chain.setCodeBlock === 'function') {
+            chain.setCodeBlock().run()
+          }
+        },
+        id: 'codeBlock',
+        disabled: () => {
+          const can = ctx.editor.can() as any
+          if (typeof can.toggleCodeBlock === 'function') {
+            return !can.toggleCodeBlock()
+          }
+          if (typeof can.setCodeBlock === 'function') {
+            return !can.setCodeBlock()
+          }
+          return false
+        },
+        isActive: () => ctx.editor.isActive('codeBlock'),
+        label: 'Code block',
+        type: 'option',
+      },
     ],
   })
 }
+
+export default useTextmenuContentTypes

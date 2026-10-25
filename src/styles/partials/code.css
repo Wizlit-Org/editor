@@ -9,7 +9,8 @@
   }
 
   pre {
-    @apply caret-white bg-neutral-700 text-white rounded-lg p-4 pt-10 border border-black dark:bg-neutral-900 dark:border-neutral-800;
+    @apply caret-white text-zinc-100 rounded-lg p-4;
+    background-color: transparent;
     line-height: 1.5;
     overflow-x: auto;
     width: 100%;
@@ -21,7 +22,7 @@
 
     code {
       @apply bg-inherit text-inherit p-0 shadow-none;
-      white-space: pre !important;
+      white-space: pre;
     }
   
     code.wrap {
@@ -29,7 +30,7 @@
     }
   
     code.nowrap {
-      white-space: pre !important;
+      white-space: pre;
     }
 
     .hljs-comment,

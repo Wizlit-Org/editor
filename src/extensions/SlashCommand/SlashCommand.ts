@@ -19,11 +19,14 @@ export const SlashCommand = Extension.create({
   onCreate() {
     popup = tippy('body', {
       interactive: true,
+      interactiveBorder: 80,
+      delay: [0, 500],
       trigger: 'manual',
       placement: 'bottom-start',
       theme: 'slash-command',
       maxWidth: '16rem',
-      offset: [16, 8],
+      offset: [16, 4],
+      hideOnClick: false,
       popperOptions: {
         strategy: 'fixed',
         modifiers: [
@@ -126,17 +129,15 @@ export const SlashCommand = Extension.create({
 
               const { view } = props.editor
 
-              const editorNode = view.dom as HTMLElement
-
               const getReferenceClientRect = () => {
                 if (!props.clientRect) {
-                  return props.editor.storage[extensionName].rect
+                  return (props.editor.storage as any)[extensionName].rect
                 }
 
                 const rect = props.clientRect()
 
                 if (!rect) {
-                  return props.editor.storage[extensionName].rect
+                  return (props.editor.storage as any)[extensionName].rect
                 }
 
                 let yPos = rect.y
@@ -171,17 +172,15 @@ export const SlashCommand = Extension.create({
 
               const { view } = props.editor
 
-              const editorNode = view.dom as HTMLElement
-
               const getReferenceClientRect = () => {
                 if (!props.clientRect) {
-                  return props.editor.storage[extensionName].rect
+                  return (props.editor.storage as any)[extensionName].rect
                 }
 
                 const rect = props.clientRect()
 
                 if (!rect) {
-                  return props.editor.storage[extensionName].rect
+                  return (props.editor.storage as any)[extensionName].rect
                 }
 
                 let yPos = rect.y
@@ -194,16 +193,16 @@ export const SlashCommand = Extension.create({
                 return new DOMRect(rect.x, yPos, rect.width, rect.height)
               }
 
-              let scrollHandler = () => {
+              scrollHandler = () => {
                 popup?.[0].setProps({
                   getReferenceClientRect,
                 })
               }
 
-              view.dom.parentElement?.addEventListener('scroll', scrollHandler)
+              view.dom.parentElement?.addEventListener('scroll', scrollHandler);
 
               // eslint-disable-next-line no-param-reassign
-              props.editor.storage[extensionName].rect = props.clientRect
+              (props.editor.storage as any)[extensionName].rect = props.clientRect
                 ? getReferenceClientRect()
                 : {
                     width: 0,
@@ -220,6 +219,9 @@ export const SlashCommand = Extension.create({
 
             onKeyDown(props: SuggestionKeyDownProps) {
               if (props.event.key === 'Escape') {
+                props.event.preventDefault()
+                props.event.stopPropagation()
+                props.event.stopImmediatePropagation?.()
                 popup?.[0].hide()
 
                 return true

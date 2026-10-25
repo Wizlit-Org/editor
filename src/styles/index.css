@@ -7,36 +7,209 @@
 @import './partials/typography.css';
 @import './partials/extensions.css';
 
+.ProseMirror,
+.ProseMirror:focus,
+.ProseMirror-focused,
+.ProseMirror:focus-visible,
+[contenteditable="true"]:focus,
+[contenteditable="true"]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
 .ProseMirror {
-  /* @apply caret-black dark:caret-white outline-0 pr-8 pl-20 py-16 z-0 lg:pl-8 lg:pr-8 mx-auto max-w-2xl; */
-  @apply caret-black dark:caret-white outline-0 z-0 mx-auto max-w-2xl;
+  color: var(--editor-text, #222325);
+  caret-color: var(--editor-caret, #222325);
+  outline: 0 !important;
+  z-index: 0;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 42rem;
+  position: relative;
+
+  /* 본문 폭/여백은 0px도 건드리지 않으면서, 마우스가 좌측 거터(-68px)로 이동할 때 @tiptap/extension-drag-handle이 ProseMirror를 감지하도록 가상 히트박스 제공 */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -68px;
+    width: 68px;
+    pointer-events: auto;
+  }
 
   .selection {
-    @apply inline;
+    display: inline;
   }
 
   .selection,
   *::selection {
-    @apply bg-black/10 dark:bg-white/20 inline;
+    background-color: var(--editor-selection, rgba(0, 0, 0, 0.1));
+    display: inline;
+  }
+
+  /* 읽기 모드(contenteditable="false")에서는 ProseMirror의 가짜 selection span을 투명화하여 네이티브 ::selection과의 이중 블록 겹침 원천 차단 */
+  &:not([contenteditable="true"]) .selection,
+  &[contenteditable="false"] .selection {
+    background-color: transparent !important;
   }
 
   & > .react-renderer {
-    @apply my-12 first:mt-0 last:mb-0;
+    margin-top: 3rem;
+    margin-bottom: 3rem;
+    &:first-child { margin-top: 0; }
+    &:last-child { margin-bottom: 0; }
   }
 
   &.resize-cursor {
-    @apply cursor-col-resize;
+    cursor: col-resize;
   }
 
   .ProseMirror-gapcursor {
-    @apply relative w-full max-w-2xl mx-auto;
+    position: relative;
+    width: 100%;
+    max-width: 42rem;
+    margin-left: auto;
+    margin-right: auto;
 
     &:after {
-      @apply border-t-black/40 dark:border-t-white/40 w-full -top-[1.5em] max-w-2xl mx-auto left-0 right-0;
+      border-top: 1px solid var(--editor-caret, #222325);
+      opacity: 0.4;
+      width: 100%;
+      top: -1.5em;
+      max-width: 42rem;
+      margin-left: auto;
+      margin-right: auto;
+      left: 0;
+      right: 0;
     }
   }
 }
 
+/* ==========================================================================
+   Dual Light/Dark Glassmorphism Theme System (Default: Light)
+   ========================================================================== */
+
+:root,
+.theme-light {
+  --editor-bg: #ffffff;
+  --editor-text: #222325;
+  --editor-subtext: #71717a;
+  --editor-caret: #222325;
+  --editor-selection: rgba(0, 0, 0, 0.1);
+  --editor-divider: rgba(0, 0, 0, 0.08);
+
+  --glass-panel-bg: rgba(255, 255, 255, 0.88);
+  --glass-panel-border: rgba(228, 228, 231, 0.8);
+  --glass-panel-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.08);
+
+  --glass-menu-bg: rgba(255, 255, 255, 0.96);
+  --glass-menu-border: rgba(228, 228, 231, 0.9);
+  --glass-menu-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.12);
+
+  --glass-toolbar-bg: rgba(255, 255, 255, 0.92);
+  --glass-toolbar-border: rgba(228, 228, 231, 0.8);
+  --glass-toolbar-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.06);
+
+  --glass-item-hover: rgba(0, 0, 0, 0.05);
+  --glass-item-active: rgba(0, 0, 0, 0.08);
+}
+
+.dark,
+.theme-dark {
+  --editor-bg: #191919;
+  --editor-text: #e3e3e3;
+  --editor-subtext: #9b9b9b;
+  --editor-caret: #e3e3e3;
+  --editor-selection: rgba(255, 255, 255, 0.2);
+  --editor-divider: rgba(255, 255, 255, 0.1);
+
+  --glass-panel-bg: rgba(32, 32, 32, 0.75);
+  --glass-panel-border: rgba(255, 255, 255, 0.1);
+  --glass-panel-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 4px 16px 0 rgba(0, 0, 0, 0.3);
+
+  --glass-menu-bg: rgba(37, 37, 37, 0.92);
+  --glass-menu-border: rgba(255, 255, 255, 0.1);
+  --glass-menu-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 8px 24px -4px rgba(0, 0, 0, 0.4);
+
+  --glass-toolbar-bg: rgba(32, 32, 32, 0.85);
+  --glass-toolbar-border: rgba(255, 255, 255, 0.1);
+  --glass-toolbar-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 4px 12px 0 rgba(0, 0, 0, 0.25);
+
+  --glass-item-hover: rgba(255, 255, 255, 0.06);
+  --glass-item-active: rgba(255, 255, 255, 0.1);
+}
+
+/* Glassmorphism Surface Classes */
+.glass-panel {
+  background-color: var(--glass-panel-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-panel-border);
+  box-shadow: var(--glass-panel-shadow);
+  color: var(--editor-text);
+  border-radius: 0.5rem;
+}
+
+.glass-menu {
+  background-color: var(--glass-menu-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-menu-border);
+  box-shadow: var(--glass-menu-shadow);
+  color: var(--editor-text);
+  border-radius: 0.5rem;
+}
+
+.glass-toolbar {
+  background-color: var(--glass-toolbar-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-toolbar-border);
+  box-shadow: var(--glass-toolbar-shadow);
+  color: var(--editor-text);
+  border-radius: 0.5rem;
+}
+
+.glass-item {
+  color: var(--editor-text);
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  border-radius: 0.25rem;
+}
+
+.glass-item:hover {
+  background-color: var(--glass-item-hover);
+}
+
+.glass-item:active,
+.glass-item.active {
+  background-color: var(--glass-item-active);
+}
+
+/* Theme Canvas Utilities */
+.notion-light-canvas,
+.notion-dark-canvas {
+  height: auto !important;
+  min-height: 100% !important;
+  flex: 1 0 auto !important;
+}
+
+.notion-light-canvas {
+  background-color: #ffffff;
+  color: #222325;
+}
+
+.notion-dark-canvas {
+  background-color: #191919;
+  color: #e3e3e3;
+}
+
 [data-theme='slash-command'] {
   width: 1000vw;
+}
+
+.drag-handle {
+  z-index: 50 !important;
 }

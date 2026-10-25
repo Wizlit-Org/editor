@@ -1,20 +1,10 @@
 .ProseMirror {
   /* Youtube embed */
   div[data-youtube-video] {
-    @apply cursor-move w-full aspect-video mb-8 relative;
+    @apply cursor-move w-full relative;
 
     & iframe {
-      @apply outline outline-2 outline-offset-4 outline-transparent transition-all;
-      @apply pointer-events-none mb-8 w-full h-full rounded-xl bg-neutral-100 dark:bg-neutral-900;
-    }
-
-    &:hover iframe {
-      @apply outline-neutral-300 dark:outline-neutral-900;
-    }
-
-    &:has(.is-active) iframe,
-    &.has-focus iframe {
-      @apply outline-neutral-800 dark:outline-neutral-200;
+      @apply pointer-events-none w-full h-full rounded-xl bg-neutral-100 dark:bg-neutral-900;
     }
   }
 
@@ -26,21 +16,6 @@
       iframe {
         pointer-events: auto;
       }
-
-      &:hover iframe {
-        @apply outline-none;
-      }
     }
   }
-/* 
-  img {
-    cursor: move;
-    padding: 0.2rem;
-    box-sizing: border-box;
-    
-    &.ProseMirror-selectednode {
-      outline: 3px solid red;
-      transition: outline 0.15s;
-    }
-  } */
 }

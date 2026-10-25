@@ -1,17 +1,51 @@
-import { BubbleMenu as BaseBubbleMenu, useEditorState } from '@tiptap/react'
-import React, { useCallback, useRef, JSX } from 'react'
-import { Instance, sticky } from 'tippy.js'
-import { v4 as uuid } from 'uuid'
-
+import { BubbleMenu as BaseBubbleMenu } from '@tiptap/react/menus'
+import { useEditorState } from '@tiptap/react'
+import { useCallback, useRef, useState, useEffect, JSX } from 'react'
 import { Toolbar } from '@/components/ui/Toolbar'
 import { Icon } from '@/components/ui/Icon'
-import { ImageBlockWidth } from './ImageBlockWidth'
 import { MenuProps } from '@/components/menus/types'
-import { getRenderContainer } from '@/lib/utils'
+import { getRenderContainer, cn } from '@/lib/utils'
+
+const IMAGE_BLOCK_MENU_OPTIONS = {
+  offset: 8,
+  flip: false,
+}
 
 export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => {
   const menuRef = useRef<HTMLDivElement>(null)
-  const tippyInstance = useRef<Instance | null>(null)
+  const [isClosedByScroll, setIsClosedByScroll] = useState(false)
+  const isClosedByScrollRef = useRef(false)
+
+  useEffect(() => {
+    const handleReset = () => {
+      isClosedByScrollRef.current = false
+      setIsClosedByScroll(false)
+    }
+    editor.on('selectionUpdate', handleReset)
+    editor.on('focus', handleReset)
+    window.addEventListener('tiptap:reset-scroll-lock', handleReset)
+    return () => {
+      editor.off('selectionUpdate', handleReset)
+      editor.off('focus', handleReset)
+      window.removeEventListener('tiptap:reset-scroll-lock', handleReset)
+    }
+  }, [editor])
+
+  useEffect(() => {
+    const handleClose = () => {
+      isClosedByScrollRef.current = true
+      setIsClosedByScroll(true)
+      try {
+        editor.view.dispatch(editor.state.tr.setMeta('imageBlockMenu', 'hide'))
+      } catch {}
+    }
+    window.addEventListener('tiptap:close-menus', handleClose)
+    window.addEventListener('scroll', handleClose, { passive: true, capture: true })
+    return () => {
+      window.removeEventListener('tiptap:close-menus', handleClose)
+      window.removeEventListener('scroll', handleClose, { capture: true })
+    }
+  }, [editor])
 
   const getReferenceClientRect = useCallback(() => {
     const renderContainer = getRenderContainer(editor, 'node-imageBlock')
@@ -20,10 +54,17 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
     return rect
   }, [editor])
 
-  const shouldShow = useCallback(() => {
-    const isActive = editor.isActive('imageBlock')
+  const getReferencedVirtualElement = useCallback(
+    () => ({
+      getBoundingClientRect: getReferenceClientRect,
+      getClientRects: () => [getReferenceClientRect()],
+    }),
+    [getReferenceClientRect],
+  )
 
-    return isActive
+  const shouldShow = useCallback(() => {
+    if (isClosedByScrollRef.current) return false
+    return editor.isActive('imageBlock')
   }, [editor])
 
   const onAlignImageLeft = useCallback(() => {
@@ -38,59 +79,129 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
     editor.chain().focus(undefined, { scrollIntoView: false }).setImageBlockAlign('right').run()
   }, [editor])
 
-  const onWidthChange = useCallback(
-    (value: number) => {
-      editor.chain().focus(undefined, { scrollIntoView: false }).setImageBlockWidth(value).run()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const onReplaceImageClick = useCallback(() => {
+    fileInputRef.current?.click()
+  }, [])
+
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+
+      try {
+        const imageUploadExt = editor.extensionManager.extensions.find(e => e.name === 'imageUpload')
+        const uploadFn = (imageUploadExt?.options as any)?.onUpload
+
+        if (typeof uploadFn === 'function') {
+          const uploadedUrl = await uploadFn(file)
+          if (uploadedUrl && typeof uploadedUrl === 'string') {
+            editor.chain().focus(undefined, { scrollIntoView: false }).updateAttributes('imageBlock', { src: uploadedUrl }).run()
+          }
+        } else {
+          console.error('No upload handler provided in imageUpload extension')
+        }
+      } catch (err) {
+        console.error('Failed to replace image:', err)
+      } finally {
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+      }
     },
     [editor],
   )
-  const { isImageCenter, isImageLeft, isImageRight, width } = useEditorState({
+
+  const onDelete = useCallback(() => {
+    editor.chain().focus(undefined, { scrollIntoView: false }).deleteSelection().run()
+  }, [editor])
+
+  const { isImageCenter, isImageLeft, isImageRight } = useEditorState({
     editor,
     selector: ctx => {
       return {
         isImageLeft: ctx.editor.isActive('imageBlock', { align: 'left' }),
         isImageCenter: ctx.editor.isActive('imageBlock', { align: 'center' }),
         isImageRight: ctx.editor.isActive('imageBlock', { align: 'right' }),
-        width: parseInt(ctx.editor.getAttributes('imageBlock')?.width || 0),
       }
     },
   })
 
+  const BTN_CLASS =
+    'h-7 w-7 p-0 flex items-center justify-center text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/5 dark:active:bg-white/10 rounded-md border border-transparent transition-colors duration-150'
+  const ACTIVE_CLASS = 'bg-black/10 text-zinc-900 dark:bg-white/15 dark:text-white'
+
   return (
     <BaseBubbleMenu
       editor={editor}
-      pluginKey={`imageBlockMenu-${uuid()}`}
+      pluginKey="imageBlockMenu"
       shouldShow={shouldShow}
       updateDelay={0}
-      tippyOptions={{
-        offset: [0, 8],
-        popperOptions: {
-          modifiers: [{ name: 'flip', enabled: false }],
-        },
-        getReferenceClientRect,
-        onCreate: (instance: Instance) => {
-          tippyInstance.current = instance
-        },
-        appendTo: () => {
-          return appendTo?.current
-        },
-        plugins: [sticky],
-        sticky: 'popper',
-      }}
+      className={cn('z-50', isClosedByScroll && '!hidden pointer-events-none')}
+      appendTo={appendTo?.current || undefined}
+      options={IMAGE_BLOCK_MENU_OPTIONS}
+      getReferencedVirtualElement={getReferencedVirtualElement}
     >
-      <Toolbar.Wrapper shouldShowContent={shouldShow()} ref={menuRef}>
-        <Toolbar.Button tooltip="Align image left" active={isImageLeft} onClick={onAlignImageLeft}>
-          <Icon name="AlignHorizontalDistributeStart" />
+      <div
+        ref={menuRef}
+        className="inline-flex h-full leading-none gap-0.5 p-1 rounded-xl items-center z-50 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-xl border border-black/[0.08] dark:border-white/[0.1] shadow-xl ring-1 ring-white/40 dark:ring-white/5 text-zinc-800 dark:text-zinc-200"
+      >
+        <Toolbar.Button
+          tooltip="Align left"
+          active={isImageLeft}
+          onClick={onAlignImageLeft}
+          className={BTN_CLASS}
+          activeClassname={ACTIVE_CLASS}
+        >
+          <Icon name="AlignLeft" className="w-4 h-4" />
         </Toolbar.Button>
-        <Toolbar.Button tooltip="Align image center" active={isImageCenter} onClick={onAlignImageCenter}>
-          <Icon name="AlignHorizontalDistributeCenter" />
+        <Toolbar.Button
+          tooltip="Align center"
+          active={isImageCenter}
+          onClick={onAlignImageCenter}
+          className={BTN_CLASS}
+          activeClassname={ACTIVE_CLASS}
+        >
+          <Icon name="AlignCenter" className="w-4 h-4" />
         </Toolbar.Button>
-        <Toolbar.Button tooltip="Align image right" active={isImageRight} onClick={onAlignImageRight}>
-          <Icon name="AlignHorizontalDistributeEnd" />
+        <Toolbar.Button
+          tooltip="Align right"
+          active={isImageRight}
+          onClick={onAlignImageRight}
+          className={BTN_CLASS}
+          activeClassname={ACTIVE_CLASS}
+        >
+          <Icon name="AlignRight" className="w-4 h-4" />
         </Toolbar.Button>
-        <Toolbar.Divider />
-        <ImageBlockWidth onChange={onWidthChange} value={width} />
-      </Toolbar.Wrapper>
+
+        <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+
+        <Toolbar.Button
+          tooltip="Replace image"
+          onClick={onReplaceImageClick}
+          className={BTN_CLASS}
+          activeClassname={ACTIVE_CLASS}
+        >
+          <Icon name="RefreshCw" className="w-4 h-4" />
+        </Toolbar.Button>
+
+        <Toolbar.Button
+          tooltip="Delete image"
+          onClick={onDelete}
+          className="h-7 w-7 p-0 flex items-center justify-center text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-500/10 active:bg-red-500/20 rounded-md border border-transparent transition-colors"
+        >
+          <Icon name="Trash2" className="w-4 h-4" />
+        </Toolbar.Button>
+      </div>
     </BaseBubbleMenu>
   )
 }

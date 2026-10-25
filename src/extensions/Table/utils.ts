@@ -23,7 +23,13 @@ export const isRectSelected = (rect: Rect) => (selection: CellSelection) => {
 export const findTable = (selection: Selection) =>
   findParentNode(node => node.type.spec.tableRole && node.type.spec.tableRole === 'table')(selection)
 
-export const isCellSelection = (selection: Selection): selection is CellSelection => selection instanceof CellSelection
+export const isCellSelection = (selection: any): selection is CellSelection => {
+  if (!selection) return false
+  if (selection instanceof CellSelection) return true
+  if (selection.key?.startsWith('cell') || selection.constructor?.name === 'CellSelection') return true
+  if (selection.$anchorCell && selection.$headCell) return true
+  return false
+}
 
 export const isColumnSelected = (columnIndex: number) => (selection: Selection) => {
   if (isCellSelection(selection)) {
@@ -185,8 +191,15 @@ export const findCellClosestToPos = ($pos: ResolvedPos) => {
   return findParentNodeClosestToPos($pos, predicate)
 }
 
-const select = (type: 'row' | 'column') => (index: number) => (tr: Transaction) => {
-  const table = findTable(tr.selection)
+const select = (type: 'row' | 'column') => (index: number, tablePos?: number) => (tr: Transaction) => {
+  let table = null
+  if (tablePos !== undefined && tablePos >= 0) {
+    const node = tr.doc.nodeAt(tablePos)
+    if (node && node.type.name === 'table') {
+      table = { node, pos: tablePos, start: tablePos + 1 } as any
+    }
+  }
+  if (!table) table = findTable(tr.selection)
   const isRowSelection = type === 'row'
 
   if (table) {
@@ -194,34 +207,29 @@ const select = (type: 'row' | 'column') => (index: number) => (tr: Transaction) 
 
     // Check if the index is valid
     if (index >= 0 && index < (isRowSelection ? map.height : map.width)) {
-      const left = isRowSelection ? 0 : index
-      const top = isRowSelection ? index : 0
-      const right = isRowSelection ? map.width : index + 1
-      const bottom = isRowSelection ? index + 1 : map.height
+      let minRow: number
+      let maxRow: number
+      let minCol: number
+      let maxCol: number
 
-      const cellsInFirstRow = map.cellsInRect({
-        left,
-        top,
-        right: isRowSelection ? right : left + 1,
-        bottom: isRowSelection ? top + 1 : bottom,
-      })
+      if (isRowSelection) {
+        minRow = index
+        maxRow = index + 1
+        minCol = 0
+        maxCol = map.width
+      } else {
+        minCol = index
+        maxCol = index + 1
+        minRow = 0
+        maxRow = map.height
+      }
 
-      const cellsInLastRow =
-        bottom - top === 1
-          ? cellsInFirstRow
-          : map.cellsInRect({
-              left: isRowSelection ? left : right - 1,
-              top: isRowSelection ? bottom - 1 : top,
-              right,
-              bottom,
-            })
-
-      const head = table.start + cellsInFirstRow[0]
-      const anchor = table.start + cellsInLastRow[cellsInLastRow.length - 1]
+      const head = table.start + map.map[minRow * map.width + minCol]
+      const anchor = table.start + map.map[(maxRow - 1) * map.width + (maxCol - 1)]
       const $head = tr.doc.resolve(head)
       const $anchor = tr.doc.resolve(anchor)
 
-      return tr.setSelection(new CellSelection($anchor, $head))
+      return tr.setSelection(new CellSelection($anchor, $head)).setMeta('isGripSelection', true)
     }
   }
   return tr

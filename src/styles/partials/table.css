@@ -1,16 +1,67 @@
 .ProseMirror {
   .tableWrapper {
-    @apply my-12;
+    box-sizing: border-box !important;
+    width: 100cqw !important;
+    max-width: 100cqw !important;
+    min-width: 0 !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 1.5rem !important;
+    margin-left: calc((100% - 100cqw) / 2) !important;
+    margin-right: 0 !important;
+    padding-left: calc((100cqw - 100%) / 2) !important;
+    padding-right: calc((100cqw - 100%) / 2) !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    overflow-x: auto !important;
+    display: block !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    transition: margin-left 250ms cubic-bezier(0.16, 1, 0.3, 1), padding-left 250ms cubic-bezier(0.16, 1, 0.3, 1), width 250ms cubic-bezier(0.16, 1, 0.3, 1), max-width 250ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+
+    &.table-compact-left {
+      margin-left: 0 !important;
+      padding-left: 0 !important;
+      width: calc(100% + (100cqw - 100%) / 2) !important;
+      max-width: calc(100% + (100cqw - 100%) / 2) !important;
+    }
+
+    &::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
   }
 
+  &[contenteditable="false"] .tableWrapper {
+    transition: none !important;
+    margin-left: calc((100% - 100cqw) / 2) !important;
+    padding-left: calc((100cqw - 100%) / 2) !important;
+    width: 100cqw !important;
+    max-width: 100cqw !important;
+
+    &.table-compact-left {
+      margin-left: calc((100% - 100cqw) / 2) !important;
+      padding-left: calc((100cqw - 100%) / 2) !important;
+      width: 100cqw !important;
+      max-width: 100cqw !important;
+    }
+  }
+
+
   table {
-    @apply border-collapse border-black/10 rounded box-border w-full;
+    @apply border-collapse border-black/10 rounded box-border;
+    width: max-content !important;
+    min-width: 100% !important;
     @apply dark:border-white/20;
 
     td,
     th {
-      @apply border border-black/10 min-w-[100px] p-2 relative text-left align-top;
-      @apply dark:border-white/20;
+      border: 1px solid rgba(47, 50, 55, 0.2) !important;
+      min-width: 120px !important;
+      padding: 8px 10px !important;
+      position: relative;
+      text-align: left;
+      vertical-align: top;
 
       &:first-of-type:not(a) {
         @apply mt-0;
@@ -25,108 +76,80 @@
       }
     }
 
+    .dark td,
+    .dark th,
+    .theme-dark td,
+    .theme-dark th {
+      border-color: rgba(255, 255, 255, 0.16) !important;
+    }
+
     th {
-      @apply font-bold;
+      background-color: rgba(15, 22, 36, 0.06) !important;
+      font-weight: 600 !important;
+      color: rgba(55, 53, 47, 0.9) !important;
+    }
+
+    .dark th,
+    .theme-dark th {
+      background-color: rgba(255, 255, 255, 0.08) !important;
+      color: rgba(255, 255, 255, 0.95) !important;
+    }
+
+    &.resizing {
+      cursor: col-resize !important;
+
+      /* Suppress duplicate in-cell handle during resizing; portal guide bar renders single full-height guide */
+      .column-resize-handle {
+        opacity: 0 !important;
+        pointer-events: none !important;
+
+        &::before {
+          display: none !important;
+        }
+      }
     }
 
     .column-resize-handle {
-      @apply -bottom-[2px] flex pointer-events-none absolute -right-1 top-0 w-2;
+      @apply -bottom-[2px] flex pointer-events-none absolute -right-1 top-0 w-2.5 z-20 transition-colors duration-150;
 
       &::before {
-        @apply bg-black/20 h-full w-[1px] ml-2;
-        @apply dark:bg-white/20;
+        @apply bg-black/25 h-full w-[2px] ml-1.5;
+        @apply dark:bg-white/25;
         content: '';
       }
     }
 
+    td.selectedCell,
+    th.selectedCell,
     .selectedCell {
-      @apply bg-black/5 border-black/20 border-double;
-      @apply dark:bg-white/10 dark:border-white/20;
+      background-color: rgba(200, 200, 255, 0.4) !important;
     }
 
+    .dark td.selectedCell,
+    .dark th.selectedCell,
+    .theme-dark td.selectedCell,
+    .theme-dark th.selectedCell,
+    .dark .selectedCell,
+    .theme-dark .selectedCell {
+      background-color: rgba(100, 120, 255, 0.3) !important;
+    }
+
+    /* Suppress ProseMirror native grip widgets completely to eliminate double rendering */
     .grip-column,
-    .grip-row {
-      @apply items-center bg-black/5 cursor-pointer flex justify-center absolute z-10;
-      @apply dark:bg-white/10;
-    }
-
-    .grip-column {
-      @apply w-[calc(100%+1px)] border-l border-black/20 h-3 left-0 -ml-[1px] -top-3;
-      @apply dark:border-white/20;
-
-      &:hover,
-      &.selected {
-        &::before {
-          content: '';
-          @apply w-2.5;
-        }
-      }
-
-      &:hover {
-        @apply bg-black/10;
-        @apply dark:bg-white/20;
-
-        &::before {
-          @apply border-b-2 border-dotted border-black/60;
-          @apply dark:border-white/60;
-        }
-      }
-
-      &.first {
-        @apply border-transparent rounded-tl-sm;
-      }
-
-      &.last {
-        @apply rounded-tr-sm;
-      }
-
-      &.selected {
-        @apply bg-black/30 border-black/30 shadow-sm;
-        @apply dark:bg-white/30 dark:border-white/30;
-
-        &::before {
-          @apply border-b-2 border-dotted;
-        }
-      }
-    }
-
-    .grip-row {
-      @apply h-[calc(100%+1px)] border-t border-black/20 -left-3 w-3 top-0 -mt-[1px];
-      @apply dark:border-white/20;
-
-      &:hover,
-      &.selected {
-        &::before {
-          @apply h-2.5;
-          content: '';
-        }
-      }
-      &:hover {
-        @apply bg-black/10;
-        @apply dark:bg-white/20;
-
-        &::before {
-          @apply border-l-2 border-dotted border-black/60;
-          @apply dark:border-white/60;
-        }
-      }
-
-      &.first {
-        @apply border-transparent rounded-tl-sm;
-      }
-
-      &.last {
-        @apply rounded-bl-sm;
-      }
-
-      &.selected {
-        @apply bg-black/30 border-black/30 shadow-sm;
-        @apply dark:bg-white/30 dark:border-white/30;
-
-        &::before {
-          @apply border-l-2 border-dotted;
-        }
-      }
+    .grip-row,
+    a.grip-column,
+    a.grip-row {
+      display: none !important;
+      pointer-events: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
     }
   }
 }
+
+/* Drag handle wrapper and handle z-index layering above table blur overlay */
+div:has(> .drag-handle),
+.drag-handle {
+  z-index: 60 !important;
+}
+

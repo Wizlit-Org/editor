@@ -9,7 +9,7 @@ export const LimitEmbedsPlugin = (maxEmbeddings?: number) =>
       return [
         new Plugin({
           key: new PluginKey('limitEmbeds'),
-          filterTransaction: (tr, state) => {
+          filterTransaction: (tr, _state) => {
             if (maxEmbeddings == null || maxEmbeddings <= 0) return true;
             
             const newDoc = tr.doc; 
@@ -21,7 +21,7 @@ export const LimitEmbedsPlugin = (maxEmbeddings?: number) =>
             // 넘으면 차단
             return embedCount <= maxEmbeddings;
           },
-          appendTransaction: (txs, oldState, newState) => {
+          appendTransaction: (_txs, oldState, newState) => {
             const blocked = oldState.doc.eq(newState.doc) === false
               && newState.doc.content.size === oldState.doc.content.size;
             if (blocked) {

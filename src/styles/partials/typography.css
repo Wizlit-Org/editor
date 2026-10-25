@@ -8,15 +8,28 @@
   }
 
   h1 {
-    @apply text-3xl;
+    font-size: 38px !important;
+    line-height: 1.2 !important;
+    font-weight: 400 !important;
+    margin-top: 40px !important;
+    margin-bottom: 10px !important;
+    letter-spacing: -0.025em !important;
   }
 
   h2 {
-    @apply text-2xl;
+    font-size: 24px !important;
+    line-height: 1.35 !important;
+    font-weight: 600 !important;
+    margin-top: 24px !important;
+    margin-bottom: 6px !important;
+    letter-spacing: -0.015em !important;
   }
 
   h3 {
-    @apply text-xl;
+    font-size: 18px;
+    line-height: 27px;
+    margin-top: 20px;
+    margin-bottom: 0px;
   }
 
   h4 {
@@ -38,12 +51,6 @@
   h5,
   h6 {
     @apply font-bold first:mt-0 last:mb-0;
-  }
-
-  h1,
-  h2,
-  h3 {
-    @apply mt-12;
   }
 
   h4,

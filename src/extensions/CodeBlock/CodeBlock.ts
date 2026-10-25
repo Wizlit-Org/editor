@@ -1,6 +1,6 @@
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
 import { all, createLowlight } from 'lowlight'
-import { NodeViewProps, ReactNodeViewRenderer } from '@tiptap/react'
+import { ReactNodeViewRenderer } from '@tiptap/react'
 import { TextSelection } from 'prosemirror-state'
 import { CodeBlockView } from './components/CodeBlockView'
 import { Plugin } from 'prosemirror-state'
@@ -9,7 +9,7 @@ const lowlight = createLowlight(all)
 
 export const CodeBlock = CodeBlockLowlight.extend({
   addNodeView() {
-    return ReactNodeViewRenderer(CodeBlockView as React.ComponentType<NodeViewProps>)
+    return ReactNodeViewRenderer(CodeBlockView as any)
   },
 
   addProseMirrorPlugins() {

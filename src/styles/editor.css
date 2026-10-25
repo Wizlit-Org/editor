@@ -102,7 +102,7 @@
 
   .node-imageBlock {
     & .wrapper {
-      @apply outline outline-2 outline-offset-4 outline-transparent rounded-xl transition-all;
+      @apply border border-black/5 dark:border-white/10 shadow-md rounded-xl transition-all duration-200;
     }
 
     & img {
@@ -110,12 +110,12 @@
     }
 
     &:hover .wrapper {
-      @apply outline-neutral-300 dark:outline-neutral-900;
+      @apply border-black/15 dark:border-white/20 shadow-lg;
     }
 
     &:has(.is-active) .wrapper,
     &.has-focus .wrapper {
-      @apply outline-neutral-800 dark:outline-neutral-200;
+      @apply border-black/30 dark:border-white/30 shadow-xl ring-2 ring-black/10 dark:ring-white/20;
     }
   }
 
@@ -155,4 +155,16 @@
     @apply text-sm text-neutral-500 mt-4 transition-all overflow-hidden;
     @apply dark:text-neutral-400;
   }
+}
+
+.ProseMirror-dropcursor,
+.ProseMirror-dropmarker {
+  height: 2px !important;
+  background-color: #6366f1 !important;
+  border: none !important;
+  border-radius: 2px !important;
+  z-index: 50 !important;
+  pointer-events: none !important;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.8) !important;
+  transition: all 0.1s ease-out !important;
 }

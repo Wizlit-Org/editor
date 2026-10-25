@@ -16,7 +16,6 @@ import {
   // FontFamily,
   // FontSize,
   Heading,
-  Highlight,
   HorizontalRule,
   ImageBlock,
   Link,
@@ -30,28 +29,25 @@ import {
   TableCell,
   TableHeader,
   TableRow,
-  // TextAlign,
-  TextStyle,
+  TextAlign,
+  // TextStyle,
   TrailingNode,
   Typography,
   Underline,
   // emojiSuggestion,
-  Columns,
-  Column,
   TaskItem,
   TaskList,
   // UniqueID,
   History,
   Youtube,
-  ColorHighlighter,
+  // ColorHighlighter,
   SmilieReplacer,
   LimitEmbedsPlugin,
 } from '.'
 
-import { isChangeOrigin } from '@tiptap/extension-collaboration'
-import drawIoExtension from '@rcode-link/tiptap-drawio'
 import { ImageUpload } from './ImageUpload'
 import { ConvertSrc, OnImageClick } from './ImageBlock/components/ImageBlockView'
+import { ListMaxDepthGuard } from './ListMaxDepthGuard/ListMaxDepthGuard'
 
 interface ExtensionKitProps {
   // provider?: HocuspocusProvider | null
@@ -59,6 +55,7 @@ interface ExtensionKitProps {
   onUploadImage?: (file: File) => Promise<string>
   convertSrc?: ConvertSrc
   onImageClick?: OnImageClick
+  imageProxyUrl?: (url: string) => string
   maxSize?: number
   maxEmbeddings?: number
 }
@@ -70,14 +67,13 @@ export const ExtensionKit = ({
   maxEmbeddings,
   convertSrc,
   onImageClick,
+  imageProxyUrl,
 }: ExtensionKitProps) => [
   Document,
-  Columns,
   TaskList,
   TaskItem.configure({
     nested: true,
   }),
-  Column,
   Selection,
   Heading.configure({
     levels: [1, 2],
@@ -93,11 +89,13 @@ export const ExtensionKit = ({
     heading: false,
     horizontalRule: false,
     blockquote: false,
-    history: false,
+    undoRedo: false,
     codeBlock: false,
+    link: false,
+    trailingNode: false,
+    underline: false,
   }),
   CodeBlock,
-  TextStyle,
   // FontSize,
   // FontFamily,
   // Color,
@@ -111,7 +109,6 @@ export const ExtensionKit = ({
       target: null,
     },
   }),
-  Highlight.configure({ multicolor: true }),
   Underline,
   CharacterCount.configure({ limit }),
   ImageBlock.configure({
@@ -123,20 +120,21 @@ export const ExtensionKit = ({
     maxSize,
     maxEmbeddings,
     maxImagesPerAction: 3,
+    imageProxyUrl,
   }),
   // FileHandler.configure({
   //   allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
   //   onDrop: (currentEditor, files, pos) => {
   //     files.forEach(async file => {
   //       const url = await API.uploadImage(file)
-
+  //
   //       currentEditor.chain().setImageBlockAt({ pos, src: url }).focus().run()
   //     })
   //   },
   //   onPaste: (currentEditor, files) => {
   //     files.forEach(async file => {
   //       const url = await API.uploadImage(file)
-
+  //
   //       return currentEditor
   //         .chain()
   //         .setImageBlockAt({ pos: currentEditor.state.selection.anchor, src: url })
@@ -149,13 +147,13 @@ export const ExtensionKit = ({
   //   enableEmoticons: true,
   //   suggestion: emojiSuggestion,
   // }),
-  // TextAlign.extend({
-  //   addKeyboardShortcuts() {
-  //     return {}
-  //   },
-  // }).configure({
-  //   types: ['heading', 'paragraph'],
-  // }),
+  TextAlign.extend({
+    addKeyboardShortcuts() {
+      return {}
+    },
+  }).configure({
+    types: ['heading', 'paragraph'],
+  }),
   Subscript,
   Superscript,
   Table,
@@ -174,7 +172,8 @@ export const ExtensionKit = ({
   BlockquoteFigure,
   Dropcursor.configure({
     width: 2,
-    class: 'ProseMirror-dropcursor border-black',
+    color: '#6366f1',
+    class: 'ProseMirror-dropcursor',
   }),
   History,
   Youtube.configure({
@@ -183,9 +182,9 @@ export const ExtensionKit = ({
   // drawIoExtension.configure({
   //   openDialog: 'dblclick',
   // }),
-  ColorHighlighter,
   SmilieReplacer,
   LimitEmbedsPlugin(maxEmbeddings),
+  ListMaxDepthGuard,
 ]
 
 export default ExtensionKit

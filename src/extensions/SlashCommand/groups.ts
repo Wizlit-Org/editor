@@ -1,34 +1,20 @@
 import { Group } from './types'
 
 export const GROUPS: Group[] = [
-  // {
-  //   name: 'ai',
-  //   title: 'AI',
-  //   commands: [
-  //     {
-  //       name: 'aiWriter',
-  //       label: 'AI Writer',
-  //       iconName: 'Sparkles',
-  //       description: 'Let AI finish your thoughts',
-  //       shouldBeHidden: editor => editor.isActive('columns'),
-  //       action: () => {}
-  //       // action: editor => editor.chain().focus().setAiWriter().run(),
-  //     },
-  //     {
-  //       name: 'aiImage',
-  //       label: 'AI Image',
-  //       iconName: 'Sparkles',
-  //       description: 'Generate an image from text',
-  //       shouldBeHidden: editor => editor.isActive('columns'),
-  //       action: () => {}
-  //       // action: editor => editor.chain().focus().setAiImage().run(),
-  //     },
-  //   ],
-  // },
   {
-    name: 'format',
-    title: 'Format',
+    name: 'basic',
+    title: '기본 텍스트',
     commands: [
+      {
+        name: 'paragraph',
+        label: 'Text',
+        iconName: 'Type',
+        description: 'Just start writing with plain text',
+        aliases: ['p', 'paragraph', 'text'],
+        action: editor => {
+          editor.chain().focus().setParagraph().run()
+        },
+      },
       {
         name: 'heading1',
         label: 'Heading 1',
@@ -60,6 +46,31 @@ export const GROUPS: Group[] = [
         },
       },
       {
+        name: 'blockquote',
+        label: 'Blockquote',
+        iconName: 'Quote',
+        description: 'Element for quoting',
+        action: editor => {
+          editor.chain().focus().setBlockquote().run()
+        },
+      },
+      {
+        name: 'codeBlock',
+        label: 'Code Block',
+        iconName: 'SquareCode',
+        description: 'Code block with syntax highlighting',
+        shouldBeHidden: editor => editor.isActive('columns'),
+        action: editor => {
+          editor.chain().focus().setCodeBlock().run()
+        },
+      },
+    ],
+  },
+  {
+    name: 'lists',
+    title: '목록',
+    commands: [
+      {
         name: 'bulletList',
         label: 'Bullet List',
         iconName: 'List',
@@ -89,30 +100,11 @@ export const GROUPS: Group[] = [
           editor.chain().focus().toggleTaskList().run()
         },
       },
-      {
-        name: 'blockquote',
-        label: 'Blockquote',
-        iconName: 'Quote',
-        description: 'Element for quoting',
-        action: editor => {
-          editor.chain().focus().setBlockquote().run()
-        },
-      },
-      {
-        name: 'codeBlock',
-        label: 'Code Block',
-        iconName: 'SquareCode',
-        description: 'Code block with syntax highlighting',
-        shouldBeHidden: editor => editor.isActive('columns'),
-        action: editor => {
-          editor.chain().focus().setCodeBlock().run()
-        },
-      },
     ],
   },
   {
     name: 'insert',
-    title: 'Insert',
+    title: '미디어/고급',
     commands: [
       {
         name: 'table',
@@ -131,38 +123,31 @@ export const GROUPS: Group[] = [
         description: 'Insert an image',
         aliases: ['img'],
         action: editor => {
-          // Create a hidden file input
-          const input = document.createElement('input');
-          input.type = 'file';
-          input.accept = 'image/*';
-          input.multiple = true;
-          
-          // Handle file selection
-          input.onchange = async (e) => {
-            const files = Array.from((e.target as HTMLInputElement).files || []);
+          const input = document.createElement('input')
+          input.type = 'file'
+          input.accept = 'image/*'
+          input.multiple = true
+          input.onchange = async e => {
+            const files = Array.from((e.target as HTMLInputElement).files || [])
             if (files.length > 0) {
-              editor.commands.uploadImages({ files });
+              editor.commands.uploadImages({ files })
             }
-          };
-          
-          // Trigger file selection dialog
-          input.click();
+          }
+          input.click()
         },
       },
       {
-        name: 'columns',
-        label: 'Columns',
-        iconName: 'Columns2',
-        description: 'Add two column content',
-        aliases: ['cols'],
-        shouldBeHidden: editor => editor.isActive('columns'),
+        name: 'youtube',
+        label: 'YouTube',
+        iconName: 'Video',
+        description: 'Embed a YouTube video',
+        aliases: ['yt', 'youtube', 'video'],
         action: editor => {
-          editor
-            .chain()
-            .focus()
-            .setColumns()
-            .focus(editor.state.selection.head - 1)
-            .run()
+          window.dispatchEvent(
+            new CustomEvent('tiptap:open-youtube-dialog', {
+              detail: { mode: 'insert' },
+            }),
+          )
         },
       },
       {
@@ -175,39 +160,6 @@ export const GROUPS: Group[] = [
           editor.chain().focus().setHorizontalRule().run()
         },
       },
-    ],
-  },
-  {
-    name: 'external',
-    title: 'External',
-    commands: [
-      {
-        name: 'youtube',
-        label: 'Youtube',
-        iconName: 'Youtube',
-        description: 'Insert a youtube video',
-        aliases: ['iframe'],
-        action: editor => {
-          const url = prompt('Enter YouTube URL')
-      
-          if (url) {
-            editor.commands.setYoutubeVideo({
-              src: url,
-              // width: 640,
-              // height: 360,
-            })
-          }
-        },
-      },
-      // {
-      //   name: 'drawio',
-      //   label: 'Drawio',
-      //   iconName: 'Blocks',
-      //   description: 'Insert a drawio diagram',
-      //   action: editor => {
-      //     editor.chain().focus().insertDrawIo().run()
-      //   },
-      // },
     ],
   },
 ]

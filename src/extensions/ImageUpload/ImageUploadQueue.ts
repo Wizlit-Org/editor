@@ -1,278 +1,475 @@
-import { Editor } from "@tiptap/core";
-import imageCompression from 'browser-image-compression';
+import { Editor } from '@tiptap/core'
+import imageCompression from 'browser-image-compression'
+import { uploadPluginKey, findPlaceholder } from './ImageUpload'
+
+const ensureFileWithExtension = (blobOrFile: Blob | File, fallbackName = 'image'): File => {
+  const rawType = (blobOrFile.type || '').toLowerCase()
+  const mime = rawType.startsWith('image/') ? rawType : 'image/jpeg'
+  let ext = mime.split('/')[1]?.split('+')[0]?.split(';')[0] || 'jpg'
+  if (ext === 'jpeg') ext = 'jpg'
+
+  let fileName = (blobOrFile as File).name || `${fallbackName}-${Date.now()}.${ext}`
+  if (!fileName.includes('.')) {
+    fileName = `${fileName}.${ext}`
+  }
+  if (blobOrFile instanceof File && blobOrFile.name === fileName && blobOrFile.type === mime) {
+    return blobOrFile
+  }
+  return new File([blobOrFile], fileName, { type: mime })
+}
+
+const fetchRemoteUrlAsFile = async (
+  rawUrl: string,
+  signal?: AbortSignal,
+  imageProxyUrl?: (url: string) => string,
+): Promise<File> => {
+  const cleanUrl = rawUrl.trim()
+
+  // 1) Try Proxy URL if imageProxyUrl handler is provided
+  if (typeof imageProxyUrl === 'function') {
+    try {
+      const proxyUrl = imageProxyUrl(cleanUrl)
+      const proxyRes = await fetch(proxyUrl, { signal })
+      if (proxyRes.ok) {
+        const blob = await proxyRes.blob()
+        if (blob.size > 0) {
+          return ensureFileWithExtension(blob, 'pasted-remote')
+        }
+      }
+    } catch (err: any) {
+      if (err?.name === 'AbortError') throw err
+    }
+  }
+
+  // 2) Try direct CORS fetch (standalone fallback without proxy)
+  try {
+    const directRes = await fetch(cleanUrl, { mode: 'cors', signal })
+    if (directRes.ok) {
+      const blob = await directRes.blob()
+      if (blob.size > 0) {
+        return ensureFileWithExtension(blob, 'pasted-remote')
+      }
+    }
+  } catch (err: any) {
+    if (err?.name === 'AbortError') throw err
+  }
+
+  // 3) Fallback to Canvas drawImage
+  return new Promise<File>((resolve, reject) => {
+    const img = document.createElement('img')
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.naturalWidth || 800
+        canvas.height = img.naturalHeight || 600
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          reject(new Error('No 2D context'))
+          return
+        }
+        ctx.drawImage(img, 0, 0)
+        canvas.toBlob(blob => {
+          if (!blob) {
+            reject(new Error('Canvas toBlob failed'))
+            return
+          }
+          resolve(ensureFileWithExtension(blob, 'pasted-canvas'))
+        }, 'image/png')
+      } catch (e) {
+        reject(e)
+      }
+    }
+    img.onerror = () => reject(new Error('Failed to load remote image'))
+    img.src = cleanUrl
+  })
+}
 
 const resizeFile = async (
   file: File,
   maxSize?: number,
   forceReduceSize = false,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<File> => {
-  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-  if (maxSize && file.size > maxSize && !forceReduceSize) {
-    throw new Error(
-      `File size ${Math.round(file.size / 1024)}KB exceeds limit ${Math.round(
-        (maxSize || 0) / 1024
-      )}KB. Set forceReduceSize:true to auto-compress.`
-    );
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+  const safeInput = ensureFileWithExtension(file, file.name || 'pasted')
+
+  if (safeInput.type === 'image/svg+xml' || !maxSize || safeInput.size <= maxSize) {
+    return safeInput
   }
-  if (!maxSize || file.size <= maxSize) return file;
 
-  // 300KB 상한선 직전(250~290KB)에서 최상의 화질(FHD 해상도 보존)을 유지하도록 설정
-  const maxSizeMB = maxSize ? Math.min(0.285, maxSize / (1024 * 1024)) : 0.285;
+  if (maxSize && safeInput.size > maxSize && !forceReduceSize) {
+    throw new Error(
+      `File size ${Math.round(safeInput.size / 1024)}KB exceeds limit ${Math.round(
+        (maxSize || 0) / 1024,
+      )}KB. Set forceReduceSize:true to auto-compress.`,
+    )
+  }
 
-  const options = {
-    maxSizeMB,
-    maxWidthOrHeight: 1920,
-    initialQuality: 0.85,
-    useWebWorker: false,
-    fileType: file.type || 'image/jpeg',
-    signal,
-  };
+  const maxSizeMB = maxSize ? Math.min(0.285, maxSize / (1024 * 1024)) : 0.285
 
-  return imageCompression(file, options);
-};
-
-interface UploadQueueItem {
-  id?: string;
-  file: File;
-  pos: number;
-  upload: (file: File, signal?: AbortSignal) => Promise<string>;
-  maxSize?: number;
-  forceReduceSize?: boolean;
-  controller: AbortController;
+  try {
+    const options = {
+      maxSizeMB,
+      maxWidthOrHeight: 1920,
+      initialQuality: 0.85,
+      useWebWorker: false,
+      fileType: safeInput.type || 'image/jpeg',
+      signal,
+    }
+    const compressed = await imageCompression(safeInput, options)
+    return ensureFileWithExtension(compressed, safeInput.name)
+  } catch {
+    return safeInput
+  }
 }
 
-export type UploadStatus = 'compressing' | 'uploading' | 'validating' | 'success' | 'failed';
+const decodeBase64AsFile = async (base64Uri: string, signal?: AbortSignal): Promise<File> => {
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+  const cleanUri = base64Uri.trim()
+
+  try {
+    const res = await fetch(cleanUri, { signal })
+    const blob = await res.blob()
+    if (blob.size > 0) {
+      return ensureFileWithExtension(blob, 'pasted-base64')
+    }
+  } catch (err: any) {
+    if (err?.name === 'AbortError') throw err
+  }
+
+  const dataUriRegex = /^data:image\/([a-z0-9.+-]+)(?:;[^,]*)?;base64,([\s\S]+)$/i
+  const match = cleanUri.match(dataUriRegex)
+  if (!match) {
+    throw new Error('Invalid base64 image URI')
+  }
+  const rawSubType = match[1].toLowerCase()
+  const b64Data = match[2].replace(/\s+/g, '')
+  const byteString = atob(b64Data)
+  const array = new Uint8Array(byteString.length)
+  for (let i = 0; i < byteString.length; i++) {
+    array[i] = byteString.charCodeAt(i)
+  }
+  const mimeType = `image/${rawSubType}`
+  const blob = new Blob([array], { type: mimeType })
+  return ensureFileWithExtension(blob, 'pasted-base64')
+}
+
+interface UploadQueueItem {
+  id?: string
+  file?: File
+  sourceUrl?: string
+  base64Source?: string
+  pos: number
+  upload: (file: File, signal?: AbortSignal) => Promise<string>
+  maxSize?: number
+  forceReduceSize?: boolean
+  imageProxyUrl?: (url: string) => string
+  controller: AbortController
+}
+
+export type UploadStatus = 'compressing' | 'uploading' | 'validating' | 'success' | 'failed'
 
 export interface UploadStatusDetail {
-  id: string;
-  fileName: string;
-  status: UploadStatus;
-  originalSize: number;
-  compressedSize?: number;
+  id: string
+  fileName: string
+  status: UploadStatus
+  originalSize: number
+  compressedSize?: number
 }
 
 export class UploadQueue {
-  private queue: UploadQueueItem[] = [];
-  private originalItems = new Map<string, UploadQueueItem>();
-  private activeCount = 0;
-  private readonly maxConcurrent: number;
-  private editor: Editor | null = null;
-  private listeners: ((status: UploadStatusDetail[]) => void)[] = [];
-  private statusMap = new Map<string, UploadStatusDetail>();
+  private queue: UploadQueueItem[] = []
+  private originalItems = new Map<string, UploadQueueItem>()
+  private activeCount = 0
+  private readonly maxConcurrent: number
+  private editor: Editor | null = null
+  private listeners: ((status: UploadStatusDetail[]) => void)[] = []
+  private statusMap = new Map<string, UploadStatusDetail>()
 
   constructor(maxConcurrent = 3) {
-    this.maxConcurrent = maxConcurrent;
+    this.maxConcurrent = maxConcurrent
   }
 
-  /**
-   * Attach Tiptap editor instance.
-   */
   setEditor(editor: Editor) {
-    this.editor = editor;
+    this.editor = editor
   }
 
-  /**
-   * Subscribe to status changes.
-   */
   onStatusChange(fn: (status: UploadStatusDetail[]) => void) {
-    this.listeners.push(fn);
+    this.listeners.push(fn)
   }
 
   private emit() {
-    const statuses = Array.from(this.statusMap.values());
-    this.listeners.forEach(fn => fn(statuses));
+    const statuses = Array.from(this.statusMap.values())
+    this.listeners.forEach(fn => fn(statuses))
+  }
+
+  private updatePlaceholderStage(id: string, title: string, subtext?: string) {
+    if (typeof document === 'undefined') return
+    const el = document.querySelector(`[data-upload-placeholder-id="${CSS.escape(id)}"]`)
+    if (!el) return
+    const stageEl = el.querySelector('[data-upload-stage="true"]')
+    if (stageEl) stageEl.textContent = title
+    if (subtext !== undefined) {
+      const subEl = el.querySelector('[data-upload-subtext="true"]')
+      if (subEl) subEl.textContent = subtext
+    }
   }
 
   /**
-   * Enqueue a new image upload.
+   * Enqueue a new image upload (either File or remote sourceUrl).
+   * Mounts the skeleton placeholder decoration synchronously at 0ms,
+   * then yields to the browser paint cycle before heavy compression/fetch.
    */
   add(item: Omit<UploadQueueItem, 'controller'>) {
-    // Before adding new items, clear out previous only-if-all-success
     if (
       this.statusMap.size > 0 &&
       Array.from(this.statusMap.values()).every(s => s.status === 'success')
     ) {
-      this.clear();
+      this.clear()
     }
 
-    const controller = new AbortController();                   // ← new controller
-    const id = item.id || `${item.file.name}-${Date.now()}`;
-    this.originalItems.set(id, { ...item, id, controller });
+    const controller = new AbortController()
+    const baseLabel = item.file?.name || 'remote-image.jpg'
+    const id = item.id || `${baseLabel}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+
+    // 1) Synchronously dispatch placeholder widget at 0ms at block-level boundary so it is NEVER hidden inside <p>
+    let widgetPos = item.pos
+    let replaceRange: { from: number; to: number } | undefined = undefined
+    if (this.editor && this.editor.view) {
+      const doc = this.editor.state.doc
+      const safePos = Math.max(0, Math.min(item.pos, doc.content.size))
+      const $pos = doc.resolve(safePos)
+      if ($pos.parent && $pos.parent.isTextblock && $pos.depth >= 1) {
+        if ($pos.parent.content.size === 0) {
+          replaceRange = {
+            from: $pos.before(),
+            to: $pos.after(),
+          }
+          widgetPos = $pos.before()
+        } else {
+          // Non-empty paragraph: place widget at block boundary ($pos.after()) so it renders as a full-width block sibling
+          widgetPos = $pos.after()
+        }
+      } else {
+        widgetPos = safePos
+      }
+
+      const tr = this.editor.state.tr.setMeta(uploadPluginKey, {
+        add: { id, pos: widgetPos, replaceRange },
+      })
+      this.editor.view.dispatch(tr)
+    }
+
+    const queueItem: UploadQueueItem = { ...item, id, controller }
+    this.originalItems.set(id, queueItem)
     this.statusMap.set(id, {
       id,
-      fileName: item.file.name,
+      fileName: baseLabel,
       status: 'compressing',
-      originalSize: item.file.size,
-    });
-    this.queue.push({ ...item, id, controller });
-    this.emit();
-    this.process();
+      originalSize: item.file?.size || 0,
+    })
+    this.queue.push(queueItem)
+    this.emit()
+
+    // 2) Yield 1 animation frame so the browser paints the 0ms skeleton before heavy compression/fetch starts
+    const runNext = () => {
+      setTimeout(() => {
+        this.process()
+      }, 0)
+    }
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(runNext)
+    } else {
+      setTimeout(() => this.process(), 16)
+    }
   }
 
-  /**
-   * Remove (or cancel) a queued or in-flight upload.
-   */
   remove(id: string) {
-    // 1) Abort any in-flight work
-    const original = this.originalItems.get(id);
+    const original = this.originalItems.get(id)
     if (original) {
-      original.controller.abort();
+      original.controller.abort()
     }
 
-    // 2) Remove from the pending queue
-    this.queue = this.queue.filter(item => item.id !== id);
+    if (this.editor && this.editor.view) {
+      const tr = this.editor.state.tr.setMeta(uploadPluginKey, {
+        remove: { id },
+      })
+      this.editor.view.dispatch(tr)
+    }
 
-    // 3) Remove stored references
-    this.originalItems.delete(id);
-    this.statusMap.delete(id);
-
-    // 4) Notify listeners
-    this.emit();
+    this.queue = this.queue.filter(item => item.id !== id)
+    this.originalItems.delete(id)
+    this.statusMap.delete(id)
+    this.emit()
   }
 
-  /**
-   * Process queue with respect to concurrency limit.
-   */
   private async process(): Promise<void> {
     if (
       !this.editor ||
       this.activeCount >= this.maxConcurrent ||
       this.queue.length === 0
     ) {
-      return;
+      return
     }
-    const item = this.queue.shift()!;
-    const { id, controller } = item;
+    const item = this.queue.shift()!
+    const { id, controller } = item
 
-    // If removed since pulling off, skip it
     if (!this.statusMap.has(id!)) {
-      return this.process();
+      return this.process()
     }
 
-    this.activeCount++;
-    const origStatus = this.statusMap.get(id!)!;
+    this.activeCount++
+    const origStatus = this.statusMap.get(id!)!
     try {
-      this.statusMap.set(id!, { ...origStatus, status: 'compressing' });
-      this.emit();
+      this.statusMap.set(id!, { ...origStatus, status: 'compressing' })
+      this.emit()
+
+      // Resolve File from direct File, base64Source, or remote sourceUrl
+      let sourceFile = item.file
+      if (!sourceFile && item.base64Source) {
+        sourceFile = await decodeBase64AsFile(item.base64Source, controller.signal)
+      }
+      if (!sourceFile && item.sourceUrl) {
+        sourceFile = await fetchRemoteUrlAsFile(item.sourceUrl, controller.signal, item.imageProxyUrl)
+      }
+      if (!sourceFile) {
+        throw new Error('No image file resolved')
+      }
 
       const processed = await resizeFile(
-        item.file,
+        sourceFile,
         item.maxSize,
         item.forceReduceSize || false,
-        controller.signal                       // ← pass signal
-      );
+        controller.signal,
+      )
 
-      // Skip if removed in-flight
       if (!this.statusMap.has(id!)) {
-        return;
+        return
       }
 
       this.statusMap.set(id!, {
         ...origStatus,
+        fileName: processed.name,
+        originalSize: sourceFile.size,
         status: 'uploading',
         compressedSize: processed.size,
-      });
-      this.emit();
+      })
+      this.updatePlaceholderStage(id!, '이미지 업로드 중...', '서버에 안전하게 업로드하고 있습니다')
+      this.emit()
 
-      const url = await item.upload(processed, controller.signal);  // ← pass signal
+      const url = await item.upload(processed, controller.signal)
 
-      // If aborted mid-flight, bail out
       if (controller.signal.aborted) {
-        return;
+        if (this.editor && this.editor.view) {
+          const tr = this.editor.state.tr.setMeta(uploadPluginKey, {
+            remove: { id: id! },
+          })
+          this.editor.view.dispatch(tr)
+        }
+        return
       }
 
       this.statusMap.set(id!, {
         ...origStatus,
         status: 'validating',
         compressedSize: processed.size,
-      });
-      this.emit();
+      })
+      this.emit()
 
-      if (!url) { // || !(await isValidUrl(url))) {
-        this.statusMap.set(id!, {
-          ...origStatus,
-          status: 'failed',
-        });
-        this.emit();
-        return;
+      if (!url) {
+        throw new Error('Empty uploaded URL')
       }
 
-      this.editor
-        .chain()
-        .focus()
-        .insertContentAt(
-          item.pos,
-          this.editor.schema.nodes.imageBlock.create({ src: url })
-        )
-        .run();
+      if (this.editor && this.editor.view) {
+        const placeholderInfo = findPlaceholder(this.editor.state, id!)
+        const imageNode = this.editor.schema.nodes.imageBlock.create({ src: url })
+
+        if (placeholderInfo?.replaceRange) {
+          const { from, to } = placeholderInfo.replaceRange
+          const tr = this.editor.state.tr
+            .setMeta(uploadPluginKey, { remove: { id: id! } })
+            .replaceWith(from, to, imageNode)
+          this.editor.view.dispatch(tr)
+        } else {
+          const insertPos = placeholderInfo
+            ? placeholderInfo.pos
+            : Math.min(item.pos, this.editor.state.doc.content.size)
+          this.editor
+            .chain()
+            .focus()
+            .command(({ tr }) => {
+              tr.setMeta(uploadPluginKey, { remove: { id: id! } })
+              return true
+            })
+            .insertContentAt(insertPos, imageNode)
+            .run()
+        }
+      }
 
       this.statusMap.set(id!, {
         ...origStatus,
         status: 'success',
         compressedSize: processed.size,
-      });
-      this.emit();
+      })
+      this.emit()
     } catch (error: any) {
-      // Swallow abort errors silently
-      if (error.name === 'AbortError') {
-        return;
+      if (this.editor && this.editor.view) {
+        const placeholderInfo = findPlaceholder(this.editor.state, id!)
+        const tr = this.editor.state.tr.setMeta(uploadPluginKey, {
+          remove: { id: id! },
+        })
+        this.editor.view.dispatch(tr)
+
+        // If remote URL upload failed due to network/auth, fallback to inserting proxy/external imageBlock so user isn't left with nothing
+        if (item.sourceUrl && error?.name !== 'AbortError') {
+          const fallbackSrc = `/api/image-proxy?url=${encodeURIComponent(item.sourceUrl.trim())}`
+          const imageNode = this.editor.schema.nodes.imageBlock.create({ src: fallbackSrc })
+          const insertPos = placeholderInfo
+            ? placeholderInfo.pos
+            : Math.min(item.pos, this.editor.state.doc.content.size)
+          this.editor.chain().focus().insertContentAt(insertPos, imageNode).run()
+        }
       }
-      console.error('Image upload failed', error);
+      if (error?.name === 'AbortError') {
+        return
+      }
+      console.error('Image upload failed', error)
       this.statusMap.set(id!, {
         ...origStatus,
         status: 'failed',
         compressedSize: origStatus.compressedSize,
-      });
-      this.emit();
+      })
+      this.emit()
     } finally {
-      this.activeCount--;
-      this.process();
+      this.activeCount--
+      this.process()
     }
   }
 
-  /**
-   * Retry a previously failed upload.
-   */
   retry(id: string) {
-    const original = this.originalItems.get(id);
-    if (!original) return;
-    // Reset status to compressing
-    const prev = this.statusMap.get(id)!;
-    this.statusMap.set(id, { ...prev, status: 'compressing' });
-    this.queue.push(original);
-    this.emit();
-    this.process();
+    const original = this.originalItems.get(id)
+    if (!original) return
+    const prev = this.statusMap.get(id)!
+    this.statusMap.set(id, { ...prev, status: 'compressing' })
+    this.queue.push(original)
+    this.emit()
+    this.process()
   }
 
-  /**
-   * Clear queue, original items, and statuses.
-   */
   clear() {
-    // Abort all active uploads
     this.originalItems.forEach(item => {
-      item.controller.abort();
-    });
-    this.queue = [];
-    this.originalItems.clear();
-    this.statusMap.clear();
-    this.emit();
+      item.controller.abort()
+      if (item.id && this.editor && this.editor.view) {
+        const tr = this.editor.state.tr.setMeta(uploadPluginKey, {
+          remove: { id: item.id },
+        })
+        this.editor.view.dispatch(tr)
+      }
+    })
+    this.queue = []
+    this.originalItems.clear()
+    this.statusMap.clear()
+    this.emit()
   }
 }
-
-// const isValidUrl = async (urlString: string): Promise<boolean> => {
-//   try {
-//     new URL(urlString);
-    
-//     return new Promise((resolve) => {
-//       const img = new Image();
-//       img.onload = () => resolve(true);
-//       img.onerror = () => resolve(false);
-//       img.src = urlString;
-//       // Set a timeout to prevent hanging
-//       setTimeout(() => resolve(false), 5000);
-//     });
-//   } catch {
-//     return false;
-//   }
-// };
