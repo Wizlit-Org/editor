@@ -66,6 +66,10 @@ export function MyEditor() {
 ## 💎 117 트랙 핵심 기능 명세 (Feature Specifications)
 
 ### 1. 스마트 테이블 (Smart Table)
+- **마지막 열 리사이즈 지원 및 미지정 폭 본문 100% 자동 안착 (`lastColumnResizable: true`)**:
+  - `Table.configure({ resizable: true, lastColumnResizable: true })` 적용으로 테이블 마지막 열 우측 끝선 리사이즈 핸들 드래그 활성화.
+  - 열 너비가 미지정된 테이블(colwidth 부재)은 `table-layout: fixed !important; width: 100% !important;` 및 셀 내 자동 줄바꿈(`overflow-wrap: break-word; word-break: break-word;`)으로 에디터 본문 너비(100%)에 정확히 안착.
+  - 열 리사이징이 완료되어 colwidth가 부여된 테이블은 인라인 폭 합산값에 맞춰 자연스러운 팽창(가로 스크롤 허용) 정합화.
 - **오버플로우 스크롤 & 점진적 림 블러 마스크 (`TableScrollIndicator`)**:
   - 가로 폭을 초과하는 대형 테이블 렌더링 시 브라우저 레이아웃 깨짐을 방지하고 부드러운 가로 스크롤 제공.
   - 양 끝단 스크롤 위치에 따라 실시간 `linear-gradient` 투명 안개 림 블러 마스크가 동적으로 발현되어 시각적 몰입감 극대화.
