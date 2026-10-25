@@ -44,8 +44,9 @@ export const TableAddBar: React.FC<TableAddBarProps> = ({
     <>
       {/* 1. Right Column Add Button: Sized to current row height */}
       {showRightBar && (
-        <div
-          className="fixed z-[30] flex items-center justify-center transition-all duration-150 rounded-full cursor-pointer group bg-zinc-500/10 hover:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:text-white dark:hover:text-white shadow-2xs"
+        <button
+          type="button"
+          className="fixed z-[30] pointer-events-auto flex items-center justify-center p-0 transition-all duration-150 rounded-full cursor-pointer group bg-zinc-500/10 hover:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:text-white dark:hover:text-white shadow-2xs"
           style={{
             top: rightBarTop - oy,
             left: tableRect.right + 4 - ox,
@@ -53,25 +54,34 @@ export const TableAddBar: React.FC<TableAddBarProps> = ({
             width: 14,
             zIndex: 30,
           }}
+          onMouseDown={e => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
           onClick={onAddColumn}
           onMouseEnter={onHoverKeepAlive}
           title="Add column at end"
           aria-label="Add column at end"
         >
           <Icon name="Plus" className="w-3.5 h-3.5 stroke-[2.5]" />
-        </div>
+        </button>
       )}
 
-      {/* 2. Bottom Row Add Button: Sized to current column width - z-index: 9 (below blur z-12) */}
+      {/* 2. Bottom Row Add Button: Sized to current column width - z-index: 30 (above blur & shield) */}
       {showBottomBar && (
-        <div
-          className="fixed z-[9] flex items-center justify-center transition-all duration-150 rounded-full cursor-pointer group bg-zinc-500/10 hover:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:text-white dark:hover:text-white shadow-2xs"
+        <button
+          type="button"
+          className="fixed z-[30] pointer-events-auto flex items-center justify-center p-0 transition-all duration-150 rounded-full cursor-pointer group bg-zinc-500/10 hover:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-violet-500/90 backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:text-white dark:hover:text-white shadow-2xs"
           style={{
             top: tableRect.bottom + 4 - oy,
             left: bottomBarLeft - ox,
             width: bottomBarWidth,
             height: 14,
-            zIndex: 9,
+            zIndex: 30,
+          }}
+          onMouseDown={e => {
+            e.preventDefault()
+            e.stopPropagation()
           }}
           onClick={onAddRow}
           onMouseEnter={onHoverKeepAlive}
@@ -79,7 +89,7 @@ export const TableAddBar: React.FC<TableAddBarProps> = ({
           aria-label="Add row at end"
         >
           <Icon name="Plus" className="w-3.5 h-3.5 stroke-[2.5]" />
-        </div>
+        </button>
       )}
     </>
   )
