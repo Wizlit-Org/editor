@@ -203,38 +203,57 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       }
     }
 
+    const isInteractiveHandleOrButton = (target: HTMLElement | null): boolean => {
+      if (!target || typeof target.closest !== 'function') return false
+      return Boolean(
+        target.closest(
+          '.drag-handle, [data-drag-handle], .table-drag-handle, [data-testid="content-item-menu"], button, [role="button"], #table-col-grips, #table-row-grips, [data-table-scroll-wrapper-id]',
+        ),
+      )
+    }
+
+    const handleMouseOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null
+      if (isInteractiveHandleOrButton(target)) {
+        const matched =
+          tablesRef.current.find(t => e.clientY >= t.rect.top - 40 && e.clientY <= t.rect.bottom + 40) ||
+          (hoveredWrapperRef.current ? tablesRef.current.find(t => t.wrapper === hoveredWrapperRef.current) : null)
+        if (matched) {
+          if (hoverLeaveTimerRef.current) {
+            clearTimeout(hoverLeaveTimerRef.current)
+            hoverLeaveTimerRef.current = null
+          }
+          if (hoveredWrapperRef.current !== matched.wrapper) {
+            hoveredWrapperRef.current = matched.wrapper
+            setHoveredWrapper(matched.wrapper)
+          }
+        }
+      }
+    }
+
     const handleMouseMove = (e: MouseEvent) => {
       let wrapper: HTMLElement | null = null
-
       const target = e.target as HTMLElement | null
-      if (target && target instanceof Element && typeof target.closest === 'function') {
+
+      if (target && typeof target.closest === 'function') {
         wrapper = target.closest('.tableWrapper') as HTMLElement | null
         if (!wrapper) {
           const btn = target.closest('[data-table-scroll-wrapper-id]') as HTMLElement | null
           if (btn) {
             const wrapperId = btn.getAttribute('data-table-scroll-wrapper-id')
-            const found = tablesRef.current.find(t => t.id === wrapperId)
-            if (found) wrapper = found.wrapper
+            wrapper = tablesRef.current.find(t => t.id === wrapperId)?.wrapper || null
           }
         }
       }
 
-      // Global window coordinate tracking for gutter, drag handles (.drag-handle, ContentItemMenu) and entire table horizontal slice
       if (!wrapper) {
-        const hasDragHandleHover = Boolean(
-          typeof document !== 'undefined' &&
-            document.querySelector(
-              '.drag-handle:hover, [data-drag-handle]:hover, .table-drag-handle:hover, [data-testid="content-item-menu"]:hover',
-            ),
-        )
-
+        const isHandleHover = isInteractiveHandleOrButton(target)
         for (const t of tablesRef.current) {
           const editorDom = editor.view?.dom
           const editorLeft = editorDom ? editorDom.getBoundingClientRect().left : t.rect.left
           const inY = e.clientY >= t.rect.top - 40 && e.clientY <= t.rect.bottom + 40
           const inX = e.clientX >= editorLeft - 100 && e.clientX <= t.rect.left + t.rect.width + 30
-
-          if (inY && (inX || hasDragHandleHover)) {
+          if (inY && (inX || isHandleHover)) {
             wrapper = t.wrapper
             break
           }
@@ -250,14 +269,12 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
           hoveredWrapperRef.current = wrapper
           setHoveredWrapper(wrapper)
         }
-      } else {
-        if (hoveredWrapperRef.current !== null && !hoverLeaveTimerRef.current) {
-          hoverLeaveTimerRef.current = setTimeout(() => {
-            hoverLeaveTimerRef.current = null
-            hoveredWrapperRef.current = null
-            setHoveredWrapper(null)
-          }, 600)
-        }
+      } else if (hoveredWrapperRef.current !== null && !hoverLeaveTimerRef.current) {
+        hoverLeaveTimerRef.current = setTimeout(() => {
+          hoverLeaveTimerRef.current = null
+          hoveredWrapperRef.current = null
+          setHoveredWrapper(null)
+        }, 600)
       }
     }
 
@@ -278,26 +295,23 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
     editor.on('blur', updateActiveTable)
     window.addEventListener('scroll', scheduledUpdate, { passive: true, capture: true })
     window.addEventListener('resize', scheduledUpdate, { passive: true })
+    window.addEventListener('mouseover', handleMouseOver, { passive: true })
     window.addEventListener('mousemove', handleMouseMove, { passive: true })
     document.addEventListener('mouseleave', handleMouseLeave)
 
-    const handleInterceptBlurredCellClick = (e: MouseEvent) => {
+    const handleInterceptBlurredCellClick = (e: MouseEvent | PointerEvent) => {
+      const target = e.target as HTMLElement | null
+      if (isInteractiveHandleOrButton(target)) return
+
       for (const t of tablesRef.current) {
         const isBlurVisible = t.showLeft && (hoveredWrapperRef.current === t.wrapper || activeWrapperRef.current === t.wrapper)
         if (!isBlurVisible) continue
         const editorDom = editor.view?.dom
         const editorContentLeft = editorDom ? editorDom.getBoundingClientRect().left : t.rect.left
-        const blurCellMinX = editorContentLeft
         const blurCellMaxX = editorContentLeft + 48
-        const blurCellMinY = t.rect.top
-        const blurCellMaxY = t.rect.bottom
+        const inY = e.clientY >= t.rect.top - 10 && e.clientY <= t.rect.bottom + 10
 
-        if (
-          e.clientX >= blurCellMinX &&
-          e.clientX <= blurCellMaxX &&
-          e.clientY >= blurCellMinY &&
-          e.clientY <= blurCellMaxY
-        ) {
+        if (e.clientX <= blurCellMaxX && inY) {
           e.preventDefault()
           e.stopPropagation()
           e.stopImmediatePropagation()
@@ -307,6 +321,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
     }
 
     window.addEventListener('mousedown', handleInterceptBlurredCellClick, { capture: true })
+    window.addEventListener('pointerdown', handleInterceptBlurredCellClick as any, { capture: true })
     window.addEventListener('click', handleInterceptBlurredCellClick, { capture: true })
     window.addEventListener('dblclick', handleInterceptBlurredCellClick, { capture: true })
 
@@ -331,9 +346,11 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       editor.off('blur', updateActiveTable)
       window.removeEventListener('scroll', scheduledUpdate, { capture: true })
       window.removeEventListener('resize', scheduledUpdate)
+      window.removeEventListener('mouseover', handleMouseOver)
       window.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseleave', handleMouseLeave)
       window.removeEventListener('mousedown', handleInterceptBlurredCellClick, { capture: true })
+      window.removeEventListener('pointerdown', handleInterceptBlurredCellClick as any, { capture: true })
       window.removeEventListener('click', handleInterceptBlurredCellClick, { capture: true })
       window.removeEventListener('dblclick', handleInterceptBlurredCellClick, { capture: true })
 
