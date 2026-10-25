@@ -19,7 +19,7 @@ import { LinkMenu } from '@/components/menus/LinkMenu'
 import { PastePreviewDialog } from '@/components/menus/PastePreviewDialog'
 import { TableOfContents } from '../TableOfContents'
 import { UploadListDialog, UploadListDialogProps, UploadListItem } from '../../extensions/ImageUpload/components/UploadListDialog.tsx'
-import { compareDocs, getStats } from '@/lib/utils/getStats'
+import { compareDocs, getStats, trimHTML } from '@/lib/utils/getStats'
 import { ConvertSrc, OnImageClick } from '@/extensions/ImageBlock/components/ImageBlockView'
 
 export interface EditorStats {
@@ -99,6 +99,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   const baselineHTMLRef = useRef<string | null>(null)
   const lastPropContentRef = useRef<string>(content)
   const isTogglingEditableRef = useRef<boolean>(false)
+  const isReadyForUpdateRef = useRef<boolean>(false)
   const [stats, setStats] = useState<EditorStats>({})
   const [systemDark, setSystemDark] = useState<boolean>(() => {
     if (typeof document !== 'undefined') {
@@ -171,10 +172,11 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     onCreate: ({ editor }) => {
       baselineHTMLRef.current = editor.getHTML()
       lastPropContentRef.current = content
+      isReadyForUpdateRef.current = true
       setStats(getStats(editor, maxCharacters, altCharacterCounter))
     },
     onUpdate: ({ editor, transaction }) => {
-      if (transaction?.getMeta('preventUpdate')) {
+      if (transaction?.getMeta('preventUpdate') || !isReadyForUpdateRef.current) {
         baselineHTMLRef.current = editor.getHTML()
         return
       }
@@ -189,11 +191,12 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       }
       const currentHTML = editor.getHTML()
       const baselineHTML = baselineHTMLRef.current ?? content
-      const { isChanged, isStrictChanged, compareHTML } = compareDocs(baselineHTML, currentHTML)
+      const { isChanged, isStrictChanged } = compareDocs(baselineHTML, currentHTML)
       const stats = getStats(editor, maxCharacters, altCharacterCounter)
 
+      if (!isChanged) baselineHTMLRef.current = currentHTML
       setStats(stats)
-      onChange?.(compareHTML, { isChanged, isStrictChanged }, stats)
+      onChange?.(trimHTML(currentHTML), { isChanged, isStrictChanged }, stats)
     },
     onUploadImage,
     convertSrc: image?.convertSrc,
@@ -271,6 +274,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       if (editor.isEditable) {
         if (lastPropContentRef.current !== content) {
           lastPropContentRef.current = content
+      isReadyForUpdateRef.current = true
           const { isChanged } = compareDocs(content, editor.getHTML())
           if (!isChanged) {
             baselineHTMLRef.current = editor.getHTML()
@@ -282,6 +286,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
         return
       }
       lastPropContentRef.current = content
+      isReadyForUpdateRef.current = true
       isTogglingEditableRef.current = true
       editor.commands.setContent(content, { emitUpdate: false })
       baselineHTMLRef.current = editor.getHTML()

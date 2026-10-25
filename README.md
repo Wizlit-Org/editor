@@ -194,5 +194,5 @@ export function MyEditor() {
 └── tsup.config.ts                 # 프로덕션 번들 빌드 설정 (DTS / ESM / CJS)
 
 ### 💡 Gotchas
-- **비교 기준선(`baselineHTMLRef`) 스냅샷 정합화**: 마운트·모드 전환 시 `Heading` UUID 주입 및 `TrailingNode` 추가로 인한 거짓 `isChanged: true` 발화를 막기 위해 `onCreate` 및 `setContent` 직후의 `editor.getHTML()` 스냅샷을 기준선으로 삼고 `setEditable(_editable, false)` 및 `preventUpdate` 메타를 적용함.
+- **비교 기준선(`baselineHTMLRef`) 스냅샷 정합화 및 마운트 순서 역전 방어**: TipTap v3 `Editor.mount()`에서 `commands.focus(autofocus)`가 `emit('create')`보다 먼저 실행되고 `ExtensionManager.setupExtensions()`의 `Heading.onCreate`가 `options.onCreate`보다 먼저 등록되며, `tr.setMeta('preventUpdate', true)`는 TipTap 코어의 `emit('update')` 자체를 스킵하여 `BlockEditor.onUpdate` 내부 기준선 갱신이 누락되는 함정이 존재함. 이를 원천 차단하기 위해 `isReadyForUpdateRef`로 `onCreate` 완료 전 트랜잭션을 무시하고, `getDoc`/`getAnnotatedText` 비교 시 동적 생성되는 헤딩 `id`/`data-id`/`data-toc-id` 속성을 제거하여 비교하며, `onChange`에는 헤딩 `id`가 보존된 `trimHTML(currentHTML)`을 전달함.
 ```

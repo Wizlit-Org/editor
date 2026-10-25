@@ -3,7 +3,9 @@ import { Editor } from "@tiptap/core";
 import { getEmbedNodeProps } from "./isCustomNodeSelected";
 
 export const getAnnotatedText = (html: string): string => {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    const stripHeadingIds = (el: Document) => { el.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => { h.removeAttribute('id'); h.removeAttribute('data-id'); h.removeAttribute('data-toc-id'); }); };
+    stripHeadingIds(doc);
   
     const walk = (node: ChildNode): string => {
       // Text node → literal text
@@ -84,6 +86,8 @@ export const trimHTML = (html: string): string => {
 
 export const getDoc = (html: string): { text: string, html: string } => {
     const doc = new DOMParser().parseFromString(html, 'text/html')
+    const stripHeadingIds = (el: Document) => { el.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => { h.removeAttribute('id'); h.removeAttribute('data-id'); h.removeAttribute('data-toc-id'); }); };
+    stripHeadingIds(doc);
     const htmlContent = doc.body.innerHTML || '';
     
     return {
