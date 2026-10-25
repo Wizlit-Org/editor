@@ -154,23 +154,18 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
   }, [shouldHideHandle, menuOpen])
 
   useEffect(() => {
-    const handleCloseMenus = (e: any) => {
-      if (e.detail !== 'contentItem') {
+    const handleClose = (e?: any) => {
+      if (!e || e.detail !== 'contentItem') {
         setMenuOpen(false)
         setMenuView('main')
         setDragHandleLocked(false)
       }
     }
-    const handleResetScrollLock = () => {
-      setMenuOpen(false)
-      setMenuView('main')
-      setDragHandleLocked(false)
-    }
-    window.addEventListener('tiptap:close-menus', handleCloseMenus)
-    window.addEventListener('tiptap:reset-scroll-lock', handleResetScrollLock)
+    window.addEventListener('tiptap:close-menus', handleClose)
+    window.addEventListener('tiptap:reset-scroll-lock', handleClose)
     return () => {
-      window.removeEventListener('tiptap:close-menus', handleCloseMenus)
-      window.removeEventListener('tiptap:reset-scroll-lock', handleResetScrollLock)
+      window.removeEventListener('tiptap:close-menus', handleClose)
+      window.removeEventListener('tiptap:reset-scroll-lock', handleClose)
     }
   }, [setDragHandleLocked])
 
@@ -188,43 +183,23 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
             const name = node?.type?.name
 
             // 1. Table containers vs table internal cells
-            if (name === 'table') {
-              return 0
-            }
-            if (['tableCell', 'tableHeader', 'tableRow'].includes(name)) {
-              return 1000
-            }
-
+            if (name === 'table') return 0
+            if (['tableCell', 'tableHeader', 'tableRow'].includes(name)) return 1000
             // 2. List containers: Entire list gets top priority (score 0)
-            if (['bulletList', 'orderedList', 'taskList'].includes(name)) {
-              return 0
-            }
-
+            if (['bulletList', 'orderedList', 'taskList'].includes(name)) return 0
             // 3. Inside table: Suppress all child nodes
             if ($pos?.node) {
               for (let d = depth; d > 0; d--) {
-                const typeName = $pos.node(d)?.type?.name
-                if (['tableCell', 'tableHeader', 'tableRow'].includes(typeName)) {
-                  return 1000
-                }
+                if (['tableCell', 'tableHeader', 'tableRow'].includes($pos.node(d)?.type?.name)) return 1000
               }
             }
-
             // 4. Inside list: Demote listItem and its direct child contents (score 100)
-            // so the parent bulletList/orderedList container wins the drag handle
-            if (['listItem', 'taskItem'].includes(name) || (parent && ['listItem', 'taskItem'].includes(parent.type.name))) {
-              return 100
-            }
-
+            if (['listItem', 'taskItem'].includes(name) || (parent && ['listItem', 'taskItem'].includes(parent.type.name))) return 100
             if ($pos?.node) {
               for (let d = depth; d > 0; d--) {
-                const typeName = $pos.node(d)?.type?.name
-                if (['bulletList', 'orderedList', 'taskList'].includes(typeName)) {
-                  return 100
-                }
+                if (['bulletList', 'orderedList', 'taskList'].includes($pos.node(d)?.type?.name)) return 100
               }
             }
-
             return 0
           },
         },
@@ -333,22 +308,24 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
   return (
     <DragHandle
       pluginKey="ContentItemMenu"
-      className="drag-handle z-[60]"
+      className="drag-handle !z-[100] !pointer-events-auto"
+      style={{ zIndex: 100, pointerEvents: 'auto' }}
       editor={editor}
       nested={false}
       onNodeChange={handleNodeChange}
       computePositionConfig={positionConfig}
     >
       <div
-        className={`w-[48px] h-[32px] flex items-center gap-0 select-none relative z-[1330] after:content-[''] after:absolute after:top-0 after:bottom-0 after:-right-6 after:w-6 after:pointer-events-auto transition-opacity duration-150 ease-out ${
+        className={`w-[48px] h-[32px] flex items-center gap-0 select-none relative !z-[100] !pointer-events-auto after:content-[''] after:absolute after:top-0 after:bottom-0 after:-right-6 after:w-6 after:pointer-events-auto transition-opacity duration-150 ease-out ${
           shouldHideHandle ? 'hidden pointer-events-none opacity-0 !w-0 !h-0 overflow-hidden' : ''
         }`}
-        style={shouldHideHandle ? { display: 'none', pointerEvents: 'none', visibility: 'hidden', zIndex: 1330 } : { zIndex: 1330 }}
+        style={shouldHideHandle ? { display: 'none', pointerEvents: 'none', visibility: 'hidden', zIndex: 100 } : { zIndex: 100, pointerEvents: 'auto' }}
       >
         <button
           type="button"
           onClick={actions.handleAdd}
-          className="w-[24px] h-[32px] rounded-[10px] p-0 flex items-center justify-center transition-colors duration-150 hover:bg-black/[0.06] dark:hover:bg-white/[0.08] hover:backdrop-blur-sm cursor-pointer outline-none"
+          style={{ zIndex: 100, pointerEvents: 'auto' }}
+          className="w-[24px] h-[32px] rounded-[10px] p-0 flex items-center justify-center transition-colors duration-150 hover:bg-black/[0.06] dark:hover:bg-white/[0.08] hover:backdrop-blur-sm cursor-pointer outline-none relative !z-[100] !pointer-events-auto"
           title="Click to add a block below"
           aria-label="Add block below"
         >
@@ -383,7 +360,8 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
                 setDragHandleLocked(false)
                 setMenuOpen((prev) => !prev)
               }}
-              className="w-[24px] h-[32px] rounded-[10px] p-0 flex items-center justify-center transition-colors duration-150 hover:bg-black/[0.06] dark:hover:bg-white/[0.08] hover:backdrop-blur-sm cursor-grab active:cursor-grabbing outline-none"
+              style={{ zIndex: 100, pointerEvents: 'auto' }}
+              className="w-[24px] h-[32px] rounded-[10px] p-0 flex items-center justify-center transition-colors duration-150 hover:bg-black/[0.06] dark:hover:bg-white/[0.08] hover:backdrop-blur-sm cursor-grab active:cursor-grabbing outline-none relative !z-[100] !pointer-events-auto"
               title="Drag to move, click for options"
               aria-label="Drag handle and block menu"
             >
