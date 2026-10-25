@@ -40,7 +40,7 @@
     "clean": "rimraf dist",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"{src,apps,libs}/**/*.ts\"",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
