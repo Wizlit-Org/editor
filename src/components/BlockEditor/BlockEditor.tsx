@@ -170,10 +170,15 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     editable: !readOnly,
     content,
     onCreate: ({ editor }) => {
-      baselineHTMLRef.current = editor.getHTML()
+      const currentHTML = editor.getHTML()
+      baselineHTMLRef.current = currentHTML
       lastPropContentRef.current = content
       isReadyForUpdateRef.current = true
-      setStats(getStats(editor, maxCharacters, altCharacterCounter))
+      const initialStats = getStats(editor, maxCharacters, altCharacterCounter)
+      setStats(initialStats)
+      if (!readOnly) {
+        onChange?.(trimHTML(currentHTML), { isChanged: false, isStrictChanged: false }, initialStats)
+      }
     },
     onUpdate: ({ editor, transaction }) => {
       if (transaction?.getMeta('preventUpdate') || !isReadyForUpdateRef.current) {
@@ -256,6 +261,19 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       editor.setEditable(_editable, false)
       if (baselineHTMLRef.current === null) {
         baselineHTMLRef.current = editor.getHTML()
+      }
+      if (_editable) {
+        const currentStats = getStats(editor, maxCharacters, altCharacterCounter)
+        setStats(currentStats)
+        const currentHTML = editor.getHTML()
+        const baselineHTML = baselineHTMLRef.current ?? content
+        const { isChanged, isStrictChanged } = isReadyForUpdateRef.current
+          ? compareDocs(baselineHTML, currentHTML)
+          : { isChanged: false, isStrictChanged: false }
+        if (!isChanged) {
+          baselineHTMLRef.current = currentHTML
+        }
+        onChange?.(trimHTML(currentHTML), { isChanged, isStrictChanged }, currentStats)
       }
       isTogglingEditableRef.current = false
     } catch (error) {
