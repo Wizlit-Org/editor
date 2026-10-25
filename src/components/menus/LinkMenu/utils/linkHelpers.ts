@@ -154,3 +154,91 @@ export function applyUnsetLink(editor: Editor): void {
     editor.chain().focus().extendMarkRange('link').unsetLink().run()
   } catch {}
 }
+
+
+/**
+ * Calculate 1:1 precision anchor rect docking to clicked mouse coordinates
+ * and the specific DOM line boundary of the link
+ */
+export function getLinkReferenceClientRect(editor: Editor): DOMRect {
+  let linkEl: HTMLAnchorElement | null =
+    (editor.storage as any)?.link?.clickedElement as HTMLAnchorElement | null
+
+  if (!linkEl || !linkEl.isConnected) {
+    const { from } = editor.state.selection
+    try {
+      const domAtPos = editor.view.domAtPos(from)
+      const el = domAtPos.node as HTMLElement
+      linkEl =
+        el?.nodeType === 1
+          ? (el as HTMLElement).closest('a')
+          : (el?.parentElement?.closest('a') as HTMLAnchorElement | null)
+    } catch {}
+  }
+
+  const clickedCoords = (editor.storage as any)?.link?.clickedCoords as
+    | { x: number; y: number }
+    | null
+    | undefined
+
+  if (linkEl && linkEl.isConnected) {
+    const linkRect = linkEl.getBoundingClientRect()
+
+    if (
+      clickedCoords &&
+      typeof clickedCoords.x === 'number' &&
+      typeof clickedCoords.y === 'number'
+    ) {
+      // Multi-line link support: inspect getClientRects() to find the specific line rect clicked
+      const clientRects = Array.from(linkEl.getClientRects())
+      let targetLineRect = linkRect
+
+      if (clientRects.length > 1) {
+        const matchingRect =
+          clientRects.find(
+            r =>
+              clickedCoords.y >= r.top - 4 &&
+              clickedCoords.y <= r.bottom + 4 &&
+              clickedCoords.x >= r.left - 8 &&
+              clickedCoords.x <= r.right + 8,
+          ) ||
+          clientRects.find(
+            r => clickedCoords.y >= r.top - 4 && clickedCoords.y <= r.bottom + 4,
+          )
+        if (matchingRect) {
+          targetLineRect = matchingRect
+        }
+      }
+
+      // Clamp clicked mouse X strictly within target link's horizontal boundary
+      const clampedX = Math.max(
+        targetLineRect.left,
+        Math.min(clickedCoords.x, targetLineRect.right),
+      )
+
+      // Precision 1:1 anchor rect directly docked to clicked mouse coordinates
+      // and link DOM boundary
+      return new DOMRect(
+        clampedX,
+        targetLineRect.top,
+        1,
+        Math.max(1, targetLineRect.bottom - targetLineRect.top),
+      )
+    }
+
+    return linkRect
+  }
+
+  try {
+    const { from } = editor.state.selection
+    const coords = editor.view.coordsAtPos(from)
+    return new DOMRect(
+      coords.left,
+      coords.top,
+      Math.max(1, coords.right - coords.left),
+      Math.max(1, coords.bottom - coords.top),
+    )
+  } catch {
+    return new DOMRect(-1000, -1000, 0, 0)
+  }
+}

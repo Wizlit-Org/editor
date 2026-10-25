@@ -6,7 +6,7 @@ import { MenuProps } from '../types'
 import { LinkPreviewPanel } from '@/components/panels/LinkPreviewPanel'
 import { LinkEditorPanel } from '@/components/panels'
 import { cn } from '@/lib/utils'
-import { safeExtendLinkRange, getCurrentLinkText, applySetLink, applyUnsetLink } from './utils/linkHelpers'
+import { safeExtendLinkRange, getCurrentLinkText, applySetLink, applyUnsetLink, getLinkReferenceClientRect } from './utils/linkHelpers'
 
 export const LinkMenu = ({
   editor,
@@ -19,6 +19,8 @@ export const LinkMenu = ({
   const showEditRef = useRef(false)
   const [isClosedByScroll, setIsClosedByScroll] = useState(false)
   const isClosedByScrollRef = useRef(false)
+  const [isDismissed, setIsDismissed] = useState(false)
+  const isDismissedRef = useRef(false)
 
   const updateMenuPosition = useCallback(() => {
     try {
@@ -30,6 +32,30 @@ export const LinkMenu = ({
     showEditRef.current = val
     setShowEdit(val)
   }, [])
+
+  const dismissMenu = useCallback(() => {
+    isDismissedRef.current = true
+    setIsDismissed(true)
+    setEditMode(false)
+    const storage = (editor.storage as any)?.link
+    if (storage) {
+      storage.isDismissed = true
+      storage.clickedCoords = null
+      storage.clickedElement = null
+    }
+    try {
+      editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'hide'))
+    } catch {}
+  }, [editor, setEditMode])
+
+  const resetDismissal = useCallback(() => {
+    isDismissedRef.current = false
+    setIsDismissed(false)
+    const storage = (editor.storage as any)?.link
+    if (storage) {
+      storage.isDismissed = false
+    }
+  }, [editor])
 
   const checkIsLinkActive = useCallback(() => {
     if (editor.isActive('link')) return true
@@ -134,32 +160,28 @@ export const LinkMenu = ({
 
     if (currentTargetId !== prevTargetRef.current) {
       prevTargetRef.current = currentTargetId
-      // Distinct target link clicked! Instantly reset edit mode to show preview panel
+      resetDismissal()
       setEditMode(false)
     }
   }, [currentTargetId, setEditMode])
 
-  // Close edit panel when selection moves away from link completely
+  // Close link menu when selection moves away from link completely
   useEffect(() => {
     if (!checkIsLinkActive()) {
-      setEditMode(false)
-      const storage = (editor.storage as any)?.link
-      if (storage) {
-        storage.clickedCoords = null
-        storage.clickedElement = null
-      }
+      dismissMenu()
     }
-  }, [editor, editor.state.selection, checkIsLinkActive, setEditMode])
+  }, [editor.state.selection, checkIsLinkActive, dismissMenu])
 
-  // Dismiss handler: close link menu when clicking anywhere outside the menu and outside any link
+  // Comprehensive outside click dismiss handler defending against stopPropagation
   useEffect(() => {
-    const handleDocumentPointerDown = (e: PointerEvent | MouseEvent) => {
+    const handleOutsideClick = (e: Event) => {
+      if (isDismissedRef.current) return
       if (!checkIsLinkActive() && !showEditRef.current) return
 
-      const target = e.target as HTMLElement | null
+      const target = (e as MouseEvent | PointerEvent).target as HTMLElement | null
       if (!target) return
 
-      // Don't dismiss if click is inside the link menu itself (preview panel, editor panel, buttons, inputs)
+      // Don't dismiss if click is inside the link menu itself
       if (
         menuRef.current?.contains(target) ||
         target.closest?.(
@@ -174,23 +196,22 @@ export const LinkMenu = ({
         return
       }
 
-      // Clicked outside! Dismiss menu immediately
-      setEditMode(false)
-      const storage = (editor.storage as any)?.link
-      if (storage) {
-        storage.clickedCoords = null
-        storage.clickedElement = null
-      }
-      try {
-        editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'hide'))
-      } catch {}
+      dismissMenu()
     }
 
-    document.addEventListener('pointerdown', handleDocumentPointerDown, { capture: true })
+    // Capture on window to bypass stopPropagation in modal/container wrappers
+    window.addEventListener('pointerdown', handleOutsideClick, { capture: true, passive: true })
+    window.addEventListener('mousedown', handleOutsideClick, { capture: true, passive: true })
+    window.addEventListener('touchstart', handleOutsideClick, { capture: true, passive: true })
+    window.addEventListener('tiptap:dismiss-link-menu', dismissMenu)
+
     return () => {
-      document.removeEventListener('pointerdown', handleDocumentPointerDown, { capture: true })
+      window.removeEventListener('pointerdown', handleOutsideClick, { capture: true })
+      window.removeEventListener('mousedown', handleOutsideClick, { capture: true })
+      window.removeEventListener('touchstart', handleOutsideClick, { capture: true })
+      window.removeEventListener('tiptap:dismiss-link-menu', dismissMenu)
     }
-  }, [editor, checkIsLinkActive, setEditMode])
+  }, [checkIsLinkActive, dismissMenu])
 
   // Floating UI autoUpdate & ResizeObserver: keep position firmly docked when content size changes
   useEffect(() => {
@@ -231,8 +252,10 @@ export const LinkMenu = ({
       const linkEl = target?.closest?.('a') as HTMLAnchorElement | null
       if (linkEl && dom?.contains(linkEl)) {
         handleReset()
+        resetDismissal()
         const storage = (editor.storage as any)?.link
         if (storage) {
+          storage.isDismissed = false
           storage.clickedCoords = { x: e.clientX, y: e.clientY }
           storage.clickedElement = linkEl
         }
@@ -287,11 +310,13 @@ export const LinkMenu = ({
   }, [editor, setEditMode])
 
   const shouldShow = useCallback(() => {
+    if (isDismissedRef.current) return false
+    const storage = (editor.storage as any)?.link
+    if (storage?.isDismissed) return false
     if (showEditRef.current) return true
     const isLink = checkIsLinkActive()
     if (!isLink) return false
 
-    // An active link is selected/clicked: unfreeze any scroll-lock immediately
     if (isClosedByScrollRef.current) {
       isClosedByScrollRef.current = false
       setIsClosedByScroll(false)
@@ -359,86 +384,7 @@ export const LinkMenu = ({
   }, [showEdit, editor])
 
   const getReferenceClientRect = useCallback(() => {
-    let linkEl: HTMLAnchorElement | null =
-      ((editor.storage as any)?.link?.clickedElement as HTMLAnchorElement | null) || null
-
-    if (!linkEl || !linkEl.isConnected) {
-      const { from } = editor.state.selection
-      try {
-        const domAtPos = editor.view.domAtPos(from)
-        const el = domAtPos.node as HTMLElement
-        linkEl =
-          el?.nodeType === 1
-            ? (el as HTMLElement).closest('a')
-            : (el?.parentElement?.closest('a') as HTMLAnchorElement | null)
-      } catch {}
-    }
-
-    const clickedCoords = (editor.storage as any)?.link?.clickedCoords as
-      | { x: number; y: number }
-      | null
-      | undefined
-
-    if (linkEl && linkEl.isConnected) {
-      const linkRect = linkEl.getBoundingClientRect()
-
-      if (
-        clickedCoords &&
-        typeof clickedCoords.x === 'number' &&
-        typeof clickedCoords.y === 'number'
-      ) {
-        // Multi-line link support: inspect getClientRects() to find the specific line rect clicked
-        const clientRects = Array.from(linkEl.getClientRects())
-        let targetLineRect = linkRect
-
-        if (clientRects.length > 1) {
-          const matchingRect =
-            clientRects.find(
-              r =>
-                clickedCoords.y >= r.top - 4 &&
-                clickedCoords.y <= r.bottom + 4 &&
-                clickedCoords.x >= r.left - 8 &&
-                clickedCoords.x <= r.right + 8,
-            ) ||
-            clientRects.find(
-              r => clickedCoords.y >= r.top - 4 && clickedCoords.y <= r.bottom + 4,
-            )
-          if (matchingRect) {
-            targetLineRect = matchingRect
-          }
-        }
-
-        // Clamp clicked mouse X strictly within target link's horizontal boundary
-        const clampedX = Math.max(
-          targetLineRect.left,
-          Math.min(clickedCoords.x, targetLineRect.right),
-        )
-
-        // Precision 1:1 anchor rect directly docked to clicked mouse coordinates
-        // and link DOM boundary
-        return new DOMRect(
-          clampedX,
-          targetLineRect.top,
-          1,
-          Math.max(1, targetLineRect.bottom - targetLineRect.top),
-        )
-      }
-
-      return linkRect
-    }
-
-    try {
-      const { from } = editor.state.selection
-      const coords = editor.view.coordsAtPos(from)
-      return new DOMRect(
-        coords.left,
-        coords.top,
-        Math.max(1, coords.right - coords.left),
-        Math.max(1, coords.bottom - coords.top),
-      )
-    } catch {
-      return new DOMRect(-1000, -1000, 0, 0)
-    }
+    return getLinkReferenceClientRect(editor)
   }, [editor])
 
   const getReferencedVirtualElement = useCallback(
@@ -467,7 +413,7 @@ export const LinkMenu = ({
       pluginKey="linkMenu"
       shouldShow={shouldShow}
       updateDelay={0}
-      className={cn('z-[1350]', isClosedByScroll && '!hidden pointer-events-none')}
+      className={cn('z-[1350]', (isClosedByScroll || isDismissed) && '!hidden pointer-events-none')}
       appendTo={appendTo?.current || (typeof document !== 'undefined' ? document.body : undefined)}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={menuOptions}
