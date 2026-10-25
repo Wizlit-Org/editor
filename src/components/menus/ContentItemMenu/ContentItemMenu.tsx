@@ -368,13 +368,20 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
               <Icon name="GripVertical" className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
             </button>
           </Popover.Trigger>
-          <Popover.Portal container={typeof document !== 'undefined' ? document.body : undefined}>
+          <Popover.Portal container={typeof document !== 'undefined' ? ((appendTo?.current as HTMLElement) || document.body) : undefined}>
             <Popover.Content
               side="bottom"
               align="start"
               sideOffset={6}
               collisionPadding={16}
-              className="z-[1350] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
+              className={cn(
+                'z-[1350] outline-none animate-in fade-in-0 zoom-in-95 duration-150',
+                editor?.view?.dom?.closest('.editor-theme-dark')
+                  ? 'editor-theme-dark dark theme-dark'
+                  : 'editor-theme-light theme-light',
+              )}
+              data-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
+              data-editor-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
               style={{ zIndex: 1350 }}
             >
               <div className="glass-menu p-1.5 flex flex-col min-w-[15rem] max-h-[24rem] overflow-y-auto bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200 shadow-xl rounded-xl transition-all duration-150">
