@@ -1,5 +1,5 @@
 import { Node } from '@tiptap/pm/model'
-import { NodeSelection, Selection } from '@tiptap/pm/state'
+import { NodeSelection, Selection, TextSelection } from '@tiptap/pm/state'
 import { Editor } from '@tiptap/react'
 import { useCallback } from 'react'
 
@@ -18,6 +18,7 @@ export function turnIntoList(
 
   let currentListType: string | null = null
   let listPos = pos
+  let listNode = node
 
   if (isCurrentList) {
     currentListType = node.type.name
@@ -27,6 +28,7 @@ export function turnIntoList(
       if (['bulletList', 'orderedList', 'taskList'].includes(ancestor.type.name)) {
         currentListType = ancestor.type.name
         listPos = $pos.before(d)
+        listNode = ancestor
         break
       }
     }
@@ -36,20 +38,40 @@ export function turnIntoList(
     return
   }
 
-  if (currentListType) {
-    const $listPos = editor.state.doc.resolve(listPos)
-    const innerSel = Selection.findFrom($listPos, 1)
-    const targetPos = innerSel ? innerSel.from : listPos + 1
-
-    const chain = editor.chain().focus().setTextSelection(targetPos)
-    if (targetListType === 'bulletList') {
-      chain.toggleBulletList().run()
-    } else if (targetListType === 'orderedList') {
-      chain.toggleOrderedList().run()
-    } else if (targetListType === 'taskList') {
-      chain.toggleTaskList().run()
-    }
+  // 1. Direct atomic conversion between bulletList and orderedList
+  if (
+    (currentListType === 'orderedList' && targetListType === 'bulletList') ||
+    (currentListType === 'bulletList' && targetListType === 'orderedList')
+  ) {
+    editor.commands.command(({ tr, state }) => {
+      const targetType = state.schema.nodes[targetListType]
+      if (!targetType) return false
+      const attrs = targetListType === 'orderedList' ? { start: 1 } : {}
+      tr.setNodeMarkup(listPos, targetType, attrs)
+      return true
+    })
     return
+  }
+
+  // 2. Conversion involving taskList (converting listItems <-> taskItems across entire list)
+  if (currentListType) {
+    const $from = editor.state.doc.resolve(listPos)
+    const selFrom = Selection.findFrom($from, 1)
+    const $to = editor.state.doc.resolve(listPos + listNode.nodeSize)
+    const selTo = Selection.findFrom($to, -1)
+
+    if (selFrom && selTo) {
+      const sel = TextSelection.create(editor.state.doc, selFrom.from, selTo.to)
+      const chain = editor.chain().focus().setTextSelection(sel)
+      if (targetListType === 'bulletList') {
+        chain.toggleBulletList().run()
+      } else if (targetListType === 'orderedList') {
+        chain.toggleOrderedList().run()
+      } else if (targetListType === 'taskList') {
+        chain.toggleTaskList().run()
+      }
+      return
+    }
   }
 
   const chain = editor.chain().focus().setNodeSelection(pos)
