@@ -30,7 +30,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   const [mounted, setMounted] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [isBtnHovered, setIsBtnHovered] = useState(false)
-  const [selectionRect, setSelectionRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
+  const [selectionRect, setSelectionRect] = useState<{ top: number; left: number; width: number; height: number; minColLeft?: number; wrapperRight?: number } | null>(null)
   const [isButtonVisible, setIsButtonVisible] = useState(false)
   const [isScrolling, setIsScrolling] = useState(false)
   const isDraggingHandleRef = useRef(false)
@@ -134,21 +134,19 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         }
 
         const container = (appendTo?.current as HTMLElement) || null
-        let isWithinContainer = true
-        if (container) {
+        const isWithinContainer = !container || (() => {
           const cRect = container.getBoundingClientRect()
           const dotY = minTop + (maxBottom - minTop) / 2
-          isWithinContainer = dotY >= cRect.top && dotY <= cRect.bottom
-        }
-
+          return dotY >= cRect.top && dotY <= cRect.bottom
+        })()
         const tableWrapper = tableEl.closest('.tableWrapper') as HTMLElement | null
-        let isVisibleInWrapper = true
-        if (tableWrapper) {
-          const wrapperRect = tableWrapper.getBoundingClientRect()
-          isVisibleInWrapper = maxRight >= wrapperRect.left - 8 && maxRight <= wrapperRect.right + 15
-        }
+        const wRect = tableWrapper ? tableWrapper.getBoundingClientRect() : null
+        const hasLeftBlur = Boolean(tableWrapper && tableWrapper.scrollLeft > 2)
+        const minColLeft = wRect ? wRect.left + (hasLeftBlur ? 40 : 0) : undefined
+        const wrapperRight = wRect ? wRect.right : undefined
+        const isVisibleInWrapper = wRect ? maxRight >= (minColLeft ?? wRect.left) + 8 && maxRight <= wRect.right + 15 : true
 
-        setSelectionRect({ top: minTop, left: minLeft, width: maxRight - minLeft, height: maxBottom - minTop })
+        setSelectionRect({ top: minTop, left: minLeft, width: maxRight - minLeft, height: maxBottom - minTop, minColLeft, wrapperRight })
         setIsButtonVisible(isVisibleInWrapper && isWithinContainer)
         return
       }
@@ -180,17 +178,14 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         isWithinContainer = dotY >= cRect.top && dotY <= cRect.bottom
       }
 
-      setSelectionRect(prev => (prev && prev.top === minTop && prev.left === minLeft && prev.width === maxRight - minLeft && prev.height === maxBottom - minTop ? prev : { top: minTop, left: minLeft, width: maxRight - minLeft, height: maxBottom - minTop }))
-
       const tableWrapper = cells[0].closest('.tableWrapper') as HTMLElement | null
-      let isVisibleInWrapper = true
-      if (tableWrapper) {
-        const wrapperRect = tableWrapper.getBoundingClientRect()
-        const isHorizontallyVisible = maxRight >= wrapperRect.left - 8 && maxRight <= wrapperRect.right + 15
-        const isVerticallyVisible = minTop < window.innerHeight && maxBottom > 0
-        isVisibleInWrapper = isHorizontallyVisible && isVerticallyVisible
-      }
+      const wRect = tableWrapper ? tableWrapper.getBoundingClientRect() : null
+      const hasLeftBlur = Boolean(tableWrapper && tableWrapper.scrollLeft > 2)
+      const minColLeft = wRect ? wRect.left + (hasLeftBlur ? 40 : 0) : undefined
+      const wrapperRight = wRect ? wRect.right : undefined
+      const isVisibleInWrapper = Boolean(wRect && maxRight >= (minColLeft ?? wRect.left) + 8 && maxRight <= wRect.right + 15 && minTop < window.innerHeight && maxBottom > 0)
 
+      setSelectionRect(prev => (prev && prev.top === minTop && prev.left === minLeft && prev.width === maxRight - minLeft && prev.height === maxBottom - minTop && prev.minColLeft === minColLeft && prev.wrapperRight === wrapperRight ? prev : { top: minTop, left: minLeft, width: maxRight - minLeft, height: maxBottom - minTop, minColLeft, wrapperRight }))
       setIsButtonVisible(isVisibleInWrapper && isWithinContainer)
     } else {
       setSelectionRect(prev => (prev === null ? prev : null))
@@ -446,9 +441,34 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
       {createPortal(
         <>
           <ContainingBlockAnchor ref={anchorRef} />
-          {/* 1. Selection Perimeter Outline & Background - z-index: 8 (below blur z-12) */}
-          <div className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[8] border-2 border-indigo-500/85 dark:border-violet-400/85 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
-            style={{ top: selectionRect.top - offset.y, left: selectionRect.left - offset.x, width: selectionRect.width, height: selectionRect.height, backgroundColor: 'rgba(99, 102, 241, 0.12)', zIndex: 8 }} />
+          {/* 1. Selection Perimeter Outline & Background - Isolated Stacking Context z-index: 8 (below blur z-12) */}
+          <div
+            id="table-cell-selection"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              zIndex: 8,
+              pointerEvents: 'none',
+              clipPath: selectionRect.minColLeft !== undefined && selectionRect.wrapperRight !== undefined
+                ? `polygon(${selectionRect.minColLeft - offset.x}px 0, ${selectionRect.wrapperRight - offset.x}px 0, ${selectionRect.wrapperRight - offset.x}px 100%, ${selectionRect.minColLeft - offset.x}px 100%)`
+                : undefined,
+            }}
+          >
+            <div
+              className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[8] border-2 border-indigo-500/85 dark:border-violet-400/85 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
+              style={{
+                top: selectionRect.top - offset.y,
+                left: selectionRect.left - offset.x,
+                width: selectionRect.width,
+                height: selectionRect.height,
+                backgroundColor: 'rgba(99, 102, 241, 0.12)',
+                zIndex: 8,
+              }}
+            />
+          </div>
 
           {/* 2. Expandable 4-dot Circle Trigger & Popover Menu - z-index: 9 (below blur z-12) */}
           {isButtonVisible && (

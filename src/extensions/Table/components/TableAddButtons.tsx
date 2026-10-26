@@ -463,7 +463,18 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       </div>
 
       {/* 3. Right & Bottom Add Buttons & Drag Overlays */}
-      <div id="table-overlays-wrapper" style={{ position: 'fixed', top: 0, left: 0, width: 0, height: 0, pointerEvents: 'none' }}>
+      <div
+        id="table-overlays-wrapper"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          clipPath: `polygon(${minColLeft - offset.x}px 0, ${wrapperRight - offset.x}px 0, ${wrapperRight - offset.x}px 100%, ${minColLeft - offset.x}px 100%)`,
+        }}
+      >
         <TableAddBar tableRect={tableRect} activeRowRect={activeRowGrip ? { top: activeRowGrip.top, height: activeRowGrip.height } : null} activeColRect={activeColGrip ? { left: activeColGrip.left, width: activeColGrip.width } : null} showRightBar={showRightAddBar || isLastCol} showBottomBar={showBottomAddBar || isLastRow} containerOffset={offset} onAddColumn={onAddColumnAtEnd} onAddRow={onAddRowAtEnd} onHoverKeepAlive={() => { clearHoverTimer(); setIsHovered(true) }} />
         <TableDragOverlays dragGhost={dragGhost} dragIndicator={dragIndicator} tableRectLeft={tableRect.left} tableRectTop={tableRect.top} tableRectWidth={tableRect.width} tableRectHeight={tableRect.height} containerOffset={offset} />
       </div>

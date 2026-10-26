@@ -12,7 +12,7 @@ interface TableScrollIndicatorProps {
 interface TableShadowState {
   id: string
   wrapper: HTMLElement
-  rect: { top: number; left: number; width: number; height: number }
+  rect: { top: number; left: number; width: number; height: number; bottom: number }
   showLeft: boolean
   showRight: boolean
 }
@@ -119,6 +119,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
           left: rect.left,
           width: rect.width,
           height: rect.height,
+          bottom: rect.bottom,
         },
         showLeft,
         showRight,
@@ -132,6 +133,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
     tables.forEach(t => {
       if (!editor.isEditable) {
         t.wrapper.classList.remove('table-compact-left')
+        t.wrapper.classList.remove('has-left-blur')
         t.wrapper.style.maskImage = ''
         ;(t.wrapper.style as any).webkitMaskImage = ''
         const tm = maskClearTimersRef.current.get(t.id)
@@ -142,6 +144,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       const isHoveredOrActive = hoveredWrapper === t.wrapper || activeWrapper === t.wrapper
       const shouldCompact = Boolean(editor.isEditable && isHoveredOrActive)
       t.wrapper.classList.toggle('table-compact-left', shouldCompact)
+      t.wrapper.classList.toggle('has-left-blur', t.showLeft)
 
       const isBlurVisible = t.showLeft && isHoveredOrActive
       const existingTimer = maskClearTimersRef.current.get(t.id)
@@ -348,6 +351,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
         editorDom.querySelectorAll('.tableWrapper').forEach((el) => {
           const w = el as HTMLElement
           w.classList.remove('table-compact-left')
+          w.classList.remove('has-left-blur')
           w.style.maskImage = ''
           ;(w.style as any).webkitMaskImage = ''
         })

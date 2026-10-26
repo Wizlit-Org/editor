@@ -25,6 +25,10 @@
       max-width: calc(100% + (100cqw - 100%) / 2) !important;
     }
 
+    &.has-left-blur {
+      /* Left 40px blur boundary guard when horizontally scrolled */
+    }
+
     &::-webkit-scrollbar {
       display: none !important;
       width: 0 !important;
@@ -167,7 +171,9 @@ div:has(> .drag-handle),
   z-index: 60 !important;
 }
 
-#table-col-grips {
+#table-col-grips,
+#table-cell-selection,
+#table-overlays-wrapper {
   pointer-events: none !important;
 }
 
