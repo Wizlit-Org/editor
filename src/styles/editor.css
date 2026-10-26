@@ -47,7 +47,6 @@
   
   
 
-
   .is-empty::before {
     @apply text-neutral-500 dark:text-neutral-400;
   }
@@ -189,4 +188,28 @@
 .dark .editor-theme-light .ProseMirror [data-type='blockquoteFigure'] > blockquote,
 .editor-theme-light .ProseMirror [data-type='blockquoteFigure'] > blockquote {
   color: #000000 !important;
+}
+
+/* ==========================================================================
+   Mobile Margin Fluidization System
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .ProseMirror {
+    padding-left: clamp(12px, 3vw, 16px);
+    padding-right: clamp(12px, 3vw, 16px);
+
+    & > * + * {
+      margin-top: clamp(0.5em, 2vw, 0.75em);
+    }
+
+    [data-type='blockquoteFigure'] > div {
+      padding-left: clamp(8px, 2.5vw, 16px);
+      padding-right: clamp(8px, 2.5vw, 16px);
+    }
+
+    [data-type='columns'] {
+      gap: clamp(8px, 2vw, 16px);
+    }
+  }
 }

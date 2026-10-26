@@ -123,7 +123,7 @@ export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
   }, [appendTo, editor, updateDockPosition])
 
   const BTN_CLASS =
-    'h-7 w-7 p-0 inline-flex items-center justify-center leading-none text-zinc-700 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white hover:bg-white/60 active:bg-white/80 dark:hover:bg-white/[0.1] dark:active:bg-white/[0.16] rounded-lg border border-transparent hover:border-white/50 dark:hover:border-white/[0.08] transition-all duration-150'
+    'h-7 w-7 p-0 shrink-0 inline-flex items-center justify-center leading-none text-zinc-700 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white hover:bg-white/60 active:bg-white/80 dark:hover:bg-white/[0.1] dark:active:bg-white/[0.16] rounded-lg border border-transparent hover:border-white/50 dark:hover:border-white/[0.08] transition-all duration-150'
   const ACTIVE_CLASS =
     'bg-indigo-500/15 text-indigo-600 dark:bg-indigo-400/20 dark:text-indigo-300 border-indigo-500/25 dark:border-indigo-400/30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] font-semibold'
 
@@ -153,8 +153,9 @@ export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
           zIndex: 40,
           transform: 'none',
           translate: 'none',
+          maxWidth: 'calc(100vw - 32px)',
         }}
-        className="fixed z-[40] pointer-events-none select-none flex items-center justify-center"
+        className="fixed z-[40] pointer-events-none select-none flex items-center justify-center max-w-[calc(100vw-32px)]"
       >
         <div
           role="toolbar"
@@ -170,10 +171,15 @@ export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
             pointerEvents: 'auto',
             display: 'inline-flex',
             alignItems: 'center',
-            justifyContent: 'center',
+            justifyContent: 'flex-start',
             gap: '2px',
             padding: '5px 8px',
             borderRadius: '16px',
+            maxWidth: 'calc(100vw - 32px)',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
             backgroundColor: isDark ? 'rgba(24, 24, 27, 0.56)' : 'rgba(255, 255, 255, 0.54)',
             backgroundImage: isDark
               ? 'linear-gradient(135deg, rgba(39, 39, 42, 0.62) 0%, rgba(15, 23, 42, 0.48) 100%)'
@@ -187,9 +193,11 @@ export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
               ? '0 12px 32px -4px rgba(0, 0, 0, 0.55), 0 4px 12px -2px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.16)'
               : '0 10px 28px -4px rgba(15, 23, 42, 0.14), 0 4px 10px -2px rgba(15, 23, 42, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.92)',
           }}
-          className="inline-flex h-full leading-none gap-0.5 p-1.5 rounded-2xl items-center justify-center text-zinc-800 dark:text-zinc-100 pointer-events-auto"
+          className="inline-flex h-full leading-none gap-0.5 p-1.5 rounded-2xl items-center text-zinc-800 dark:text-zinc-100 pointer-events-auto max-w-[calc(100vw-32px)] overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden touch-pan-x"
         >
-          <MemoContentTypePicker options={blockOptions} />
+          <div className="shrink-0 inline-flex items-center">
+            <MemoContentTypePicker options={blockOptions} />
+          </div>
           <div className="h-4 w-[1px] bg-zinc-900/10 dark:bg-white/15 mx-1 shrink-0" />
           <MemoButton
             tooltip="Bold"
@@ -242,7 +250,9 @@ export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
           >
             <Icon name="Code" className="w-3.5 h-3.5" />
           </MemoButton>
-          <EditLinkPopover onSetLink={commands.onLink} />
+          <div className="shrink-0 inline-flex items-center">
+            <EditLinkPopover onSetLink={commands.onLink} />
+          </div>
         </div>
       </div>
     </>

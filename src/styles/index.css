@@ -214,3 +214,36 @@
 .drag-handle {
   z-index: 50 !important;
 }
+
+/* ==========================================================================
+   Mobile Fluid Responsive System & Drag Handle Virtual Hitbox Guard
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .ProseMirror {
+    padding-left: clamp(12px, 3vw, 16px);
+    padding-right: clamp(12px, 3vw, 16px);
+    box-sizing: border-box;
+
+    /* 모바일 터치 및 협소 화면에서 좌측 거터(-68px) 가상 히트박스로 인한 가로 오버플로우/오동작 차단 */
+    &::before {
+      display: none !important;
+      left: 0 !important;
+      width: 0 !important;
+      pointer-events: none !important;
+    }
+  }
+
+  .notion-light-canvas,
+  .notion-dark-canvas {
+    padding-left: clamp(12px, 3vw, 16px);
+    padding-right: clamp(12px, 3vw, 16px);
+    box-sizing: border-box;
+  }
+
+  .notion-light-canvas .ProseMirror,
+  .notion-dark-canvas .ProseMirror {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
