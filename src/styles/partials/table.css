@@ -167,3 +167,8 @@ div:has(> .drag-handle),
   z-index: 60 !important;
 }
 
+#table-col-grips {
+  pointer-events: none !important;
+}
+
+

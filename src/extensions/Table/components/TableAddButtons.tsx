@@ -380,8 +380,21 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
     mergedRow = { top: s.top, height: e.top + e.height - s.top, startIdx: selRow.start }
   }
 
+  const wrapperEl = currentTableEl ? (currentTableEl.closest('.tableWrapper') as HTMLElement | null) : null
+  const hasLeftBlur = Boolean(wrapperEl && wrapperEl.scrollLeft > 2)
+  const wrapperLeft = tableRect.wrapperLeft !== undefined ? tableRect.wrapperLeft : tableRect.left
+  const wrapperRight = tableRect.wrapperRight !== undefined ? tableRect.wrapperRight : (tableRect.left + tableRect.width)
+  const minColLeft = wrapperLeft + (hasLeftBlur ? 40 : 0)
+
   const isColVisible = (g: { left: number; width: number }) =>
-    !tableRect.wrapperLeft || (g.left + g.width > tableRect.wrapperLeft && g.left < (tableRect.wrapperRight ?? Infinity))
+    g.left + g.width > minColLeft + 6 && g.left < wrapperRight - 6
+
+  const getColOpacity = (g: { left: number; width: number }) => {
+    if (!hasLeftBlur || g.left >= minColLeft) return 1
+    const visiblePortion = g.left + g.width - minColLeft
+    if (visiblePortion <= 8) return 0
+    return Math.max(0, Math.min(1, visiblePortion / Math.min(g.width, 36)))
+  }
 
   const isLastCol = hoveredColIndex !== null && columnGrips.length > 0 && hoveredColIndex === columnGrips.length - 1
   const isLastRow = hoveredRowIndex !== null && rowGrips.length > 0 && hoveredRowIndex === rowGrips.length - 1
@@ -400,18 +413,30 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       <ContainingBlockAnchor ref={anchorRef} />
 
       {/* 1. Column Grip (Merged Stretched Pill or Single Hovered Pill) - Isolated Stacking Context z-index: 9 (below blur z-12) */}
-      <div id="table-col-grips" style={{ position: 'fixed', top: 0, left: 0, width: 0, height: 0, zIndex: 9, pointerEvents: 'none' }}>
-        {mergedCol && isColVisible(mergedCol) ? (
+      <div
+        id="table-col-grips"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          zIndex: 9,
+          pointerEvents: 'none',
+          clipPath: `polygon(${minColLeft - offset.x}px 0, ${wrapperRight - offset.x}px 0, ${wrapperRight - offset.x}px 100%, ${minColLeft - offset.x}px 100%)`,
+        }}
+      >
+        {mergedCol && isColVisible(mergedCol) && getColOpacity(mergedCol) > 0 ? (
           <button key="active-col-grip" type="button" onMouseDown={handleGripMouseDown('col', mergedCol.startIdx)}
             className={`${colMergedPillClass} h-[12px] pointer-events-auto`}
-            style={{ top: tableRect.top - 15 - offset.y, left: mergedCol.left - offset.x, width: mergedCol.width, zIndex: 9 }}
+            style={{ top: tableRect.top - 15 - offset.y, left: mergedCol.left - offset.x, width: mergedCol.width, zIndex: 9, opacity: getColOpacity(mergedCol) }}
             title="Click for options, drag to move selected columns">
             <div className="flex items-center gap-0.5"><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /></div>
           </button>
-        ) : activeColGrip && isColVisible(activeColGrip) ? (
+        ) : activeColGrip && isColVisible(activeColGrip) && getColOpacity(activeColGrip) > 0 ? (
           <button key="active-col-grip" type="button" onMouseDown={handleGripMouseDown('col', activeColGrip.index)}
             className={`${colSinglePillClass} h-[12px] pointer-events-auto`}
-            style={{ top: tableRect.top - 15 - offset.y, left: activeColGrip.left - offset.x, width: activeColGrip.width, zIndex: 9 }}
+            style={{ top: tableRect.top - 15 - offset.y, left: activeColGrip.left - offset.x, width: activeColGrip.width, zIndex: 9, opacity: getColOpacity(activeColGrip) }}
             title={`Click to select, drag to move column ${activeColGrip.index + 1}`}>
             <div className="flex items-center gap-0.5"><span className="w-1 h-1 rounded-full bg-current opacity-70" /><span className="w-1 h-1 rounded-full bg-current opacity-70" /><span className="w-1 h-1 rounded-full bg-current opacity-70" /></div>
           </button>
