@@ -20,13 +20,15 @@
 .editor-theme-light,
 .dark .editor-theme-light {
   color-scheme: light !important;
+  --background: #ffffff !important;
+  --foreground: #222325 !important;
   background-color: #ffffff !important;
   color: #222325 !important;
   --editor-bg: #ffffff !important;
   --editor-text: #222325 !important;
   --editor-subtext: #71717a !important;
-  --editor-caret: #222325;
-  --editor-selection: rgba(0, 0, 0, 0.1);
+  --editor-caret: var(--editor-primary, #faaf2d);
+  --editor-selection: color-mix(in srgb, var(--editor-primary, #faaf2d) 20%, transparent);
   --editor-divider: rgba(0, 0, 0, 0.08) !important;
 
   --glass-panel-bg: rgba(255, 255, 255, 0.88) !important;
