@@ -62,7 +62,7 @@ export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
       {/* 1. Drop Position Indicator Guide: Single clean 2px theme line */}
       {dragIndicator && !dragIndicator.isBlocked && (
         <div
-          className="fixed pointer-events-none z-[25] bg-[var(--editor-primary)] shadow-[0_0_6px_var(--editor-primary)] rounded-full transition-all duration-75"
+          className="fixed pointer-events-none z-[25] bg-[var(--editor-primary)] shadow-[0_0_6px_color-mix(in_srgb,var(--editor-primary)_60%,transparent)] rounded-full transition-all duration-75"
           style={{
             left: dragIndicator.left - ox,
             top: dragIndicator.top - oy,

@@ -196,7 +196,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
                 <span className="text-xs font-semibold tracking-wide text-zinc-700 dark:text-[#e3e3e3]">
                   Table of Contents
                 </span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--editor-accent)] text-[var(--editor-primary)] font-medium" style={{ backgroundColor: 'var(--editor-accent, rgba(250, 175, 45, 0.15))', color: 'var(--editor-primary, #faaf2d)' }}>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--editor-primary)_10%,transparent)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)] text-[var(--editor-primary)] font-medium">
                   {headings.length}
                 </span>
               </div>
@@ -220,10 +220,10 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
                   const isActive = item.id === activeHeadingId
                   const indentClass =
                     item.level === 1
-                      ? `pl-2 font-medium ${isActive ? 'text-[var(--editor-primary)] font-semibold bg-[var(--editor-accent)]' : 'text-zinc-800 dark:text-[#e3e3e3]'}`
+                      ? `pl-2 font-medium ${isActive ? 'text-[var(--editor-primary)] font-semibold bg-[color-mix(in_srgb,var(--editor-primary)_10%,transparent)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)]' : 'text-zinc-800 dark:text-[#e3e3e3]'}`
                       : item.level === 2
-                      ? `pl-5 ${isActive ? 'text-[var(--editor-primary)] font-medium bg-[var(--editor-accent)]' : 'text-zinc-600 dark:text-zinc-300'}`
-                      : `pl-8 ${isActive ? 'text-[var(--editor-primary)] font-medium bg-[var(--editor-accent)]' : 'text-zinc-500 dark:text-zinc-400'}`
+                      ? `pl-5 ${isActive ? 'text-[var(--editor-primary)] font-medium bg-[color-mix(in_srgb,var(--editor-primary)_10%,transparent)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)]' : 'text-zinc-600 dark:text-zinc-300'}`
+                      : `pl-8 ${isActive ? 'text-[var(--editor-primary)] font-medium bg-[color-mix(in_srgb,var(--editor-primary)_10%,transparent)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)]' : 'text-zinc-500 dark:text-zinc-400'}`
 
                   return (
                     <button
@@ -262,7 +262,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
             <div className="flex items-center gap-2 truncate">
               <Icon name="ListOrdered" className="w-3.5 h-3.5 text-[var(--editor-primary)] shrink-0" style={{ color: 'var(--editor-primary, #faaf2d)' }} />
               <span className="text-xs font-semibold truncate">Table of Contents</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--editor-accent)] text-[var(--editor-primary)] font-mono font-medium shrink-0" style={{ backgroundColor: 'var(--editor-accent, rgba(250, 175, 45, 0.15))', color: 'var(--editor-primary, #faaf2d)' }}>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--editor-primary)_10%,transparent)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)] text-[var(--editor-primary)] font-mono font-medium shrink-0">
                 {headings.length}
               </span>
             </div>
@@ -283,10 +283,10 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
                   const isActive = item.id === activeHeadingId
                   const indentClass =
                     item.level === 1
-                      ? `pl-2 font-medium ${isActive ? 'text-[var(--editor-primary)] font-semibold bg-[var(--editor-accent)]' : 'text-zinc-800 dark:text-[#e3e3e3]'}`
+                      ? `pl-2 font-medium ${isActive ? 'text-[var(--editor-primary)] font-semibold bg-[color-mix(in_srgb,var(--editor-primary)_10%,transparent)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)]' : 'text-zinc-800 dark:text-[#e3e3e3]'}`
                       : item.level === 2
-                      ? `pl-5 ${isActive ? 'text-[var(--editor-primary)] font-medium bg-[var(--editor-accent)]' : 'text-zinc-600 dark:text-zinc-300'}`
-                      : `pl-8 ${isActive ? 'text-[var(--editor-primary)] font-medium bg-[var(--editor-accent)]' : 'text-zinc-500 dark:text-zinc-400'}`
+                      ? `pl-5 ${isActive ? 'text-[var(--editor-primary)] font-medium bg-[color-mix(in_srgb,var(--editor-primary)_10%,transparent)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)]' : 'text-zinc-600 dark:text-zinc-300'}`
+                      : `pl-8 ${isActive ? 'text-[var(--editor-primary)] font-medium bg-[color-mix(in_srgb,var(--editor-primary)_10%,transparent)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)]' : 'text-zinc-500 dark:text-zinc-400'}`
 
                   return (
                     <button

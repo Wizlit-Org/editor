@@ -46,7 +46,7 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
         <Toolbar.Button
           active={activeItem?.id !== 'paragraph' && !!activeItem?.type}
           className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 leading-none text-zinc-700 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white hover:bg-white/60 active:bg-white/80 dark:hover:bg-white/[0.1] dark:active:bg-white/[0.16] rounded-lg border border-transparent hover:border-white/50 dark:hover:border-white/[0.08] transition-all duration-150 text-xs font-medium"
-          activeClassname="bg-[var(--editor-accent)] text-[var(--editor-primary)] border-[var(--editor-accent-border)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5)]"
+          activeClassname="bg-[color-mix(in_srgb,var(--editor-primary)_15%,transparent)] text-[var(--editor-primary)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)] border-[color-mix(in_srgb,var(--editor-primary)_25%,transparent)] dark:border-[color-mix(in_srgb,var(--editor-primary)_30%,transparent)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5)]"
         >
           <Icon name={activeIcon} className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate max-w-[5.5rem] leading-none">{activeLabel}</span>
@@ -87,7 +87,7 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
                     <Icon name={option.icon} className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400 shrink-0" />
                     <span>{option.label}</span>
                   </div>
-                  {isActive && <Icon name="Check" className="w-3.5 h-3.5 text-[var(--editor-primary)] shrink-0" />}
+                  {isActive && <Icon name="Check" className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 shrink-0" />}
                 </button>
               )
             } else if (isCategory(option)) {

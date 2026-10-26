@@ -164,7 +164,7 @@
   border-radius: 2px !important;
   z-index: 50 !important;
   pointer-events: none !important;
-  box-shadow: 0 0 8px var(--editor-accent-border, rgba(250, 175, 45, 0.6)) !important;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--editor-primary, #faaf2d) 80%, transparent) !important;
   transition: all 0.1s ease-out !important;
 }
 

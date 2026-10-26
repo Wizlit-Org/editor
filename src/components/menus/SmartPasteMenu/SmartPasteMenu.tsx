@@ -248,7 +248,7 @@ export const SmartPasteMenu: React.FC<SmartPasteMenuProps> = ({ editor }) => {
                 onMouseEnter={() => setSelectedIndex(idx)}
                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors cursor-pointer ${
                   isSelected
-                    ? 'bg-[var(--editor-accent)] text-[var(--editor-primary)] font-medium'
+                    ? 'bg-[color-mix(in_srgb,var(--editor-primary)_10%,transparent)] text-[var(--editor-primary)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)] font-medium'
                     : 'text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.06]'
                 }`}
               >

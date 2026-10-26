@@ -190,7 +190,7 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
               className={cn(
                 'p-1 rounded-md text-xs transition-colors',
                 shouldWrap
-                  ? 'bg-[var(--editor-accent)] text-[var(--editor-primary)]'
+                  ? 'bg-blue-500/20 text-blue-300'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/10',
               )}
               title={shouldWrap ? 'Disable wrapping' : 'Enable wrapping'}
@@ -281,7 +281,7 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
                 tabIndex={-1}
               >
                 <span>{lang}</span>
-                {lang === language && <Icon name="Check" className="h-3.5 w-3.5 text-[var(--editor-primary)]" />}
+                {lang === language && <Icon name="Check" className="h-3.5 w-3.5 text-blue-500" />}
               </button>
             ))}
           </div>

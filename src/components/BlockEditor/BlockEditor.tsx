@@ -331,10 +331,10 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     if (typeof document === 'undefined' || !themeColor) return
     const root = document.documentElement
     root.style.setProperty('--editor-primary', themeColor)
-    root.style.setProperty('--editor-accent', `${themeColor}26`)
-    root.style.setProperty('--editor-accent-border', `${themeColor}40`)
+    root.style.setProperty('--editor-accent', `color-mix(in srgb, ${themeColor} 15%, transparent)`)
+    root.style.setProperty('--editor-accent-border', `color-mix(in srgb, ${themeColor} 25%, transparent)`)
     root.style.setProperty('--editor-caret', themeColor)
-    root.style.setProperty('--editor-selection', `${themeColor}33`)
+    root.style.setProperty('--editor-selection', `color-mix(in srgb, ${themeColor} 20%, transparent)`)
   }, [themeColor])
 
   if (!editor) {
@@ -350,10 +350,10 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     ...(themeColor
       ? ({
           '--editor-primary': themeColor,
-          '--editor-accent': `${themeColor}26`,
-          '--editor-accent-border': `${themeColor}40`,
+          '--editor-accent': `color-mix(in srgb, ${themeColor} 15%, transparent)`,
+          '--editor-accent-border': `color-mix(in srgb, ${themeColor} 25%, transparent)`,
           '--editor-caret': themeColor,
-          '--editor-selection': `${themeColor}33`,
+          '--editor-selection': `color-mix(in srgb, ${themeColor} 20%, transparent)`,
         } as React.CSSProperties)
       : {}),
   }

@@ -280,7 +280,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
             className={cn(
               'relative rounded-lg overflow-hidden w-full flex flex-col p-0 m-0 leading-none bg-black/[0.02] dark:bg-white/[0.02] transition-shadow duration-150',
               isFocused &&
-                'ring-2 ring-[var(--editor-primary)] ring-offset-2 ring-offset-white dark:ring-offset-zinc-900 shadow-[0_0_0_4px_var(--editor-accent)]',
+                'ring-2 ring-[var(--editor-primary)] ring-offset-2 ring-offset-white dark:ring-offset-zinc-900 shadow-[0_0_0_4px_color-mix(in_srgb,var(--editor-primary)_18%,transparent)]',
             )}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -288,7 +288,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
           >
             {/* Drag & Drop Replace Overlay */}
             {isDragOver && (
-              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[var(--editor-accent)] backdrop-blur-md rounded-lg border-2 border-dashed border-[var(--editor-primary)] text-[var(--editor-primary)] transition-all pointer-events-none gap-2">
+              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[color-mix(in_srgb,var(--editor-primary)_25%,transparent)] backdrop-blur-md rounded-lg border-2 border-dashed border-[var(--editor-primary)] text-[var(--editor-primary)] transition-all pointer-events-none gap-2">
                 <Icon name="RefreshCw" className="w-8 h-8 animate-spin" />
                 <span className="text-xs font-semibold">드롭하여 이미지 교체</span>
               </div>

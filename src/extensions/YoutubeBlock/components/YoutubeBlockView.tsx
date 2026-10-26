@@ -313,7 +313,7 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
             className={cn(
               'relative rounded-xl overflow-hidden w-full aspect-video flex flex-col leading-none bg-black/[0.04] dark:bg-white/[0.04] shadow-sm cursor-pointer transition-shadow duration-150',
               isFocused &&
-                'ring-2 ring-[var(--editor-primary)] ring-offset-2 ring-offset-white dark:ring-offset-zinc-900 shadow-[0_0_0_4px_var(--editor-accent)]',
+                'ring-2 ring-[var(--editor-primary)] ring-offset-2 ring-offset-white dark:ring-offset-zinc-900 shadow-[0_0_0_4px_color-mix(in_srgb,var(--editor-primary)_18%,transparent)]',
             )}
             onClick={editorEditable ? onSelectBlock : undefined}
           >

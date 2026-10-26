@@ -6,10 +6,10 @@
 
 :root {
   --editor-primary: #faaf2d;
-  --editor-accent: rgba(250, 175, 45, 0.15);
-  --editor-accent-border: rgba(250, 175, 45, 0.25);
-  --editor-caret: #faaf2d;
-  --editor-selection: rgba(250, 175, 45, 0.2);
+  --editor-accent: color-mix(in srgb, var(--editor-primary) 15%, transparent);
+  --editor-accent-border: color-mix(in srgb, var(--editor-primary) 25%, transparent);
+  --editor-caret: var(--editor-primary);
+  --editor-selection: color-mix(in srgb, var(--editor-primary) 20%, transparent);
 }
 
 /* ==========================================================================
@@ -149,8 +149,13 @@
 .editor-theme-light button[data-active="true"],
 .editor-theme-dark button[data-active="true"] {
   color: var(--editor-primary, #faaf2d) !important;
-  background-color: var(--editor-accent, rgba(250, 175, 45, 0.15)) !important;
-  border-color: var(--editor-accent-border, rgba(250, 175, 45, 0.25)) !important;
+  background-color: color-mix(in srgb, var(--editor-primary, #faaf2d) 15%, transparent) !important;
+  border-color: color-mix(in srgb, var(--editor-primary, #faaf2d) 25%, transparent) !important;
+}
+
+.editor-theme-dark button[data-active="true"] {
+  background-color: color-mix(in srgb, var(--editor-primary, #faaf2d) 20%, transparent) !important;
+  border-color: color-mix(in srgb, var(--editor-primary, #faaf2d) 30%, transparent) !important;
 }
 
 .editor-theme-light button[data-active="true"] svg,
@@ -171,7 +176,7 @@
   --tw-ring-color: var(--editor-primary, #faaf2d) !important;
 }
 
-/* 5. Theme Token Utility Bindings (Guaranteed application independent of host JIT) */
+/* 5. Theme Token Utility Bindings (Preserves exact 1:1 original opacities via color-mix) */
 [class*="text-[var(--editor-primary)]"] {
   color: var(--editor-primary, #faaf2d) !important;
 }
@@ -184,40 +189,14 @@
   background-color: var(--editor-primary, #faaf2d) !important;
 }
 
-[class*="hover:bg-[var(--editor-primary)]"]:hover,
-[class*="active:bg-[var(--editor-primary)]"]:active {
-  background-color: var(--editor-primary, #faaf2d) !important;
-}
-
-[class*="bg-[var(--editor-accent)]"] {
-  background-color: var(--editor-accent, rgba(250, 175, 45, 0.15)) !important;
-}
-
-[class*="hover:bg-[var(--editor-accent-border)]"]:hover,
-[class*="hover:!bg-[var(--editor-accent-border)]"]:hover {
-  background-color: var(--editor-accent-border, rgba(250, 175, 45, 0.25)) !important;
-}
-
-[class*="border-[var(--editor-primary)]"],
-[class*="focus-within:border-[var(--editor-primary)]"]:focus-within {
-  border-color: var(--editor-primary, #faaf2d) !important;
-}
-
-[class*="border-[var(--editor-accent-border)]"] {
-  border-color: var(--editor-accent-border, rgba(250, 175, 45, 0.25)) !important;
-}
-
 [class*="ring-[var(--editor-primary)]"] {
   --tw-ring-color: var(--editor-primary, #faaf2d) !important;
 }
 
-[class*="shadow-[0_0_6px_var(--editor-primary)]"] {
-  box-shadow: 0 0 6px var(--editor-primary, #faaf2d) !important;
+[class*="border-[var(--editor-primary)]"] {
+  border-color: var(--editor-primary, #faaf2d) !important;
 }
 
-[class*="shadow-[0_0_0_4px_var(--editor-accent)]"] {
-  box-shadow: 0 0 0 4px var(--editor-accent, rgba(250, 175, 45, 0.18)) !important;
-}
 
 
 

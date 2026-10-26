@@ -264,7 +264,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
                 itemClass,
                 isRowHeaderBlocked && 'opacity-50 cursor-not-allowed hover:bg-transparent',
                 isHeaderRowActive &&
-                  '!bg-[var(--editor-accent)] !text-[var(--editor-primary)] font-medium hover:!bg-[var(--editor-accent-border)]',
+                  '!bg-[color-mix(in_srgb,var(--editor-primary)_10%,transparent)] !text-[var(--editor-primary)] font-medium hover:!bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)]',
               )}
             >
               <Icon

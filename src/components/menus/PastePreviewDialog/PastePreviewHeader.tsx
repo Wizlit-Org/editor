@@ -123,14 +123,14 @@ export const PastePreviewHeader: React.FC<PastePreviewHeaderProps> = ({
                 fontWeight: 600,
                 cursor: 'pointer',
                 flexShrink: 0,
-                backgroundColor: isSelected ? 'var(--editor-primary, #faaf2d)' : 'transparent',
+                backgroundColor: isSelected ? 'color-mix(in srgb, var(--editor-primary, #faaf2d) 82%, transparent)' : 'transparent',
                 backgroundImage: isSelected
-                  ? 'linear-gradient(135deg, color-mix(in srgb, var(--editor-primary, #faaf2d) 92%, white) 0%, color-mix(in srgb, var(--editor-primary, #faaf2d) 82%, black) 100%)'
+                  ? 'linear-gradient(135deg, color-mix(in srgb, var(--editor-primary, #faaf2d) 92%, transparent) 0%, color-mix(in srgb, var(--editor-primary, #faaf2d) 78%, transparent) 100%)'
                   : 'none',
                 color: isSelected ? '#ffffff' : isDark ? '#d4d4d8' : '#334155',
-                border: isSelected ? '1px solid var(--editor-accent-border, rgba(250, 175, 45, 0.55))' : '1px solid transparent',
+                border: isSelected ? '1px solid color-mix(in srgb, var(--editor-primary, #faaf2d) 55%, transparent)' : '1px solid transparent',
                 boxShadow: isSelected
-                  ? '0 6px 16px -2px var(--editor-accent-border, rgba(250, 175, 45, 0.45)), inset 0 1px 0 0 rgba(255, 255, 255, 0.45)'
+                  ? '0 6px 16px -2px color-mix(in srgb, var(--editor-primary, #faaf2d) 45%, transparent), inset 0 1px 0 0 rgba(255, 255, 255, 0.45)'
                   : 'none',
                 transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)',
               }}

@@ -46,7 +46,7 @@ export const TableAddBar: React.FC<TableAddBarProps> = ({
       {showRightBar && (
         <button
           type="button"
-          className="fixed z-[30] pointer-events-auto flex items-center justify-center p-0 transition-all duration-150 rounded-full cursor-pointer group bg-zinc-500/10 hover:bg-[var(--editor-primary)] dark:bg-white/10 dark:hover:bg-[var(--editor-primary)] backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:text-white dark:hover:text-white shadow-2xs"
+          className="fixed z-[30] pointer-events-auto flex items-center justify-center p-0 transition-all duration-150 rounded-full cursor-pointer group bg-zinc-500/10 hover:bg-[color-mix(in_srgb,var(--editor-primary)_90%,transparent)] dark:bg-white/10 dark:hover:bg-[color-mix(in_srgb,var(--editor-primary)_90%,transparent)] backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:text-white dark:hover:text-white shadow-2xs"
           style={{
             top: rightBarTop - oy,
             left: tableRect.right + 4 - ox,
@@ -71,7 +71,7 @@ export const TableAddBar: React.FC<TableAddBarProps> = ({
       {showBottomBar && (
         <button
           type="button"
-          className="fixed z-[30] pointer-events-auto flex items-center justify-center p-0 transition-all duration-150 rounded-full cursor-pointer group bg-zinc-500/10 hover:bg-[var(--editor-primary)] dark:bg-white/10 dark:hover:bg-[var(--editor-primary)] backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:text-white dark:hover:text-white shadow-2xs"
+          className="fixed z-[30] pointer-events-auto flex items-center justify-center p-0 transition-all duration-150 rounded-full cursor-pointer group bg-zinc-500/10 hover:bg-[color-mix(in_srgb,var(--editor-primary)_90%,transparent)] dark:bg-white/10 dark:hover:bg-[color-mix(in_srgb,var(--editor-primary)_90%,transparent)] backdrop-blur-md border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:text-white dark:hover:text-white shadow-2xs"
           style={{
             top: tableRect.bottom + 4 - oy,
             left: bottomBarLeft - ox,

@@ -122,7 +122,7 @@ export const LinkEditorPanel: React.FC<LinkEditorPanelProps> = ({
     >
       <form onSubmit={state.handleSubmit} className="flex flex-col gap-2">
         {/* 1. Link Display Text Input */}
-        <label className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 cursor-text focus-within:border-[var(--editor-primary)] transition-colors">
+        <label className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 cursor-text focus-within:border-[color-mix(in_srgb,var(--editor-primary)_50%,transparent)] transition-colors">
           <Icon name="Type" className="w-3.5 h-3.5 flex-none text-zinc-500 dark:text-zinc-400" />
           <input
             type="text"
@@ -135,7 +135,7 @@ export const LinkEditorPanel: React.FC<LinkEditorPanelProps> = ({
         </label>
 
         {/* 2. Link Target URL Input */}
-        <label className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 cursor-text focus-within:border-[var(--editor-primary)] transition-colors">
+        <label className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 cursor-text focus-within:border-[color-mix(in_srgb,var(--editor-primary)_50%,transparent)] transition-colors">
           <Icon name="Link" className="w-3.5 h-3.5 flex-none text-zinc-500 dark:text-zinc-400" />
           <input
             ref={urlInputRef}

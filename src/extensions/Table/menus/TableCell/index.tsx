@@ -438,14 +438,14 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
             }}
           >
             <div
-              className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[8] border-2 border-[var(--editor-primary)] shadow-[0_0_0_1px_var(--editor-accent-border)]"
+              className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[8] border-2 border-[color-mix(in_srgb,var(--editor-primary)_85%,transparent)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--editor-primary)_20%,transparent)]"
               style={{
                 top: selectionRect.top - offset.y,
                 left: selectionRect.left - offset.x,
                 width: selectionRect.width,
                 height: selectionRect.height,
-                borderColor: 'var(--editor-primary, #faaf2d)',
-                backgroundColor: 'var(--editor-accent, rgba(250, 175, 45, 0.12))',
+                borderColor: 'color-mix(in srgb, var(--editor-primary, #faaf2d) 85%, transparent)',
+                backgroundColor: 'color-mix(in srgb, var(--editor-primary, #faaf2d) 12%, transparent)',
                 zIndex: 8,
               }}
             />
