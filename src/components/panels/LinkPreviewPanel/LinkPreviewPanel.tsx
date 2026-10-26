@@ -182,7 +182,7 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
             <a
               {...(!disableDefaultAction ? defaultProps : {})}
               onClick={handleLinkClick}
-              className="text-xs leading-none font-medium text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-violet-400 hover:underline truncate transition-colors cursor-pointer"
+              className="text-xs leading-none font-medium text-zinc-700 dark:text-zinc-200 hover:text-[var(--editor-primary)] hover:underline truncate transition-colors cursor-pointer"
               title={url}
             >
               {domain || url}
@@ -303,7 +303,7 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
               <a
                 {...(!disableDefaultAction ? defaultProps : {})}
                 onClick={handleLinkClick}
-                className="text-[12.5px] font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1 leading-snug hover:text-indigo-600 dark:hover:text-violet-400 cursor-pointer transition-colors"
+                className="text-[12.5px] font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1 leading-snug hover:text-[var(--editor-primary)] cursor-pointer transition-colors"
                 title={titleText}
               >
                 {titleText}

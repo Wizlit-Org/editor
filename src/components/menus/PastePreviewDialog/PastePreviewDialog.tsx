@@ -366,8 +366,8 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
         opacity: isVisible ? 1 : 0,
         backgroundColor: isDark ? 'rgba(9, 9, 11, 0.68)' : 'rgba(248, 250, 252, 0.66)',
         backgroundImage: isDark
-          ? 'radial-gradient(circle at 50% 18%, rgba(79, 70, 229, 0.14) 0%, rgba(9, 9, 11, 0.78) 70%)'
-          : 'radial-gradient(circle at 50% 18%, rgba(224, 231, 255, 0.55) 0%, rgba(255, 255, 255, 0.72) 70%)',
+          ? 'radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--editor-primary, #faaf2d) 14%, transparent) 0%, rgba(9, 9, 11, 0.78) 70%)'
+          : 'radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--editor-primary, #faaf2d) 20%, transparent) 0%, rgba(255, 255, 255, 0.72) 70%)',
         backdropFilter: 'blur(24px) saturate(160%)',
         WebkitBackdropFilter: 'blur(24px) saturate(160%)',
         transition: `opacity ${animTiming}`,

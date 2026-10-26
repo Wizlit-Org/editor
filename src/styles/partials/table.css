@@ -140,7 +140,7 @@
     td.selectedCell,
     th.selectedCell,
     .selectedCell {
-      background-color: rgba(200, 200, 255, 0.4) !important;
+      background-color: var(--editor-accent, rgba(250, 175, 45, 0.16)) !important;
     }
 
     .theme-dark td.selectedCell,
@@ -149,7 +149,7 @@
     .editor-theme-dark th.selectedCell,
     .theme-dark .selectedCell,
     .editor-theme-dark .selectedCell {
-      background-color: rgba(100, 120, 255, 0.3) !important;
+      background-color: var(--editor-selection, rgba(250, 175, 45, 0.24)) !important;
     }
 
     /* Suppress ProseMirror native grip widgets completely to eliminate double rendering */

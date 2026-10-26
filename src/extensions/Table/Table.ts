@@ -37,7 +37,7 @@ export const Table = TiptapTable.extend({
       }),
       new Plugin({
         key: new PluginKey('tableMergedSelectionExpander'),
-        appendTransaction(transactions, oldState, newState) {
+        appendTransaction(transactions, _oldState, newState) {
           // If transaction marked as grip selection, or not CellSelection, do not expand
           const gripSel = tableGripPluginKey.getState(newState)
           const isGripSelection = transactions.some(tr => tr.getMeta('isGripSelection') || tr.getMeta('gripSelection'))

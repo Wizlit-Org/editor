@@ -248,14 +248,14 @@ export const SmartPasteMenu: React.FC<SmartPasteMenuProps> = ({ editor }) => {
                 onMouseEnter={() => setSelectedIndex(idx)}
                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors cursor-pointer ${
                   isSelected
-                    ? 'bg-indigo-500/10 text-indigo-600 dark:bg-violet-500/20 dark:text-violet-300 font-medium'
+                    ? 'bg-[var(--editor-accent)] text-[var(--editor-primary)] font-medium'
                     : 'text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.06]'
                 }`}
               >
                 <div
                   className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${
                     isSelected
-                      ? 'bg-indigo-600 text-white dark:bg-violet-500 dark:text-white'
+                      ? 'bg-[var(--editor-primary)] text-white'
                       : 'bg-black/5 dark:bg-white/10 text-zinc-600 dark:text-zinc-300'
                   }`}
                 >
@@ -272,7 +272,7 @@ export const SmartPasteMenu: React.FC<SmartPasteMenuProps> = ({ editor }) => {
                   )}
                 </div>
                 {isSelected && (
-                  <span className="text-[10px] text-indigo-500 dark:text-violet-400 font-mono shrink-0">
+                  <span className="text-[10px] text-[var(--editor-primary)] font-mono shrink-0">
                     ↵
                   </span>
                 )}

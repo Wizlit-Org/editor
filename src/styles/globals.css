@@ -4,6 +4,14 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --editor-primary: #faaf2d;
+  --editor-accent: rgba(250, 175, 45, 0.15);
+  --editor-accent-border: rgba(250, 175, 45, 0.25);
+  --editor-caret: #faaf2d;
+  --editor-selection: rgba(250, 175, 45, 0.2);
+}
+
 /* ==========================================================================
    Editor Theme Scoping & Strict Theme Isolation
    Isolates BlockEditor from parent .dark class & prefers-color-scheme: dark
@@ -131,25 +139,13 @@
 
 .editor-theme-light .ProseMirror a:hover,
 .dark .editor-theme-light .ProseMirror a:hover,
-.editor-theme-dark .ProseMirror a:hover,
-.editor-theme-light a[class*="hover:text-indigo-600"]:hover,
-.editor-theme-dark a[class*="hover:text-indigo-600"]:hover,
-.editor-theme-light a[class*="dark:hover:text-violet-400"]:hover,
-.editor-theme-dark a[class*="dark:hover:text-violet-400"]:hover {
+.editor-theme-dark .ProseMirror a:hover {
   text-decoration-color: var(--editor-primary, #faaf2d) !important;
   color: var(--editor-primary, #faaf2d) !important;
   filter: brightness(1.1);
 }
 
 /* 3. Toolbar Active Buttons */
-.editor-theme-light button[class*="text-indigo-600"],
-.editor-theme-light button[class*="dark:text-indigo-300"],
-.editor-theme-light button[class*="dark:text-indigo-400"],
-.editor-theme-light button[class*="dark:text-violet-300"],
-.editor-theme-dark button[class*="text-indigo-600"],
-.editor-theme-dark button[class*="dark:text-indigo-300"],
-.editor-theme-dark button[class*="dark:text-indigo-400"],
-.editor-theme-dark button[class*="dark:text-violet-300"],
 .editor-theme-light button[data-active="true"],
 .editor-theme-dark button[data-active="true"] {
   color: var(--editor-primary, #faaf2d) !important;
@@ -157,12 +153,8 @@
   border-color: var(--editor-accent-border, rgba(250, 175, 45, 0.25)) !important;
 }
 
-.editor-theme-light button[class*="text-indigo-600"] svg,
-.editor-theme-light button[class*="dark:text-indigo-300"] svg,
-.editor-theme-light button[class*="dark:text-indigo-400"] svg,
-.editor-theme-dark button[class*="text-indigo-600"] svg,
-.editor-theme-dark button[class*="dark:text-indigo-300"] svg,
-.editor-theme-dark button[class*="dark:text-indigo-400"] svg {
+.editor-theme-light button[data-active="true"] svg,
+.editor-theme-dark button[data-active="true"] svg {
   color: var(--editor-primary, #faaf2d) !important;
 }
 
@@ -178,4 +170,54 @@
 .editor-theme-dark [class*="focus-visible:ring-"] {
   --tw-ring-color: var(--editor-primary, #faaf2d) !important;
 }
+
+/* 5. Theme Token Utility Bindings (Guaranteed application independent of host JIT) */
+[class*="text-[var(--editor-primary)]"] {
+  color: var(--editor-primary, #faaf2d) !important;
+}
+
+[class*="hover:text-[var(--editor-primary)]"]:hover {
+  color: var(--editor-primary, #faaf2d) !important;
+}
+
+[class*="bg-[var(--editor-primary)]"] {
+  background-color: var(--editor-primary, #faaf2d) !important;
+}
+
+[class*="hover:bg-[var(--editor-primary)]"]:hover,
+[class*="active:bg-[var(--editor-primary)]"]:active {
+  background-color: var(--editor-primary, #faaf2d) !important;
+}
+
+[class*="bg-[var(--editor-accent)]"] {
+  background-color: var(--editor-accent, rgba(250, 175, 45, 0.15)) !important;
+}
+
+[class*="hover:bg-[var(--editor-accent-border)]"]:hover,
+[class*="hover:!bg-[var(--editor-accent-border)]"]:hover {
+  background-color: var(--editor-accent-border, rgba(250, 175, 45, 0.25)) !important;
+}
+
+[class*="border-[var(--editor-primary)]"],
+[class*="focus-within:border-[var(--editor-primary)]"]:focus-within {
+  border-color: var(--editor-primary, #faaf2d) !important;
+}
+
+[class*="border-[var(--editor-accent-border)]"] {
+  border-color: var(--editor-accent-border, rgba(250, 175, 45, 0.25)) !important;
+}
+
+[class*="ring-[var(--editor-primary)]"] {
+  --tw-ring-color: var(--editor-primary, #faaf2d) !important;
+}
+
+[class*="shadow-[0_0_6px_var(--editor-primary)]"] {
+  box-shadow: 0 0 6px var(--editor-primary, #faaf2d) !important;
+}
+
+[class*="shadow-[0_0_0_4px_var(--editor-accent)]"] {
+  box-shadow: 0 0 0 4px var(--editor-accent, rgba(250, 175, 45, 0.18)) !important;
+}
+
+
 

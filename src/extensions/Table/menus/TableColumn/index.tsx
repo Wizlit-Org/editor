@@ -278,19 +278,19 @@ export const TableColumnMenu = React.memo(({ editor, appendTo }: MenuProps): JSX
                 itemClass,
                 isColHeaderBlocked && 'opacity-50 cursor-not-allowed hover:bg-transparent',
                 isHeaderColActive &&
-                  '!bg-indigo-500/10 !text-indigo-600 dark:!text-indigo-400 font-medium hover:!bg-indigo-500/20',
+                  '!bg-[var(--editor-accent)] !text-[var(--editor-primary)] font-medium hover:!bg-[var(--editor-accent-border)]',
               )}
             >
               <Icon
                 name="Table"
                 className={cn(
                   'w-3.5 h-3.5',
-                  isHeaderColActive ? '!text-indigo-600 dark:!text-indigo-400' : 'text-zinc-500 dark:text-[#9b9b9b]',
+                  isHeaderColActive ? '!text-[var(--editor-primary)]' : 'text-zinc-500 dark:text-[#9b9b9b]',
                 )}
               />
               <span>Header column</span>
               {isHeaderColActive && (
-                <Icon name="Check" className="w-3.5 h-3.5 ml-auto !text-indigo-600 dark:!text-indigo-400" />
+                <Icon name="Check" className="w-3.5 h-3.5 ml-auto !text-[var(--editor-primary)]" />
               )}
             </button>
             <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />

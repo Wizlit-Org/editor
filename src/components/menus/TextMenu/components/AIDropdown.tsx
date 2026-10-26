@@ -37,8 +37,8 @@
 //     <Dropdown.Root>
 //       <Dropdown.Trigger asChild>
 //         <Toolbar.Button
-//           className="text-purple-500 hover:text-purple-600 active:text-purple-600 dark:text-purple-400 dark:hover:text-purple-300 dark:active:text-purple-400"
-//           activeClassname="text-purple-600 hover:text-purple-600 dark:text-purple-400 dark:hover:text-purple-200"
+//           className="text-[var(--editor-primary)] hover:opacity-80"
+//           activeClassname="text-[var(--editor-primary)]"
 //         >
 //           <Icon name="Sparkles" className="mr-1" />
 //           AI Tools

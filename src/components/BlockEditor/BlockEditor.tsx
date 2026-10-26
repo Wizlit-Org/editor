@@ -327,6 +327,16 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     }
   }, [editor, image?.getUploadDialogProps, image?.onLoadingChange, uploadDialog.items])
 
+  useEffect(() => {
+    if (typeof document === 'undefined' || !themeColor) return
+    const root = document.documentElement
+    root.style.setProperty('--editor-primary', themeColor)
+    root.style.setProperty('--editor-accent', `${themeColor}26`)
+    root.style.setProperty('--editor-accent-border', `${themeColor}40`)
+    root.style.setProperty('--editor-caret', themeColor)
+    root.style.setProperty('--editor-selection', `${themeColor}33`)
+  }, [themeColor])
+
   if (!editor) {
     return null
   }
@@ -351,13 +361,13 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   return (
     <>
       <div
-        className={`relative flex min-h-full h-auto flex-[1_0_auto] overflow-x-clip [overflow-x:clip] ${themeClass} ${className}`.trim()}
+        className={`relative flex w-full max-w-full min-w-0 min-h-full h-auto flex-[1_0_auto] overflow-x-clip [overflow-x:clip] box-border ${themeClass} ${className}`.trim()}
         data-theme={isDark ? 'dark' : 'light'}
         data-editor-theme={isDark ? 'dark' : 'light'}
         ref={menuContainerRef}
         style={themeColorStyle}
       >
-        <div className="relative flex flex-col flex-[1_0_auto] h-auto min-h-full">
+        <div className="relative flex flex-col flex-1 w-full min-w-0 max-w-full h-auto min-h-full">
           {/* <EditorHeader
             editor={editor}
             // collabState={collabState}
@@ -368,7 +378,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           <TableScrollIndicator editor={editor} appendTo={menuContainerRef} />
           <EditorContent
             editor={editor}
-            className={`flex-1 focus:outline-none ${!readOnly ? 'pb-16' : ''}`.trim()}
+            className={`flex-1 w-full min-w-0 max-w-full focus:outline-none ${!readOnly ? 'pb-16' : ''}`.trim()}
           />
           <ContentItemMenu editor={editor} isEditable={!readOnly} appendTo={menuContainerRef} />
           <LinkMenu

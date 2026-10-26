@@ -13,7 +13,7 @@ interface CodeBlockViewProps {
   extension: Extension
 }
 
-export const CodeBlockView = ({ editor, node, getPos, updateAttributes, extension }: CodeBlockViewProps) => {
+export const CodeBlockView = ({ editor, node, updateAttributes, extension }: CodeBlockViewProps) => {
   const language = node.attrs.language || 'plaintext'
   const [isCopied, setIsCopied] = useState(false)
   const [shouldWrap, setShouldWrap] = useState(false)
@@ -151,8 +151,8 @@ export const CodeBlockView = ({ editor, node, getPos, updateAttributes, extensio
   }, [isOpen, search, handleLanguageChange])
 
   return (
-    <NodeViewWrapper spellCheck="false" className="relative group my-4">
-      <div className="rounded-xl overflow-hidden bg-zinc-900/85 dark:bg-[#18181b]/80 backdrop-blur-xl border border-black/10 dark:border-white/15 shadow-2xl transition-all ring-1 ring-black/5 dark:ring-white/5">
+    <NodeViewWrapper spellCheck="false" className="relative group my-4 w-full max-w-full min-w-0">
+      <div className="w-full max-w-full min-w-0 rounded-xl overflow-hidden bg-zinc-900/85 dark:bg-[#18181b]/80 backdrop-blur-xl border border-black/10 dark:border-white/15 shadow-2xl transition-all ring-1 ring-black/5 dark:ring-white/5">
         {/* Code Header Bar: macOS 3-dot + Language Badge on Left, Action Buttons on Right */}
         <div className="flex items-center justify-between px-3.5 py-2 border-b border-white/[0.08] bg-white/[0.03]">
           <div className="flex items-center gap-2.5">
@@ -190,7 +190,7 @@ export const CodeBlockView = ({ editor, node, getPos, updateAttributes, extensio
               className={cn(
                 'p-1 rounded-md text-xs transition-colors',
                 shouldWrap
-                  ? 'bg-blue-500/20 text-blue-300'
+                  ? 'bg-[var(--editor-accent)] text-[var(--editor-primary)]'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/10',
               )}
               title={shouldWrap ? 'Disable wrapping' : 'Enable wrapping'}
@@ -281,7 +281,7 @@ export const CodeBlockView = ({ editor, node, getPos, updateAttributes, extensio
                 tabIndex={-1}
               >
                 <span>{lang}</span>
-                {lang === language && <Icon name="Check" className="h-3.5 w-3.5 text-blue-500" />}
+                {lang === language && <Icon name="Check" className="h-3.5 w-3.5 text-[var(--editor-primary)]" />}
               </button>
             ))}
           </div>

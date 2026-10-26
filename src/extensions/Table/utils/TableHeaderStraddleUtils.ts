@@ -2,7 +2,7 @@ import { Node } from '@tiptap/pm/model'
 import { Editor } from '@tiptap/core'
 import { TableMap } from '@tiptap/pm/tables'
 import { findTable, isCellSelection } from '../utils'
-import { getClusterRowRange, getClusterColRange } from './TableClusterUtils'
+// unused import removed
 
 /**
  * Checks if the table has a header row (first row consists of tableHeader cells).

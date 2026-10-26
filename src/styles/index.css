@@ -25,8 +25,17 @@
   z-index: 0;
   margin-left: auto;
   margin-right: auto;
+  width: 100%;
   max-width: 42rem;
+  min-width: 0;
+  box-sizing: border-box;
   position: relative;
+
+  pre {
+    max-width: 100%;
+    min-width: 0 !important;
+    box-sizing: border-box;
+  }
 
   /* 본문 폭/여백은 0px도 건드리지 않으면서, 마우스가 좌측 거터(-68px)로 이동할 때 @tiptap/extension-drag-handle이 ProseMirror를 감지하도록 가상 히트박스 제공 */
   &::before {
@@ -216,34 +225,38 @@
 }
 
 /* ==========================================================================
-   Mobile Fluid Responsive System & Drag Handle Virtual Hitbox Guard
+   Mobile Viewport Boundary Guard (Preserves original layout & gutter)
    ========================================================================== */
 
-@media (max-width: 768px) {
-  .ProseMirror {
-    padding-left: clamp(12px, 3vw, 16px);
-    padding-right: clamp(12px, 3vw, 16px);
-    box-sizing: border-box;
+@media (max-width: 767px) {
+  .notion-light-canvas,
+  .notion-dark-canvas {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    box-sizing: border-box !important;
+  }
 
-    /* 모바일 터치 및 협소 화면에서 좌측 거터(-68px) 가상 히트박스로 인한 가로 오버플로우/오동작 차단 */
+  .notion-light-canvas .max-w-2xl,
+  .notion-dark-canvas .max-w-2xl {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .notion-light-canvas .w-\[300px\],
+  .notion-dark-canvas .w-\[300px\] {
+    max-width: calc(100vw - 32px) !important;
+    min-width: 0 !important;
+  }
+
+  .ProseMirror {
+    /* 모바일 뷰포트에서 좌측 거터(-68px) 가상 히트박스로 인한 불필요한 화면 밖 가로 오버플로우만 방어 */
     &::before {
       display: none !important;
       left: 0 !important;
       width: 0 !important;
       pointer-events: none !important;
     }
-  }
-
-  .notion-light-canvas,
-  .notion-dark-canvas {
-    padding-left: clamp(12px, 3vw, 16px);
-    padding-right: clamp(12px, 3vw, 16px);
-    box-sizing: border-box;
-  }
-
-  .notion-light-canvas .ProseMirror,
-  .notion-dark-canvas .ProseMirror {
-    padding-left: 0;
-    padding-right: 0;
   }
 }

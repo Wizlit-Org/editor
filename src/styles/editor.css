@@ -159,12 +159,12 @@
 .ProseMirror-dropcursor,
 .ProseMirror-dropmarker {
   height: 2px !important;
-  background-color: #6366f1 !important;
+  background-color: var(--editor-primary, #faaf2d) !important;
   border: none !important;
   border-radius: 2px !important;
   z-index: 50 !important;
   pointer-events: none !important;
-  box-shadow: 0 0 8px rgba(99, 102, 241, 0.8) !important;
+  box-shadow: 0 0 8px var(--editor-accent-border, rgba(250, 175, 45, 0.6)) !important;
   transition: all 0.1s ease-out !important;
 }
 
@@ -188,28 +188,4 @@
 .dark .editor-theme-light .ProseMirror [data-type='blockquoteFigure'] > blockquote,
 .editor-theme-light .ProseMirror [data-type='blockquoteFigure'] > blockquote {
   color: #000000 !important;
-}
-
-/* ==========================================================================
-   Mobile Margin Fluidization System
-   ========================================================================== */
-
-@media (max-width: 768px) {
-  .ProseMirror {
-    padding-left: clamp(12px, 3vw, 16px);
-    padding-right: clamp(12px, 3vw, 16px);
-
-    & > * + * {
-      margin-top: clamp(0.5em, 2vw, 0.75em);
-    }
-
-    [data-type='blockquoteFigure'] > div {
-      padding-left: clamp(8px, 2.5vw, 16px);
-      padding-right: clamp(8px, 2.5vw, 16px);
-    }
-
-    [data-type='columns'] {
-      gap: clamp(8px, 2vw, 16px);
-    }
-  }
 }

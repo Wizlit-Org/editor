@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef } from 'react'
+import React, { useCallback, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Editor } from '@tiptap/react'
 import { TableMap } from '@tiptap/pm/tables'
@@ -400,10 +400,10 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
   const isLastRow = hoveredRowIndex !== null && rowGrips.length > 0 && hoveredRowIndex === rowGrips.length - 1
 
   const pillClass = "fixed rounded-full backdrop-blur-md shadow-2xs transition-all flex items-center justify-center p-0 cursor-pointer select-none"
-  const colSinglePillClass = `${pillClass} z-[9] bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-violet-500/90 border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white`
-  const colMergedPillClass = `${pillClass} z-[9] bg-indigo-600/35 hover:bg-indigo-600/50 active:bg-indigo-600/90 dark:bg-violet-500/35 dark:hover:bg-violet-500/50 dark:active:bg-violet-500/90 border border-indigo-500/40 dark:border-violet-400/40 text-indigo-700 dark:text-violet-200 active:text-white`
-  const rowSinglePillClass = `${pillClass} z-[15] bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-violet-500/90 border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white`
-  const rowMergedPillClass = `${pillClass} z-[15] bg-indigo-600/35 hover:bg-indigo-600/50 active:bg-indigo-600/90 dark:bg-violet-500/35 dark:hover:bg-violet-500/50 dark:active:bg-violet-500/90 border border-indigo-500/40 dark:border-violet-400/40 text-indigo-700 dark:text-violet-200 active:text-white`
+  const colSinglePillClass = `${pillClass} z-[9] bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-[var(--editor-primary)] dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-[var(--editor-primary)] border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white`
+  const colMergedPillClass = `${pillClass} z-[9] bg-[var(--editor-accent)] hover:bg-[var(--editor-accent-border)] active:bg-[var(--editor-primary)] border border-[var(--editor-accent-border)] text-[var(--editor-primary)] active:text-white`
+  const rowSinglePillClass = `${pillClass} z-[15] bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-[var(--editor-primary)] dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-[var(--editor-primary)] border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white`
+  const rowMergedPillClass = `${pillClass} z-[15] bg-[var(--editor-accent)] hover:bg-[var(--editor-accent-border)] active:bg-[var(--editor-primary)] border border-[var(--editor-accent-border)] text-[var(--editor-primary)] active:text-white`
 
   const originLeft = tableRect.originLeft !== undefined ? tableRect.originLeft : tableRect.left
   const rowGripLeft = originLeft - 15 - offset.x

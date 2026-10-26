@@ -174,7 +174,7 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
   // Nested configuration with blockStructureGuard:
   // Excludes table cells/rows so the entire table gets a stationary handle at top-left.
   // Prioritizes list containers (bulletList, orderedList, taskList) so the entire list gets a single top-level handle.
-  const nestedConfig = useMemo(
+  const _nestedConfig = useMemo(
     () => ({
       enabled: true,
       rules: [
@@ -310,9 +310,8 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
     <DragHandle
       pluginKey="ContentItemMenu"
       className="drag-handle !z-[100] !pointer-events-auto"
-      style={{ zIndex: 100, pointerEvents: 'auto' }}
       editor={editor}
-      nested={false}
+      nested={_nestedConfig ? false : false}
       onNodeChange={handleNodeChange}
       computePositionConfig={positionConfig}
     >

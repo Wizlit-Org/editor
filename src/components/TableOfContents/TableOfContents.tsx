@@ -192,11 +192,11 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
               className="flex items-center justify-between px-3.5 py-2.5 cursor-pointer hover:bg-black/[0.03] dark:hover:bg-white/[0.04] transition-colors"
             >
               <div className="flex items-center gap-2">
-                <Icon name="ListOrdered" className="w-4 h-4 text-indigo-500 dark:text-violet-400" />
+                <Icon name="ListOrdered" className="w-4 h-4 text-[var(--editor-primary)]" style={{ color: 'var(--editor-primary, #faaf2d)' }} />
                 <span className="text-xs font-semibold tracking-wide text-zinc-700 dark:text-[#e3e3e3]">
                   Table of Contents
                 </span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/10 dark:bg-violet-500/20 text-indigo-600 dark:text-violet-300 font-medium">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--editor-accent)] text-[var(--editor-primary)] font-medium" style={{ backgroundColor: 'var(--editor-accent, rgba(250, 175, 45, 0.15))', color: 'var(--editor-primary, #faaf2d)' }}>
                   {headings.length}
                 </span>
               </div>
@@ -220,10 +220,10 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
                   const isActive = item.id === activeHeadingId
                   const indentClass =
                     item.level === 1
-                      ? `pl-2 font-medium ${isActive ? 'text-indigo-600 dark:text-violet-300 font-semibold bg-indigo-50/70 dark:bg-violet-950/40' : 'text-zinc-800 dark:text-[#e3e3e3]'}`
+                      ? `pl-2 font-medium ${isActive ? 'text-[var(--editor-primary)] font-semibold bg-[var(--editor-accent)]' : 'text-zinc-800 dark:text-[#e3e3e3]'}`
                       : item.level === 2
-                      ? `pl-5 ${isActive ? 'text-indigo-600 dark:text-violet-300 font-medium bg-indigo-50/70 dark:bg-violet-950/40' : 'text-zinc-600 dark:text-zinc-300'}`
-                      : `pl-8 ${isActive ? 'text-indigo-600 dark:text-violet-300 font-medium bg-indigo-50/70 dark:bg-violet-950/40' : 'text-zinc-500 dark:text-zinc-400'}`
+                      ? `pl-5 ${isActive ? 'text-[var(--editor-primary)] font-medium bg-[var(--editor-accent)]' : 'text-zinc-600 dark:text-zinc-300'}`
+                      : `pl-8 ${isActive ? 'text-[var(--editor-primary)] font-medium bg-[var(--editor-accent)]' : 'text-zinc-500 dark:text-zinc-400'}`
 
                   return (
                     <button
@@ -232,7 +232,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
                       onClick={() => handleScrollToHeading(item.pos, item.id)}
                       className={`w-full text-left text-xs py-1.5 pr-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] transition-colors truncate flex items-center gap-1.5 ${indentClass}`}
                     >
-                      <span className={`text-[10px] shrink-0 font-mono ${isActive ? 'text-indigo-500 dark:text-violet-400 font-bold' : 'text-zinc-400 dark:text-zinc-500'}`}>
+                      <span className={`text-[10px] shrink-0 font-mono ${isActive ? 'text-[var(--editor-primary)] font-bold' : 'text-zinc-400 dark:text-zinc-500'}`} style={isActive ? { color: 'var(--editor-primary, #faaf2d)' } : undefined}>
                         H{item.level}
                       </span>
                       <span className="truncate">{item.text}</span>
@@ -260,9 +260,9 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
             className="flex items-center justify-between w-[300px] min-w-[300px] px-3.5 py-1.5 rounded-full shadow-xl hover:shadow-2xl bg-white/85 dark:bg-[#202020]/90 backdrop-blur-xl border border-black/10 dark:border-white/15 ring-1 ring-white/40 dark:ring-white/5 transition-all text-xs font-medium text-zinc-800 dark:text-[#e3e3e3]"
           >
             <div className="flex items-center gap-2 truncate">
-              <Icon name="ListOrdered" className="w-3.5 h-3.5 text-indigo-500 dark:text-violet-400 shrink-0" />
+              <Icon name="ListOrdered" className="w-3.5 h-3.5 text-[var(--editor-primary)] shrink-0" style={{ color: 'var(--editor-primary, #faaf2d)' }} />
               <span className="text-xs font-semibold truncate">Table of Contents</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/10 dark:bg-violet-500/20 text-indigo-600 dark:text-violet-300 font-mono font-medium shrink-0">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--editor-accent)] text-[var(--editor-primary)] font-mono font-medium shrink-0" style={{ backgroundColor: 'var(--editor-accent, rgba(250, 175, 45, 0.15))', color: 'var(--editor-primary, #faaf2d)' }}>
                 {headings.length}
               </span>
             </div>
@@ -283,10 +283,10 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
                   const isActive = item.id === activeHeadingId
                   const indentClass =
                     item.level === 1
-                      ? `pl-2 font-medium ${isActive ? 'text-indigo-600 dark:text-violet-300 font-semibold bg-indigo-50/70 dark:bg-violet-950/40' : 'text-zinc-800 dark:text-[#e3e3e3]'}`
+                      ? `pl-2 font-medium ${isActive ? 'text-[var(--editor-primary)] font-semibold bg-[var(--editor-accent)]' : 'text-zinc-800 dark:text-[#e3e3e3]'}`
                       : item.level === 2
-                      ? `pl-5 ${isActive ? 'text-indigo-600 dark:text-violet-300 font-medium bg-indigo-50/70 dark:bg-violet-950/40' : 'text-zinc-600 dark:text-zinc-300'}`
-                      : `pl-8 ${isActive ? 'text-indigo-600 dark:text-violet-300 font-medium bg-indigo-50/70 dark:bg-violet-950/40' : 'text-zinc-500 dark:text-zinc-400'}`
+                      ? `pl-5 ${isActive ? 'text-[var(--editor-primary)] font-medium bg-[var(--editor-accent)]' : 'text-zinc-600 dark:text-zinc-300'}`
+                      : `pl-8 ${isActive ? 'text-[var(--editor-primary)] font-medium bg-[var(--editor-accent)]' : 'text-zinc-500 dark:text-zinc-400'}`
 
                   return (
                     <button
@@ -295,7 +295,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
                       onClick={() => handleScrollToHeading(item.pos, item.id)}
                       className={`w-full text-left text-xs py-1.5 pr-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] transition-colors truncate flex items-center gap-1.5 ${indentClass}`}
                     >
-                      <span className={`text-[10px] shrink-0 font-mono ${isActive ? 'text-indigo-500 dark:text-violet-400 font-bold' : 'text-zinc-400 dark:text-zinc-500'}`}>
+                      <span className={`text-[10px] shrink-0 font-mono ${isActive ? 'text-[var(--editor-primary)] font-bold' : 'text-zinc-400 dark:text-zinc-500'}`} style={isActive ? { color: 'var(--editor-primary, #faaf2d)' } : undefined}>
                         H{item.level}
                       </span>
                       <span className="truncate">{item.text}</span>

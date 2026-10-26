@@ -307,13 +307,13 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
       >
         {/* Main video outer container: overflow-visible so focus ring & hover ring are never clipped */}
         <div className="relative group/youtube w-full flex flex-col p-0 m-0 leading-none overflow-visible">
-          {/* Inner video frame: clipped with rounded-xl + crisp indigo focus ring when selected */}
+          {/* Inner video frame: clipped with rounded-xl + crisp theme focus ring when selected */}
           <div
             data-youtube-video="true"
             className={cn(
               'relative rounded-xl overflow-hidden w-full aspect-video flex flex-col leading-none bg-black/[0.04] dark:bg-white/[0.04] shadow-sm cursor-pointer transition-shadow duration-150',
               isFocused &&
-                'ring-2 ring-indigo-500 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900 shadow-[0_0_0_4px_rgba(99,102,241,0.18)]',
+                'ring-2 ring-[var(--editor-primary)] ring-offset-2 ring-offset-white dark:ring-offset-zinc-900 shadow-[0_0_0_4px_var(--editor-accent)]',
             )}
             onClick={editorEditable ? onSelectBlock : undefined}
           >

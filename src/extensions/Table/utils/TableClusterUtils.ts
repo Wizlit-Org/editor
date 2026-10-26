@@ -2,7 +2,7 @@ import { Editor } from '@tiptap/core'
 import { TableMap, CellSelection } from '@tiptap/pm/tables'
 import { Node } from '@tiptap/pm/model'
 import { Transaction, TextSelection } from '@tiptap/pm/state'
-import { findTable, selectColumn, selectRow, isCellSelection } from '../utils'
+import { findTable, isCellSelection } from '../utils'
 import { tableGripPluginKey } from '../Table'
 
 /**
@@ -164,7 +164,7 @@ export function duplicateColCluster(editor: Editor, minCol: number, maxCol: numb
   const map = TableMap.get(table.node)
   if (minCol < 0 || maxCol >= map.width || minCol > maxCol) return false
 
-  const cloneCount = maxCol - minCol + 1
+  // cloneCount = maxCol - minCol + 1
   const newColIndices: number[] = []
   for (let c = 0; c <= maxCol; c++) newColIndices.push(c)
   for (let c = minCol; c <= maxCol; c++) newColIndices.push(c)

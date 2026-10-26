@@ -102,50 +102,30 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
 
     if (gripSel && table && gripSel.tablePos === table.pos) {
       const dom = editor.view.nodeDOM(table.pos) as HTMLElement | null
-      const tableEl =
-        dom && dom.nodeType === 1 ? (dom.tagName === 'TABLE' ? dom : dom.querySelector('table')) : null
+      const tableEl = dom && dom.nodeType === 1 ? (dom.tagName === 'TABLE' ? dom : dom.querySelector('table')) : null
       if (tableEl) {
         const tRect = tableEl.getBoundingClientRect()
-        let minTop = tRect.top
-        let maxBottom = tRect.bottom
-        let minLeft = tRect.left
-        let maxRight = tRect.right
-
+        let minTop = tRect.top, maxBottom = tRect.bottom, minLeft = tRect.left, maxRight = tRect.right
         if (gripSel.type === 'row') {
           const trs = Array.from(tableEl.querySelectorAll('tbody > tr, tr')) as HTMLTableRowElement[]
           if (trs.length > 0) {
-            const topRow = trs[Math.min(gripSel.min, trs.length - 1)]
-            const bottomRow = trs[Math.min(gripSel.max, trs.length - 1)]
-            if (topRow && bottomRow) {
-              minTop = topRow.getBoundingClientRect().top
-              maxBottom = bottomRow.getBoundingClientRect().bottom
-            }
+            const topRow = trs[Math.min(gripSel.min, trs.length - 1)], bottomRow = trs[Math.min(gripSel.max, trs.length - 1)]
+            if (topRow && bottomRow) { minTop = topRow.getBoundingClientRect().top; maxBottom = bottomRow.getBoundingClientRect().bottom }
           }
         } else {
           const map = TableMap.get(table.node)
-          const leftCellOffset = map.map[Math.min(gripSel.min, map.width - 1)]
-          const rightCellOffset = map.map[Math.min(gripSel.max, map.width - 1)]
+          const leftCellOffset = map.map[Math.min(gripSel.min, map.width - 1)], rightCellOffset = map.map[Math.min(gripSel.max, map.width - 1)]
           const leftCellEl = (editor.view.nodeDOM(table.start + leftCellOffset) as HTMLElement | null) || tableEl.querySelector(`td:nth-child(${gripSel.min + 1}), th:nth-child(${gripSel.min + 1})`) as HTMLElement | null
           const rightCellEl = (editor.view.nodeDOM(table.start + rightCellOffset) as HTMLElement | null) || tableEl.querySelector(`td:nth-child(${gripSel.max + 1}), th:nth-child(${gripSel.max + 1})`) as HTMLElement | null
-          if (leftCellEl && rightCellEl) {
-            minLeft = leftCellEl.getBoundingClientRect().left
-            maxRight = rightCellEl.getBoundingClientRect().right
-          }
+          if (leftCellEl && rightCellEl) { minLeft = leftCellEl.getBoundingClientRect().left; maxRight = rightCellEl.getBoundingClientRect().right }
         }
-
         const container = (appendTo?.current as HTMLElement) || null
-        const isWithinContainer = !container || (() => {
-          const cRect = container.getBoundingClientRect()
-          const dotY = minTop + (maxBottom - minTop) / 2
-          return dotY >= cRect.top && dotY <= cRect.bottom
-        })()
+        const isWithinContainer = !container || (() => { const cRect = container.getBoundingClientRect(), dotY = minTop + (maxBottom - minTop) / 2; return dotY >= cRect.top && dotY <= cRect.bottom })()
         const tableWrapper = tableEl.closest('.tableWrapper') as HTMLElement | null
         const wRect = tableWrapper ? tableWrapper.getBoundingClientRect() : null
         const hasLeftBlur = Boolean(tableWrapper && tableWrapper.scrollLeft > 2)
-        const minColLeft = wRect ? wRect.left + (hasLeftBlur ? 40 : 0) : undefined
-        const wrapperRight = wRect ? wRect.right : undefined
+        const minColLeft = wRect ? wRect.left + (hasLeftBlur ? 40 : 0) : undefined, wrapperRight = wRect ? wRect.right : undefined
         const isVisibleInWrapper = wRect ? maxRight >= (minColLeft ?? wRect.left) + 8 && maxRight <= wRect.right + 15 : true
-
         setSelectionRect({ top: minTop, left: minLeft, width: maxRight - minLeft, height: maxBottom - minTop, minColLeft, wrapperRight })
         setIsButtonVisible(isVisibleInWrapper && isWithinContainer)
         return
@@ -458,13 +438,14 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
             }}
           >
             <div
-              className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[8] border-2 border-indigo-500/85 dark:border-violet-400/85 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
+              className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[8] border-2 border-[var(--editor-primary)] shadow-[0_0_0_1px_var(--editor-accent-border)]"
               style={{
                 top: selectionRect.top - offset.y,
                 left: selectionRect.left - offset.x,
                 width: selectionRect.width,
                 height: selectionRect.height,
-                backgroundColor: 'rgba(99, 102, 241, 0.12)',
+                borderColor: 'var(--editor-primary, #faaf2d)',
+                backgroundColor: 'var(--editor-accent, rgba(250, 175, 45, 0.12))',
                 zIndex: 8,
               }}
             />
@@ -477,7 +458,8 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                 <Popover.Anchor asChild>
                   <button type="button" onPointerDown={handlePointerDown} onClick={e => { e.preventDefault(); e.stopPropagation() }}
                     onMouseEnter={() => setIsBtnHovered(true)} onMouseLeave={() => setIsBtnHovered(false)}
-                    className={`rounded-full bg-indigo-600 dark:bg-violet-500 text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-[9] select-none ${isExpanded ? 'w-4 h-4 -ml-2' : 'w-2 h-2 -ml-1'}`}
+                    style={{ backgroundColor: 'var(--editor-primary, #faaf2d)' }}
+                    className={`rounded-full bg-[var(--editor-primary)] text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-[9] select-none ${isExpanded ? 'w-4 h-4 -ml-2' : 'w-2 h-2 -ml-1'}`}
                     title="Click for options, drag to adjust cell selection" aria-label="Table cells option">
                     <svg className={`w-2.5 h-2.5 fill-current transition-opacity duration-150 ${isExpanded ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`} viewBox="0 0 16 16">
                       <circle cx="5" cy="5" r="1.5" /><circle cx="11" cy="5" r="1.5" /><circle cx="5" cy="11" r="1.5" /><circle cx="11" cy="11" r="1.5" />
