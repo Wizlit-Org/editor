@@ -3,6 +3,25 @@ import { Selection, TextSelection } from '@tiptap/pm/state'
 import { Editor } from '@tiptap/react'
 import { useCallback } from 'react'
 
+function createQuoteNode(schema: any, paragraphs: Node[]): Node | null {
+  const validParagraphs =
+    paragraphs.length > 0 ? paragraphs : [schema.nodes.paragraph.create()]
+
+  // 1. Wizlit Editor BlockquoteFigure extension: blockquoteFigure -> [quote, quoteCaption]
+  if (schema.nodes.blockquoteFigure && schema.nodes.quote && schema.nodes.quoteCaption) {
+    const quoteNode = schema.nodes.quote.create(null, validParagraphs)
+    const captionNode = schema.nodes.quoteCaption.create(null)
+    return schema.nodes.blockquoteFigure.create(null, [quoteNode, captionNode])
+  }
+
+  // 2. Standard TipTap blockquote extension
+  if (schema.nodes.blockquote) {
+    return schema.nodes.blockquote.create(null, validParagraphs)
+  }
+
+  return null
+}
+
 export function turnIntoBlock(
   editor: Editor,
   pos: number,
@@ -35,6 +54,32 @@ export function turnIntoBlock(
         break
       }
     }
+  }
+
+  // Detect quote nodes (blockquoteFigure, quote, blockquote)
+  const isQuoteType = (t: string) => ['blockquoteFigure', 'blockquote', 'quote'].includes(t)
+  let isCurrentQuote = isQuoteType(node.type.name)
+  let quotePos = pos
+  let quoteNode = node
+
+  if (!isCurrentQuote) {
+    for (let d = $pos.depth; d > 0; d--) {
+      const ancestor = $pos.node(d)
+      if (isQuoteType(ancestor.type.name)) {
+        isCurrentQuote = true
+        if (ancestor.type.name === 'quote' && d > 1 && $pos.node(d - 1)?.type.name === 'blockquoteFigure') {
+          quotePos = $pos.before(d - 1)
+          quoteNode = $pos.node(d - 1)
+        } else {
+          quotePos = $pos.before(d)
+          quoteNode = ancestor
+        }
+        break
+      }
+    }
+  } else if (node.type.name === 'quote' && $pos.depth > 0 && $pos.node($pos.depth - 1)?.type.name === 'blockquoteFigure') {
+    quotePos = $pos.before($pos.depth - 1)
+    quoteNode = $pos.node($pos.depth - 1)
   }
 
   const isTargetList = ['bulletList', 'orderedList', 'taskList'].includes(targetType)
@@ -95,27 +140,29 @@ export function turnIntoBlock(
       return
     }
 
-    // A-2. From blockquote -> list
-    if (node.type.name === 'blockquote') {
+    // A-2. From quote -> list
+    if (isCurrentQuote) {
       editor.commands.command(({ tr, state }) => {
         const itemType = targetType === 'taskList' ? state.schema.nodes.taskItem : state.schema.nodes.listItem
         if (!itemType || !state.schema.nodes[targetType]) return false
         const listItems: any[] = []
-        node.forEach((child) => {
-          if (child.isTextblock) {
+        quoteNode.descendants((child) => {
+          if (child.isTextblock && child.type.name !== 'quoteCaption') {
             listItems.push(itemType.create(null, child))
           }
         })
-        if (listItems.length === 0) return false
+        if (listItems.length === 0) {
+          listItems.push(itemType.create(null, state.schema.nodes.paragraph.create()))
+        }
         const listAttrs = targetType === 'orderedList' ? { start: 1 } : {}
         const listNodeNew = state.schema.nodes[targetType].create(listAttrs, listItems)
-        tr.replaceWith(pos, pos + node.nodeSize, listNodeNew)
+        tr.replaceWith(quotePos, quotePos + quoteNode.nodeSize, listNodeNew)
         return true
       })
       return
     }
 
-    // A-3. From non-list node -> list
+    // A-3. From non-list, non-quote node -> list
     const chain = editor.chain().focus().setNodeSelection(pos)
     if (targetType === 'bulletList') chain.toggleBulletList().run()
     else if (targetType === 'orderedList') chain.toggleOrderedList().run()
@@ -159,7 +206,8 @@ export function turnIntoBlock(
 
       if (targetType === 'blockquote') {
         const paragraphs = textBlocks.map((b) => state.schema.nodes.paragraph.create(null, b.content))
-        const quote = state.schema.nodes.blockquote.create(null, paragraphs)
+        const quote = createQuoteNode(state.schema, paragraphs)
+        if (!quote) return false
         tr.replaceWith(listPos, listPos + listNode.nodeSize, quote)
         return true
       }
@@ -183,14 +231,83 @@ export function turnIntoBlock(
     return
   }
 
-  // C. Non-list -> Non-list
+  // C. Current node is a quote and target is non-list non-quote
+  if (isCurrentQuote) {
+    if (targetType === 'blockquote') return
+
+    editor.commands.command(({ tr, state }) => {
+      const textBlocks: Node[] = []
+      quoteNode.descendants((child) => {
+        if (child.isTextblock && child.type.name !== 'quoteCaption') {
+          textBlocks.push(child)
+        }
+      })
+
+      if (textBlocks.length === 0) {
+        textBlocks.push(state.schema.nodes.paragraph.create())
+      }
+
+      if (targetType === 'paragraph') {
+        const paragraphs = textBlocks.map((b) => state.schema.nodes.paragraph.create(null, b.content))
+        tr.replaceWith(quotePos, quotePos + quoteNode.nodeSize, paragraphs)
+        return true
+      }
+
+      if (targetType === 'heading') {
+        const headingNode = state.schema.nodes.heading.create(attrs, textBlocks[0].content)
+        const rest = textBlocks.slice(1).map((b) => state.schema.nodes.paragraph.create(null, b.content))
+        tr.replaceWith(quotePos, quotePos + quoteNode.nodeSize, [headingNode, ...rest])
+        return true
+      }
+
+      if (targetType === 'codeBlock') {
+        let codeText = ''
+        textBlocks.forEach((b, i) => {
+          let line = ''
+          b.descendants((c) => {
+            if (c.isText) line += c.text
+          })
+          codeText += (i > 0 ? '\n' : '') + line
+        })
+        const codeNode = state.schema.nodes.codeBlock.create(null, codeText ? state.schema.text(codeText) : null)
+        tr.replaceWith(quotePos, quotePos + quoteNode.nodeSize, codeNode)
+        return true
+      }
+
+      return false
+    })
+    return
+  }
+
+  // D. Non-list, non-quote -> Non-list
+  if (targetType === 'blockquote') {
+    editor.commands.command(({ tr, state }) => {
+      const textBlocks: Node[] = []
+      if (node.isTextblock) {
+        textBlocks.push(state.schema.nodes.paragraph.create(null, node.content))
+      } else {
+        node.descendants((child) => {
+          if (child.isTextblock) {
+            textBlocks.push(state.schema.nodes.paragraph.create(null, child.content))
+          }
+        })
+      }
+      if (textBlocks.length === 0) {
+        textBlocks.push(state.schema.nodes.paragraph.create())
+      }
+      const quoteNodeNew = createQuoteNode(state.schema, textBlocks)
+      if (!quoteNodeNew) return false
+      tr.replaceWith(pos, pos + node.nodeSize, quoteNodeNew)
+      return true
+    })
+    return
+  }
+
   const chain = editor.chain().focus().setNodeSelection(pos)
   if (targetType === 'paragraph') {
     chain.setParagraph().run()
   } else if (targetType === 'heading') {
     chain.setHeading(attrs as any).run()
-  } else if (targetType === 'blockquote') {
-    chain.toggleBlockquote().run()
   } else if (targetType === 'codeBlock') {
     chain.toggleCodeBlock().run()
   }
