@@ -83,7 +83,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   className = '',
   readOnly,
   theme = 'light',
-  themeColor = '#6366f1',
+  themeColor = '#faaf2d',
   maxEmbeddings = 3, // Default maximum number of images
   maxCharacters, // Default maximum number of characters
   showDebug = false,

@@ -17,8 +17,8 @@
   --editor-bg: #ffffff !important;
   --editor-text: #222325 !important;
   --editor-subtext: #71717a !important;
-  --editor-caret: #222325 !important;
-  --editor-selection: rgba(0, 0, 0, 0.1) !important;
+  --editor-caret: #222325;
+  --editor-selection: rgba(0, 0, 0, 0.1);
   --editor-divider: rgba(0, 0, 0, 0.08) !important;
 
   --glass-panel-bg: rgba(255, 255, 255, 0.88) !important;
@@ -44,8 +44,8 @@
   --editor-bg: #191919 !important;
   --editor-text: #e3e3e3 !important;
   --editor-subtext: #9b9b9b !important;
-  --editor-caret: #e3e3e3 !important;
-  --editor-selection: rgba(255, 255, 255, 0.2) !important;
+  --editor-caret: #e3e3e3;
+  --editor-selection: rgba(255, 255, 255, 0.2);
   --editor-divider: rgba(255, 255, 255, 0.1) !important;
 
   --glass-panel-bg: rgba(32, 32, 32, 0.75) !important;
@@ -99,7 +99,7 @@
 .dark .editor-theme-light .selection,
 .editor-theme-light pre *::selection,
 .editor-theme-light code::selection {
-  background-color: var(--editor-selection, rgba(99, 102, 241, 0.2)) !important;
+  background-color: var(--editor-selection, rgba(250, 175, 45, 0.2)) !important;
   color: inherit !important;
 }
 
@@ -108,7 +108,7 @@
 .editor-theme-dark .selection,
 .editor-theme-dark pre *::selection,
 .editor-theme-dark code::selection {
-  background-color: var(--editor-selection, rgba(99, 102, 241, 0.3)) !important;
+  background-color: var(--editor-selection, rgba(250, 175, 45, 0.3)) !important;
 }
 
 /* ==========================================================================
@@ -118,37 +118,64 @@
 /* 1. Caret Color */
 .editor-theme-light .ProseMirror,
 .editor-theme-dark .ProseMirror {
-  caret-color: var(--editor-caret, var(--editor-primary, #6366f1)) !important;
+  caret-color: var(--editor-caret, var(--editor-primary, #faaf2d)) !important;
 }
 
 /* 2. Links inside Editor Content */
 .editor-theme-light .ProseMirror a,
 .dark .editor-theme-light .ProseMirror a,
 .editor-theme-dark .ProseMirror a {
-  color: var(--editor-primary, #6366f1) !important;
-  text-decoration-color: var(--editor-primary, #6366f1) !important;
+  color: var(--editor-primary, #faaf2d) !important;
+  text-decoration-color: var(--editor-primary, #faaf2d) !important;
 }
 
 .editor-theme-light .ProseMirror a:hover,
 .dark .editor-theme-light .ProseMirror a:hover,
-.editor-theme-dark .ProseMirror a:hover {
-  text-decoration-color: var(--editor-primary, #6366f1) !important;
+.editor-theme-dark .ProseMirror a:hover,
+.editor-theme-light a[class*="hover:text-indigo-600"]:hover,
+.editor-theme-dark a[class*="hover:text-indigo-600"]:hover,
+.editor-theme-light a[class*="dark:hover:text-violet-400"]:hover,
+.editor-theme-dark a[class*="dark:hover:text-violet-400"]:hover {
+  text-decoration-color: var(--editor-primary, #faaf2d) !important;
+  color: var(--editor-primary, #faaf2d) !important;
   filter: brightness(1.1);
 }
 
 /* 3. Toolbar Active Buttons */
 .editor-theme-light button[class*="text-indigo-600"],
 .editor-theme-light button[class*="dark:text-indigo-300"],
+.editor-theme-light button[class*="dark:text-indigo-400"],
+.editor-theme-light button[class*="dark:text-violet-300"],
 .editor-theme-dark button[class*="text-indigo-600"],
-.editor-theme-dark button[class*="dark:text-indigo-300"] {
-  color: var(--editor-primary, #6366f1) !important;
-  background-color: var(--editor-accent, rgba(99, 102, 241, 0.15)) !important;
-  border-color: var(--editor-accent-border, rgba(99, 102, 241, 0.25)) !important;
+.editor-theme-dark button[class*="dark:text-indigo-300"],
+.editor-theme-dark button[class*="dark:text-indigo-400"],
+.editor-theme-dark button[class*="dark:text-violet-300"],
+.editor-theme-light button[data-active="true"],
+.editor-theme-dark button[data-active="true"] {
+  color: var(--editor-primary, #faaf2d) !important;
+  background-color: var(--editor-accent, rgba(250, 175, 45, 0.15)) !important;
+  border-color: var(--editor-accent-border, rgba(250, 175, 45, 0.25)) !important;
+}
+
+.editor-theme-light button[class*="text-indigo-600"] svg,
+.editor-theme-light button[class*="dark:text-indigo-300"] svg,
+.editor-theme-light button[class*="dark:text-indigo-400"] svg,
+.editor-theme-dark button[class*="text-indigo-600"] svg,
+.editor-theme-dark button[class*="dark:text-indigo-300"] svg,
+.editor-theme-dark button[class*="dark:text-indigo-400"] svg {
+  color: var(--editor-primary, #faaf2d) !important;
 }
 
 /* 4. Focus Rings and Interactive Elements */
 .editor-theme-light *:focus-visible,
 .editor-theme-dark *:focus-visible {
-  outline-color: var(--editor-primary, #6366f1) !important;
+  outline-color: var(--editor-primary, #faaf2d) !important;
+}
+
+.editor-theme-light [class*="focus:ring-"],
+.editor-theme-light [class*="focus-visible:ring-"],
+.editor-theme-dark [class*="focus:ring-"],
+.editor-theme-dark [class*="focus-visible:ring-"] {
+  --tw-ring-color: var(--editor-primary, #faaf2d) !important;
 }
 
