@@ -99,7 +99,7 @@
 .dark .editor-theme-light .selection,
 .editor-theme-light pre *::selection,
 .editor-theme-light code::selection {
-  background-color: rgba(0, 0, 0, 0.12) !important;
+  background-color: var(--editor-selection, rgba(99, 102, 241, 0.2)) !important;
   color: inherit !important;
 }
 
@@ -108,5 +108,47 @@
 .editor-theme-dark .selection,
 .editor-theme-dark pre *::selection,
 .editor-theme-dark code::selection {
-  background-color: rgba(255, 255, 255, 0.2) !important;
+  background-color: var(--editor-selection, rgba(99, 102, 241, 0.3)) !important;
 }
+
+/* ==========================================================================
+   Theme Color & Brand Primary Token Integration (--editor-primary)
+   ========================================================================== */
+
+/* 1. Caret Color */
+.editor-theme-light .ProseMirror,
+.editor-theme-dark .ProseMirror {
+  caret-color: var(--editor-caret, var(--editor-primary, #6366f1)) !important;
+}
+
+/* 2. Links inside Editor Content */
+.editor-theme-light .ProseMirror a,
+.dark .editor-theme-light .ProseMirror a,
+.editor-theme-dark .ProseMirror a {
+  color: var(--editor-primary, #6366f1) !important;
+  text-decoration-color: var(--editor-primary, #6366f1) !important;
+}
+
+.editor-theme-light .ProseMirror a:hover,
+.dark .editor-theme-light .ProseMirror a:hover,
+.editor-theme-dark .ProseMirror a:hover {
+  text-decoration-color: var(--editor-primary, #6366f1) !important;
+  filter: brightness(1.1);
+}
+
+/* 3. Toolbar Active Buttons */
+.editor-theme-light button[class*="text-indigo-600"],
+.editor-theme-light button[class*="dark:text-indigo-300"],
+.editor-theme-dark button[class*="text-indigo-600"],
+.editor-theme-dark button[class*="dark:text-indigo-300"] {
+  color: var(--editor-primary, #6366f1) !important;
+  background-color: var(--editor-accent, rgba(99, 102, 241, 0.15)) !important;
+  border-color: var(--editor-accent-border, rgba(99, 102, 241, 0.25)) !important;
+}
+
+/* 4. Focus Rings and Interactive Elements */
+.editor-theme-light *:focus-visible,
+.editor-theme-dark *:focus-visible {
+  outline-color: var(--editor-primary, #6366f1) !important;
+}
+

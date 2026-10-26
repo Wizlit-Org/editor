@@ -39,6 +39,7 @@ export interface BlockEditorProps {
   readOnly?: boolean
   showDebug?: boolean | { altCharacterCounter?: boolean }
   theme?: 'light' | 'dark'
+  themeColor?: string
 
   maxCharacters?: number // Maximum number of characters (default: 5000)
   altCharacterCounter?: boolean
@@ -82,6 +83,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   className = '',
   readOnly,
   theme = 'light',
+  themeColor = '#6366f1',
   maxEmbeddings = 3, // Default maximum number of images
   maxCharacters, // Default maximum number of characters
   showDebug = false,
@@ -334,6 +336,18 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     ? 'dark theme-dark notion-dark-canvas editor-theme-dark'
     : 'theme-light notion-light-canvas editor-theme-light'
 
+  const themeColorStyle: React.CSSProperties = {
+    ...(themeColor
+      ? ({
+          '--editor-primary': themeColor,
+          '--editor-accent': `${themeColor}26`,
+          '--editor-accent-border': `${themeColor}40`,
+          '--editor-caret': themeColor,
+          '--editor-selection': `${themeColor}33`,
+        } as React.CSSProperties)
+      : {}),
+  }
+
   return (
     <>
       <div
@@ -341,6 +355,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
         data-theme={isDark ? 'dark' : 'light'}
         data-editor-theme={isDark ? 'dark' : 'light'}
         ref={menuContainerRef}
+        style={themeColorStyle}
       >
         <div className="relative flex flex-col flex-[1_0_auto] h-auto min-h-full">
           {/* <EditorHeader
