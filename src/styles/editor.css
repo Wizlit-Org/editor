@@ -47,7 +47,6 @@
   
   
 
-
   .is-empty::before {
     @apply text-neutral-500 dark:text-neutral-400;
   }
@@ -160,11 +159,33 @@
 .ProseMirror-dropcursor,
 .ProseMirror-dropmarker {
   height: 2px !important;
-  background-color: #6366f1 !important;
+  background-color: var(--editor-primary, #faaf2d) !important;
   border: none !important;
   border-radius: 2px !important;
   z-index: 50 !important;
   pointer-events: none !important;
-  box-shadow: 0 0 8px rgba(99, 102, 241, 0.8) !important;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--editor-primary, #faaf2d) 80%, transparent) !important;
   transition: all 0.1s ease-out !important;
+}
+
+/* Ensure ProseMirror inside .editor-theme-light remains strictly light */
+.editor-theme-light .ProseMirror {
+  color: var(--editor-text, #222325);
+}
+
+.dark .editor-theme-light .ProseMirror input::placeholder,
+.editor-theme-light .ProseMirror input::placeholder,
+.dark .editor-theme-light .ProseMirror textarea::placeholder,
+.editor-theme-light .ProseMirror textarea::placeholder {
+  color: rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark .editor-theme-light .ProseMirror .is-empty::before,
+.editor-theme-light .ProseMirror .is-empty::before {
+  color: #737373 !important;
+}
+
+.dark .editor-theme-light .ProseMirror [data-type='blockquoteFigure'] > blockquote,
+.editor-theme-light .ProseMirror [data-type='blockquoteFigure'] > blockquote {
+  color: #000000 !important;
 }

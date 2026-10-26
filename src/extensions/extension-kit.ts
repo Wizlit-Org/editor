@@ -172,7 +172,7 @@ export const ExtensionKit = ({
   BlockquoteFigure,
   Dropcursor.configure({
     width: 2,
-    color: '#6366f1',
+    color: 'var(--editor-primary, #faaf2d)',
     class: 'ProseMirror-dropcursor',
   }),
   History,

@@ -40,9 +40,9 @@ const createPlaceholderWidget = (id: string) => {
   wrapper.className = 'w-full my-3 select-none pointer-events-none'
   wrapper.setAttribute('data-upload-placeholder-id', id)
   wrapper.innerHTML = `
-    <div class="w-full aspect-video min-h-[180px] max-h-[360px] rounded-lg bg-black/[0.03] dark:bg-white/[0.04] backdrop-blur-md animate-pulse flex flex-col items-center justify-center border border-dashed border-indigo-500/35 dark:border-indigo-400/35 gap-2.5 p-6 z-[2]">
-      <div class="w-10 h-10 rounded-full bg-indigo-500/15 dark:bg-indigo-400/20 flex items-center justify-center">
-        <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-300 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <div class="w-full aspect-video min-h-[180px] max-h-[360px] rounded-lg bg-black/[0.03] dark:bg-white/[0.04] backdrop-blur-md animate-pulse flex flex-col items-center justify-center border border-dashed border-[color-mix(in_srgb,var(--editor-primary)_35%,transparent)] gap-2.5 p-6 z-[2]" style="border-color: color-mix(in srgb, var(--editor-primary, #faaf2d) 35%, transparent)">
+      <div class="w-10 h-10 rounded-full bg-[color-mix(in_srgb,var(--editor-primary)_15%,transparent)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)] flex items-center justify-center">
+        <svg class="w-5 h-5 text-[var(--editor-primary)] animate-spin" style="color: var(--editor-primary, #faaf2d)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
         </svg>
       </div>

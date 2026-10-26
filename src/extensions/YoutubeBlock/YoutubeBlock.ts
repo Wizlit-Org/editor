@@ -1,5 +1,5 @@
 import { ReactNodeViewRenderer } from '@tiptap/react'
-import { mergeAttributes, Range } from '@tiptap/core'
+import { mergeAttributes } from '@tiptap/core'
 import { Youtube } from '@tiptap/extension-youtube'
 import { YoutubeBlockView } from './components/YoutubeBlockView'
 

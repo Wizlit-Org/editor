@@ -160,14 +160,14 @@ export const PastePreviewFooter: React.FC<PastePreviewFooterProps> = ({
             fontSize: '13px',
             fontWeight: 600,
             cursor: 'pointer',
-            backgroundColor: 'rgba(79, 70, 229, 0.84)',
-            backgroundImage: 'linear-gradient(135deg, rgba(99, 102, 241, 0.92) 0%, rgba(79, 70, 229, 0.76) 100%)',
+            backgroundColor: 'color-mix(in srgb, var(--editor-primary, #faaf2d) 84%, transparent)',
+            backgroundImage: 'linear-gradient(135deg, color-mix(in srgb, var(--editor-primary, #faaf2d) 92%, transparent) 0%, color-mix(in srgb, var(--editor-primary, #faaf2d) 76%, transparent) 100%)',
             backdropFilter: 'blur(20px) saturate(190%)',
             WebkitBackdropFilter: 'blur(20px) saturate(190%)',
             color: '#ffffff',
-            border: '1px solid rgba(165, 180, 252, 0.58)',
+            border: '1px solid color-mix(in srgb, var(--editor-primary, #faaf2d) 58%, transparent)',
             boxShadow:
-              '0 10px 26px -4px rgba(79, 70, 229, 0.52), 0 0 0 1px rgba(79, 70, 229, 0.25), inset 0 1px 0 0 rgba(255, 255, 255, 0.48)',
+              '0 10px 26px -4px color-mix(in srgb, var(--editor-primary, #faaf2d) 52%, transparent), 0 0 0 1px color-mix(in srgb, var(--editor-primary, #faaf2d) 25%, transparent), inset 0 1px 0 0 rgba(255, 255, 255, 0.48)',
             transition: 'all 180ms cubic-bezier(0.16, 1, 0.3, 1)',
           }}
           className="hover:scale-[1.03] active:scale-95"

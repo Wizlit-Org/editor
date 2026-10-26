@@ -59,10 +59,10 @@ export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
 
   return (
     <>
-      {/* 1. Drop Position Indicator Guide: Single clean 2px indigo line */}
+      {/* 1. Drop Position Indicator Guide: Single clean 2px theme line */}
       {dragIndicator && !dragIndicator.isBlocked && (
         <div
-          className="fixed pointer-events-none z-[25] bg-indigo-500 dark:bg-indigo-400 shadow-[0_0_6px_rgba(99,102,241,0.6)] rounded-full transition-all duration-75"
+          className="fixed pointer-events-none z-[25] bg-[var(--editor-primary)] shadow-[0_0_6px_color-mix(in_srgb,var(--editor-primary)_60%,transparent)] rounded-full transition-all duration-75"
           style={{
             left: dragIndicator.left - ox,
             top: dragIndicator.top - oy,
@@ -83,7 +83,7 @@ export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
           }`}
           style={{ left: dragGhost.x - ox, top: dragGhost.y - oy, zIndex: 30 }}
         >
-          <span className={`w-1.5 h-1.5 rounded-full ${dragGhost.isBlocked ? 'bg-rose-400' : 'bg-indigo-400'}`} />
+          <span className={`w-1.5 h-1.5 rounded-full ${dragGhost.isBlocked ? 'bg-rose-400' : 'bg-[var(--editor-primary)]'}`} />
           <span>{dragGhost.label}</span>
         </div>
       )}

@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef } from 'react'
+import React, { useCallback, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Editor } from '@tiptap/react'
 import { TableMap } from '@tiptap/pm/tables'
@@ -380,17 +380,30 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
     mergedRow = { top: s.top, height: e.top + e.height - s.top, startIdx: selRow.start }
   }
 
+  const wrapperEl = currentTableEl ? (currentTableEl.closest('.tableWrapper') as HTMLElement | null) : null
+  const hasLeftBlur = Boolean(wrapperEl && wrapperEl.scrollLeft > 2)
+  const wrapperLeft = tableRect.wrapperLeft !== undefined ? tableRect.wrapperLeft : tableRect.left
+  const wrapperRight = tableRect.wrapperRight !== undefined ? tableRect.wrapperRight : (tableRect.left + tableRect.width)
+  const minColLeft = wrapperLeft + (hasLeftBlur ? 40 : 0)
+
   const isColVisible = (g: { left: number; width: number }) =>
-    !tableRect.wrapperLeft || (g.left + g.width > tableRect.wrapperLeft && g.left < (tableRect.wrapperRight ?? Infinity))
+    g.left + g.width > minColLeft + 6 && g.left < wrapperRight - 6
+
+  const getColOpacity = (g: { left: number; width: number }) => {
+    if (!hasLeftBlur || g.left >= minColLeft) return 1
+    const visiblePortion = g.left + g.width - minColLeft
+    if (visiblePortion <= 8) return 0
+    return Math.max(0, Math.min(1, visiblePortion / Math.min(g.width, 36)))
+  }
 
   const isLastCol = hoveredColIndex !== null && columnGrips.length > 0 && hoveredColIndex === columnGrips.length - 1
   const isLastRow = hoveredRowIndex !== null && rowGrips.length > 0 && hoveredRowIndex === rowGrips.length - 1
 
   const pillClass = "fixed rounded-full backdrop-blur-md shadow-2xs transition-all flex items-center justify-center p-0 cursor-pointer select-none"
-  const colSinglePillClass = `${pillClass} z-[9] bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-violet-500/90 border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white`
-  const colMergedPillClass = `${pillClass} z-[9] bg-indigo-600/35 hover:bg-indigo-600/50 active:bg-indigo-600/90 dark:bg-violet-500/35 dark:hover:bg-violet-500/50 dark:active:bg-violet-500/90 border border-indigo-500/40 dark:border-violet-400/40 text-indigo-700 dark:text-violet-200 active:text-white`
-  const rowSinglePillClass = `${pillClass} z-[15] bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-indigo-600/90 dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-violet-500/90 border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white`
-  const rowMergedPillClass = `${pillClass} z-[15] bg-indigo-600/35 hover:bg-indigo-600/50 active:bg-indigo-600/90 dark:bg-violet-500/35 dark:hover:bg-violet-500/50 dark:active:bg-violet-500/90 border border-indigo-500/40 dark:border-violet-400/40 text-indigo-700 dark:text-violet-200 active:text-white`
+  const colSinglePillClass = `${pillClass} z-[9] bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-[color-mix(in_srgb,var(--editor-primary)_90%,transparent)] dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-[color-mix(in_srgb,var(--editor-primary)_90%,transparent)] border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white`
+  const colMergedPillClass = `${pillClass} z-[9] bg-[color-mix(in_srgb,var(--editor-primary)_35%,transparent)] hover:bg-[color-mix(in_srgb,var(--editor-primary)_50%,transparent)] active:bg-[color-mix(in_srgb,var(--editor-primary)_90%,transparent)] border border-[color-mix(in_srgb,var(--editor-primary)_40%,transparent)] text-[var(--editor-primary)] active:text-white`
+  const rowSinglePillClass = `${pillClass} z-[15] bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-[color-mix(in_srgb,var(--editor-primary)_90%,transparent)] dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-[color-mix(in_srgb,var(--editor-primary)_90%,transparent)] border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white`
+  const rowMergedPillClass = `${pillClass} z-[15] bg-[color-mix(in_srgb,var(--editor-primary)_35%,transparent)] hover:bg-[color-mix(in_srgb,var(--editor-primary)_50%,transparent)] active:bg-[color-mix(in_srgb,var(--editor-primary)_90%,transparent)] border border-[color-mix(in_srgb,var(--editor-primary)_40%,transparent)] text-[var(--editor-primary)] active:text-white`
 
   const originLeft = tableRect.originLeft !== undefined ? tableRect.originLeft : tableRect.left
   const rowGripLeft = originLeft - 15 - offset.x
@@ -400,18 +413,30 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       <ContainingBlockAnchor ref={anchorRef} />
 
       {/* 1. Column Grip (Merged Stretched Pill or Single Hovered Pill) - Isolated Stacking Context z-index: 9 (below blur z-12) */}
-      <div id="table-col-grips" style={{ position: 'fixed', top: 0, left: 0, width: 0, height: 0, zIndex: 9, pointerEvents: 'none' }}>
-        {mergedCol && isColVisible(mergedCol) ? (
+      <div
+        id="table-col-grips"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          zIndex: 9,
+          pointerEvents: 'none',
+          clipPath: `polygon(${minColLeft - offset.x}px 0, ${wrapperRight - offset.x}px 0, ${wrapperRight - offset.x}px 100%, ${minColLeft - offset.x}px 100%)`,
+        }}
+      >
+        {mergedCol && isColVisible(mergedCol) && getColOpacity(mergedCol) > 0 ? (
           <button key="active-col-grip" type="button" onMouseDown={handleGripMouseDown('col', mergedCol.startIdx)}
             className={`${colMergedPillClass} h-[12px] pointer-events-auto`}
-            style={{ top: tableRect.top - 15 - offset.y, left: mergedCol.left - offset.x, width: mergedCol.width, zIndex: 9 }}
+            style={{ top: tableRect.top - 15 - offset.y, left: mergedCol.left - offset.x, width: mergedCol.width, zIndex: 9, opacity: getColOpacity(mergedCol) }}
             title="Click for options, drag to move selected columns">
             <div className="flex items-center gap-0.5"><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /></div>
           </button>
-        ) : activeColGrip && isColVisible(activeColGrip) ? (
+        ) : activeColGrip && isColVisible(activeColGrip) && getColOpacity(activeColGrip) > 0 ? (
           <button key="active-col-grip" type="button" onMouseDown={handleGripMouseDown('col', activeColGrip.index)}
             className={`${colSinglePillClass} h-[12px] pointer-events-auto`}
-            style={{ top: tableRect.top - 15 - offset.y, left: activeColGrip.left - offset.x, width: activeColGrip.width, zIndex: 9 }}
+            style={{ top: tableRect.top - 15 - offset.y, left: activeColGrip.left - offset.x, width: activeColGrip.width, zIndex: 9, opacity: getColOpacity(activeColGrip) }}
             title={`Click to select, drag to move column ${activeColGrip.index + 1}`}>
             <div className="flex items-center gap-0.5"><span className="w-1 h-1 rounded-full bg-current opacity-70" /><span className="w-1 h-1 rounded-full bg-current opacity-70" /><span className="w-1 h-1 rounded-full bg-current opacity-70" /></div>
           </button>
@@ -438,7 +463,18 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       </div>
 
       {/* 3. Right & Bottom Add Buttons & Drag Overlays */}
-      <div id="table-overlays-wrapper" style={{ position: 'fixed', top: 0, left: 0, width: 0, height: 0, pointerEvents: 'none' }}>
+      <div
+        id="table-overlays-wrapper"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          clipPath: `polygon(${minColLeft - offset.x}px 0, ${wrapperRight - offset.x}px 0, ${wrapperRight - offset.x}px 100%, ${minColLeft - offset.x}px 100%)`,
+        }}
+      >
         <TableAddBar tableRect={tableRect} activeRowRect={activeRowGrip ? { top: activeRowGrip.top, height: activeRowGrip.height } : null} activeColRect={activeColGrip ? { left: activeColGrip.left, width: activeColGrip.width } : null} showRightBar={showRightAddBar || isLastCol} showBottomBar={showBottomAddBar || isLastRow} containerOffset={offset} onAddColumn={onAddColumnAtEnd} onAddRow={onAddRowAtEnd} onHoverKeepAlive={() => { clearHoverTimer(); setIsHovered(true) }} />
         <TableDragOverlays dragGhost={dragGhost} dragIndicator={dragIndicator} tableRectLeft={tableRect.left} tableRectTop={tableRect.top} tableRectWidth={tableRect.width} tableRectHeight={tableRect.height} containerOffset={offset} />
       </div>

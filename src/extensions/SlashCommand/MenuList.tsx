@@ -116,8 +116,15 @@ export const MenuList = React.forwardRef((props: MenuListProps, ref) => {
     return null
   }
 
+  const isDark = Boolean(props.editor?.view?.dom?.closest('.editor-theme-dark'))
+  const themeClass = isDark ? 'editor-theme-dark dark theme-dark' : 'editor-theme-light theme-light'
+
   return (
-    <div className="flex flex-col mb-8">
+    <div
+      className={`flex flex-col mb-8 ${themeClass}`.trim()}
+      data-theme={isDark ? 'dark' : 'light'}
+      data-editor-theme={isDark ? 'dark' : 'light'}
+    >
       {/* Glassmorphism Popover Menu */}
       <div
         ref={scrollContainer}

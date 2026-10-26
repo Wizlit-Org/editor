@@ -6,7 +6,7 @@ import { isHeaderStraddling, hasMergedCellsInRowSelection, isTargetSplittingMerg
 import { scrollTargetCellIntoView } from '../../utils/TableAutoScroll'
 import { tableGripPluginKey } from '../../Table'
 import {
-  getClusterRowRange,
+// unused import removed
   duplicateRowCluster,
   deleteRowCluster,
   findJumpMoveIndex,
@@ -127,7 +127,7 @@ export const setRowAlignment = (
   view.dispatch(tr)
 }
 
-export const moveRowUp = (editor: Editor, rowIndex: number) => {
+export const moveRowUp = (editor: Editor, _rowIndex: number) => {
   const table = findTable(editor.state.selection)
   if (!table) return
   const range = getSelectedRowRange(editor)
@@ -141,7 +141,7 @@ export const moveRowUp = (editor: Editor, rowIndex: number) => {
   }
 }
 
-export const moveRowDown = (editor: Editor, rowIndex: number) => {
+export const moveRowDown = (editor: Editor, _rowIndex: number) => {
   const table = findTable(editor.state.selection)
   if (!table) return
   const range = getSelectedRowRange(editor)

@@ -110,8 +110,8 @@
     }
   }
 
-  .dark ul[data-type='taskList'],
-  .theme-dark ul[data-type='taskList'] {
+  .theme-dark ul[data-type='taskList'],
+  .editor-theme-dark ul[data-type='taskList'] {
     li > label input[type="checkbox"] {
       border-color: rgba(255, 255, 255, 0.28);
 

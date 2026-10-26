@@ -143,7 +143,7 @@ export const GROUPS: Group[] = [
         description: 'Embed a YouTube video',
         aliases: ['yt', 'youtube', 'video'],
         action: editor => {
-          window.dispatchEvent(
+          void editor; window.dispatchEvent(
             new CustomEvent('tiptap:open-youtube-dialog', {
               detail: { mode: 'insert' },
             }),

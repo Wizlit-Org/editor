@@ -168,7 +168,7 @@ export const YoutubeDialog: React.FC<YoutubeDialogProps> = ({ editor, appendTo }
           {/* Validation Feedback */}
           {isDirty && !isValid && (
             <p className="text-[11px] text-red-500 dark:text-red-400 flex items-center gap-1 pl-1">
-              <Icon name="AlertCircle" className="w-3 h-3" />
+              <Icon name="CircleAlert" className="w-3 h-3" />
               <span>올바른 YouTube 영상 주소를 입력해주세요 (watch?v=, youtu.be/ 또는 shorts/)</span>
             </p>
           )}

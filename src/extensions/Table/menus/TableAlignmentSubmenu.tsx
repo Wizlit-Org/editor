@@ -138,7 +138,7 @@ export const TableAlignmentSubmenu: React.FC<TableAlignmentSubmenuProps> = ({
   const iconBtnClass = (isActive: boolean) =>
     `flex-1 h-6 rounded flex items-center justify-center transition-colors cursor-pointer ${
       isActive
-        ? 'bg-white dark:bg-white/20 text-indigo-600 dark:text-violet-300 shadow-xs font-semibold'
+        ? 'bg-white dark:bg-white/20 text-[var(--editor-primary)] shadow-xs font-semibold'
         : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 hover:bg-black/5 dark:hover:bg-white/10'
     }`
 

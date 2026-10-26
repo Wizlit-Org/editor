@@ -5,9 +5,10 @@ export type LinkPreviewPanelProps = {
   url: string
   onEdit: () => void
   onClear: () => void
-  onOpen: (url: string) => void
+  onOpen: (url: string) => boolean | void
   editable: boolean
   disableDefaultAction?: boolean | ((url: string) => boolean)
+  onUpdatePosition?: () => void
 }
 
 interface LinkMetadata {
@@ -29,6 +30,7 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
   url,
   editable,
   disableDefaultAction,
+  onUpdatePosition,
 }) => {
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -52,7 +54,13 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
 
   // Fetch OpenGraph metadata from /api/link-preview
   useEffect(() => {
-    if (!url) return
+    setImageError(false)
+    setFaviconError(false)
+    if (!url) {
+      setMeta(null)
+      setLoading(false)
+      return
+    }
     if (previewCache.has(url)) {
       setMeta(previewCache.get(url)!)
       setLoading(false)
@@ -61,8 +69,6 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
 
     let isMounted = true
     setLoading(true)
-    setImageError(false)
-    setFaviconError(false)
 
     const fetchMeta = async () => {
       try {
@@ -86,6 +92,11 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
       isMounted = false
     }
   }, [url])
+
+  // Floating UI position sync when metadata, loading, or image state transitions
+  useEffect(() => {
+    onUpdatePosition?.()
+  }, [meta, loading, imageError, onUpdatePosition])
 
   const faviconUrl =
     meta?.favicon ||
@@ -124,7 +135,7 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
 
     if (onOpen) {
       const handled = onOpen(sanitizedLink || '')
-      if (handled) {
+      if (Boolean(handled)) {
         preventDefault = true
       }
     }
@@ -171,7 +182,7 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
             <a
               {...(!disableDefaultAction ? defaultProps : {})}
               onClick={handleLinkClick}
-              className="text-xs leading-none font-medium text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-violet-400 hover:underline truncate transition-colors cursor-pointer"
+              className="text-xs leading-none font-medium text-zinc-700 dark:text-zinc-200 hover:text-[var(--editor-primary)] hover:underline truncate transition-colors cursor-pointer"
               title={url}
             >
               {domain || url}
@@ -279,6 +290,7 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
               <img
                 src={meta!.image!}
                 alt={titleText}
+                onLoad={() => onUpdatePosition?.()}
                 onError={() => setImageError(true)}
                 className="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
               />
@@ -291,7 +303,7 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
               <a
                 {...(!disableDefaultAction ? defaultProps : {})}
                 onClick={handleLinkClick}
-                className="text-[12.5px] font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1 leading-snug hover:text-indigo-600 dark:hover:text-violet-400 cursor-pointer transition-colors"
+                className="text-[12.5px] font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1 leading-snug hover:text-[var(--editor-primary)] cursor-pointer transition-colors"
                 title={titleText}
               >
                 {titleText}

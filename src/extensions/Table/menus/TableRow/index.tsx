@@ -232,15 +232,20 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       pluginKey="tableRowMenu"
       updateDelay={0}
       className={cn('z-[1350]', (!isMenuOpen || isClosedByScroll) && '!hidden pointer-events-none')}
-      appendTo={typeof document !== 'undefined' ? document.body : undefined}
+      appendTo={appendTo?.current || (typeof document !== 'undefined' ? document.body : undefined)}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={TABLE_ROW_MENU_OPTIONS}
       shouldShow={shouldShow}
     >
       <div
         style={{ display: !isMenuOpen || isClosedByScroll ? 'none' : undefined, zIndex: 1350 }}
+        data-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
+        data-editor-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
         className={cn(
           'glass-menu min-w-[14rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-[1350] bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200',
+          editor?.view?.dom?.closest('.editor-theme-dark')
+            ? 'editor-theme-dark dark theme-dark'
+            : 'editor-theme-light theme-light',
           (!isMenuOpen || isClosedByScroll) && '!hidden',
         )}
       >
@@ -259,19 +264,19 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
                 itemClass,
                 isRowHeaderBlocked && 'opacity-50 cursor-not-allowed hover:bg-transparent',
                 isHeaderRowActive &&
-                  '!bg-indigo-500/10 !text-indigo-600 dark:!text-indigo-400 font-medium hover:!bg-indigo-500/20',
+                  '!bg-[color-mix(in_srgb,var(--editor-primary)_10%,transparent)] !text-[var(--editor-primary)] font-medium hover:!bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)]',
               )}
             >
               <Icon
                 name="Table"
                 className={cn(
                   'w-3.5 h-3.5',
-                  isHeaderRowActive ? '!text-indigo-600 dark:!text-indigo-400' : 'text-zinc-500 dark:text-[#9b9b9b]',
+                  isHeaderRowActive ? '!text-[var(--editor-primary)]' : 'text-zinc-500 dark:text-[#9b9b9b]',
                 )}
               />
               <span>Header row</span>
               {isHeaderRowActive && (
-                <Icon name="Check" className="w-3.5 h-3.5 ml-auto !text-indigo-600 dark:!text-indigo-400" />
+                <Icon name="Check" className="w-3.5 h-3.5 ml-auto !text-[var(--editor-primary)]" />
               )}
             </button>
             <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />

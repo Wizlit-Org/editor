@@ -13,7 +13,7 @@ interface CodeBlockViewProps {
   extension: Extension
 }
 
-export const CodeBlockView = ({ editor, node, getPos, updateAttributes, extension }: CodeBlockViewProps) => {
+export const CodeBlockView = ({ editor, node, updateAttributes, extension }: CodeBlockViewProps) => {
   const language = node.attrs.language || 'plaintext'
   const [isCopied, setIsCopied] = useState(false)
   const [shouldWrap, setShouldWrap] = useState(false)
@@ -151,8 +151,8 @@ export const CodeBlockView = ({ editor, node, getPos, updateAttributes, extensio
   }, [isOpen, search, handleLanguageChange])
 
   return (
-    <NodeViewWrapper spellCheck="false" className="relative group my-4">
-      <div className="rounded-xl overflow-hidden bg-zinc-900/85 dark:bg-[#18181b]/80 backdrop-blur-xl border border-black/10 dark:border-white/15 shadow-2xl transition-all ring-1 ring-black/5 dark:ring-white/5">
+    <NodeViewWrapper spellCheck="false" className="relative group my-4 w-full max-w-full min-w-0">
+      <div className="w-full max-w-full min-w-0 rounded-xl overflow-hidden bg-zinc-900/85 dark:bg-[#18181b]/80 backdrop-blur-xl border border-black/10 dark:border-white/15 shadow-2xl transition-all ring-1 ring-black/5 dark:ring-white/5">
         {/* Code Header Bar: macOS 3-dot + Language Badge on Left, Action Buttons on Right */}
         <div className="flex items-center justify-between px-3.5 py-2 border-b border-white/[0.08] bg-white/[0.03]">
           <div className="flex items-center gap-2.5">
@@ -238,7 +238,14 @@ export const CodeBlockView = ({ editor, node, getPos, updateAttributes, extensio
 
       {actualOpen && (
         <div
-          className="fixed w-[200px] rounded-xl border border-black/5 dark:border-white/10 bg-white/90 dark:bg-[#202020]/95 backdrop-blur-xl shadow-2xl overflow-hidden z-50 text-zinc-800 dark:text-zinc-200 animate-in fade-in zoom-in-95 duration-150"
+          data-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
+          data-editor-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
+          className={cn(
+            'fixed w-[200px] rounded-xl border border-black/5 dark:border-white/10 bg-white/90 dark:bg-[#202020]/95 backdrop-blur-xl shadow-2xl overflow-hidden z-50 text-zinc-800 dark:text-zinc-200 animate-in fade-in zoom-in-95 duration-150',
+            editor?.view?.dom?.closest('.editor-theme-dark')
+              ? 'editor-theme-dark dark theme-dark'
+              : 'editor-theme-light theme-light',
+          )}
           style={{ top: menuPosition.top, left: menuPosition.left }}
           ref={menuRef}
         >

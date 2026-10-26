@@ -16,7 +16,7 @@ export const Surface = forwardRef<HTMLDivElement, SurfaceProps>(
     )
 
     return (
-      <div className={surfaceClass} {...props} ref={ref}>
+      <div className={surfaceClass} data-surface="true" {...props} ref={ref}>
         {children}
       </div>
     )

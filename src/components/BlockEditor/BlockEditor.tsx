@@ -39,6 +39,7 @@ export interface BlockEditorProps {
   readOnly?: boolean
   showDebug?: boolean | { altCharacterCounter?: boolean }
   theme?: 'light' | 'dark'
+  themeColor?: string
 
   maxCharacters?: number // Maximum number of characters (default: 5000)
   altCharacterCounter?: boolean
@@ -82,6 +83,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   className = '',
   readOnly,
   theme = 'light',
+  themeColor = '#faaf2d',
   maxEmbeddings = 3, // Default maximum number of images
   maxCharacters, // Default maximum number of characters
   showDebug = false,
@@ -101,26 +103,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   const isTogglingEditableRef = useRef<boolean>(false)
   const isReadyForUpdateRef = useRef<boolean>(false)
   const [stats, setStats] = useState<EditorStats>({})
-  const [systemDark, setSystemDark] = useState<boolean>(() => {
-    if (typeof document !== 'undefined') {
-      return document.documentElement.classList.contains('dark') || document.body.classList.contains('dark')
-    }
-    return false
-  })
 
-  useEffect(() => {
-    if (typeof document === 'undefined') return
-
-    const updateDark = () => {
-      const isDarkClass = document.documentElement.classList.contains('dark') || document.body.classList.contains('dark')
-      setSystemDark(isDarkClass)
-    }
-
-    updateDark()
-    const observer = new MutationObserver(updateDark)
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-    return () => observer.disconnect()
-  }, [])
   
   useEffect(() => {
     const preventDefault = (e: DragEvent) => {
@@ -344,17 +327,47 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     }
   }, [editor, image?.getUploadDialogProps, image?.onLoadingChange, uploadDialog.items])
 
+  useEffect(() => {
+    if (typeof document === 'undefined' || !themeColor) return
+    const root = document.documentElement
+    root.style.setProperty('--editor-primary', themeColor)
+    root.style.setProperty('--editor-accent', `color-mix(in srgb, ${themeColor} 15%, transparent)`)
+    root.style.setProperty('--editor-accent-border', `color-mix(in srgb, ${themeColor} 25%, transparent)`)
+    root.style.setProperty('--editor-caret', themeColor)
+    root.style.setProperty('--editor-selection', `color-mix(in srgb, ${themeColor} 20%, transparent)`)
+  }, [themeColor])
+
   if (!editor) {
     return null
   }
 
-  const isDark = theme === 'dark' || (theme === undefined && systemDark)
-  const themeClass = isDark ? 'dark theme-dark notion-dark-canvas' : 'theme-light notion-light-canvas'
+  const isDark = theme === 'dark'
+  const themeClass = isDark
+    ? 'dark theme-dark notion-dark-canvas editor-theme-dark'
+    : 'theme-light notion-light-canvas editor-theme-light'
+
+  const themeColorStyle: React.CSSProperties = {
+    ...(themeColor
+      ? ({
+          '--editor-primary': themeColor,
+          '--editor-accent': `color-mix(in srgb, ${themeColor} 15%, transparent)`,
+          '--editor-accent-border': `color-mix(in srgb, ${themeColor} 25%, transparent)`,
+          '--editor-caret': themeColor,
+          '--editor-selection': `color-mix(in srgb, ${themeColor} 20%, transparent)`,
+        } as React.CSSProperties)
+      : {}),
+  }
 
   return (
     <>
-      <div className={`relative flex min-h-full h-auto flex-[1_0_auto] overflow-x-clip [overflow-x:clip] ${themeClass} ${className}`.trim()} ref={menuContainerRef}>
-        <div className="relative flex flex-col flex-[1_0_auto] h-auto min-h-full">
+      <div
+        className={`relative flex w-full max-w-full min-w-0 min-h-full h-auto flex-[1_0_auto] overflow-x-clip [overflow-x:clip] box-border ${themeClass} ${className}`.trim()}
+        data-theme={isDark ? 'dark' : 'light'}
+        data-editor-theme={isDark ? 'dark' : 'light'}
+        ref={menuContainerRef}
+        style={themeColorStyle}
+      >
+        <div className="relative flex flex-col flex-1 w-full min-w-0 max-w-full h-auto min-h-full">
           {/* <EditorHeader
             editor={editor}
             // collabState={collabState}
@@ -365,7 +378,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           <TableScrollIndicator editor={editor} appendTo={menuContainerRef} />
           <EditorContent
             editor={editor}
-            className={`flex-1 focus:outline-none ${!readOnly ? 'pb-16' : ''}`.trim()}
+            className={`flex-1 w-full min-w-0 max-w-full focus:outline-none ${!readOnly ? 'pb-16' : ''}`.trim()}
           />
           <ContentItemMenu editor={editor} isEditable={!readOnly} appendTo={menuContainerRef} />
           <LinkMenu

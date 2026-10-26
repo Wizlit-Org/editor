@@ -9,6 +9,7 @@ import { useContainingBlockOffset, ContainingBlockAnchor } from '../../utils/con
 import { startAutoScroll } from '../../utils/TableAutoScroll'
 import { tableGripPluginKey } from '../../Table'
 import { Icon } from '@/components/ui/Icon'
+import { cn } from '@/lib/utils'
 import { MenuProps } from '@/components/menus/types'
 import { TableAlignmentSubmenu } from '../TableAlignmentSubmenu'
 import { DeleteRowIcon, DeleteColumnIcon } from '../../components/TableActionIcons'
@@ -29,13 +30,11 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   const [mounted, setMounted] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [isBtnHovered, setIsBtnHovered] = useState(false)
-  const [selectionRect, setSelectionRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
+  const [selectionRect, setSelectionRect] = useState<{ top: number; left: number; width: number; height: number; minColLeft?: number; wrapperRight?: number } | null>(null)
   const [isButtonVisible, setIsButtonVisible] = useState(false)
   const [isScrolling, setIsScrolling] = useState(false)
   const isDraggingHandleRef = useRef(false)
-  const scrollTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const animFrameRef = useRef<number | null>(null)
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const scrollTimerRef = useRef<NodeJS.Timeout | null>(null), animFrameRef = useRef<number | null>(null), timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const anchorRef = useRef<HTMLDivElement>(null)
   const offset = useContainingBlockOffset(anchorRef)
@@ -103,53 +102,31 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
 
     if (gripSel && table && gripSel.tablePos === table.pos) {
       const dom = editor.view.nodeDOM(table.pos) as HTMLElement | null
-      const tableEl =
-        dom && dom.nodeType === 1 ? (dom.tagName === 'TABLE' ? dom : dom.querySelector('table')) : null
+      const tableEl = dom && dom.nodeType === 1 ? (dom.tagName === 'TABLE' ? dom : dom.querySelector('table')) : null
       if (tableEl) {
         const tRect = tableEl.getBoundingClientRect()
-        let minTop = tRect.top
-        let maxBottom = tRect.bottom
-        let minLeft = tRect.left
-        let maxRight = tRect.right
-
+        let minTop = tRect.top, maxBottom = tRect.bottom, minLeft = tRect.left, maxRight = tRect.right
         if (gripSel.type === 'row') {
           const trs = Array.from(tableEl.querySelectorAll('tbody > tr, tr')) as HTMLTableRowElement[]
           if (trs.length > 0) {
-            const topRow = trs[Math.min(gripSel.min, trs.length - 1)]
-            const bottomRow = trs[Math.min(gripSel.max, trs.length - 1)]
-            if (topRow && bottomRow) {
-              minTop = topRow.getBoundingClientRect().top
-              maxBottom = bottomRow.getBoundingClientRect().bottom
-            }
+            const topRow = trs[Math.min(gripSel.min, trs.length - 1)], bottomRow = trs[Math.min(gripSel.max, trs.length - 1)]
+            if (topRow && bottomRow) { minTop = topRow.getBoundingClientRect().top; maxBottom = bottomRow.getBoundingClientRect().bottom }
           }
         } else {
           const map = TableMap.get(table.node)
-          const leftCellOffset = map.map[Math.min(gripSel.min, map.width - 1)]
-          const rightCellOffset = map.map[Math.min(gripSel.max, map.width - 1)]
+          const leftCellOffset = map.map[Math.min(gripSel.min, map.width - 1)], rightCellOffset = map.map[Math.min(gripSel.max, map.width - 1)]
           const leftCellEl = (editor.view.nodeDOM(table.start + leftCellOffset) as HTMLElement | null) || tableEl.querySelector(`td:nth-child(${gripSel.min + 1}), th:nth-child(${gripSel.min + 1})`) as HTMLElement | null
           const rightCellEl = (editor.view.nodeDOM(table.start + rightCellOffset) as HTMLElement | null) || tableEl.querySelector(`td:nth-child(${gripSel.max + 1}), th:nth-child(${gripSel.max + 1})`) as HTMLElement | null
-          if (leftCellEl && rightCellEl) {
-            minLeft = leftCellEl.getBoundingClientRect().left
-            maxRight = rightCellEl.getBoundingClientRect().right
-          }
+          if (leftCellEl && rightCellEl) { minLeft = leftCellEl.getBoundingClientRect().left; maxRight = rightCellEl.getBoundingClientRect().right }
         }
-
         const container = (appendTo?.current as HTMLElement) || null
-        let isWithinContainer = true
-        if (container) {
-          const cRect = container.getBoundingClientRect()
-          const dotY = minTop + (maxBottom - minTop) / 2
-          isWithinContainer = dotY >= cRect.top && dotY <= cRect.bottom
-        }
-
+        const isWithinContainer = !container || (() => { const cRect = container.getBoundingClientRect(), dotY = minTop + (maxBottom - minTop) / 2; return dotY >= cRect.top && dotY <= cRect.bottom })()
         const tableWrapper = tableEl.closest('.tableWrapper') as HTMLElement | null
-        let isVisibleInWrapper = true
-        if (tableWrapper) {
-          const wrapperRect = tableWrapper.getBoundingClientRect()
-          isVisibleInWrapper = maxRight >= wrapperRect.left - 8 && maxRight <= wrapperRect.right + 15
-        }
-
-        setSelectionRect({ top: minTop, left: minLeft, width: maxRight - minLeft, height: maxBottom - minTop })
+        const wRect = tableWrapper ? tableWrapper.getBoundingClientRect() : null
+        const hasLeftBlur = Boolean(tableWrapper && tableWrapper.scrollLeft > 2)
+        const minColLeft = wRect ? wRect.left + (hasLeftBlur ? 40 : 0) : undefined, wrapperRight = wRect ? wRect.right : undefined
+        const isVisibleInWrapper = wRect ? maxRight >= (minColLeft ?? wRect.left) + 8 && maxRight <= wRect.right + 15 : true
+        setSelectionRect({ top: minTop, left: minLeft, width: maxRight - minLeft, height: maxBottom - minTop, minColLeft, wrapperRight })
         setIsButtonVisible(isVisibleInWrapper && isWithinContainer)
         return
       }
@@ -181,17 +158,14 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         isWithinContainer = dotY >= cRect.top && dotY <= cRect.bottom
       }
 
-      setSelectionRect(prev => (prev && prev.top === minTop && prev.left === minLeft && prev.width === maxRight - minLeft && prev.height === maxBottom - minTop ? prev : { top: minTop, left: minLeft, width: maxRight - minLeft, height: maxBottom - minTop }))
-
       const tableWrapper = cells[0].closest('.tableWrapper') as HTMLElement | null
-      let isVisibleInWrapper = true
-      if (tableWrapper) {
-        const wrapperRect = tableWrapper.getBoundingClientRect()
-        const isHorizontallyVisible = maxRight >= wrapperRect.left - 8 && maxRight <= wrapperRect.right + 15
-        const isVerticallyVisible = minTop < window.innerHeight && maxBottom > 0
-        isVisibleInWrapper = isHorizontallyVisible && isVerticallyVisible
-      }
+      const wRect = tableWrapper ? tableWrapper.getBoundingClientRect() : null
+      const hasLeftBlur = Boolean(tableWrapper && tableWrapper.scrollLeft > 2)
+      const minColLeft = wRect ? wRect.left + (hasLeftBlur ? 40 : 0) : undefined
+      const wrapperRight = wRect ? wRect.right : undefined
+      const isVisibleInWrapper = Boolean(wRect && maxRight >= (minColLeft ?? wRect.left) + 8 && maxRight <= wRect.right + 15 && minTop < window.innerHeight && maxBottom > 0)
 
+      setSelectionRect(prev => (prev && prev.top === minTop && prev.left === minLeft && prev.width === maxRight - minLeft && prev.height === maxBottom - minTop && prev.minColLeft === minColLeft && prev.wrapperRight === wrapperRight ? prev : { top: minTop, left: minLeft, width: maxRight - minLeft, height: maxBottom - minTop, minColLeft, wrapperRight }))
       setIsButtonVisible(isVisibleInWrapper && isWithinContainer)
     } else {
       setSelectionRect(prev => (prev === null ? prev : null))
@@ -447,9 +421,35 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
       {createPortal(
         <>
           <ContainingBlockAnchor ref={anchorRef} />
-          {/* 1. Selection Perimeter Outline & Background - z-index: 8 (below blur z-12) */}
-          <div className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[8] border-2 border-indigo-500/85 dark:border-violet-400/85 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]"
-            style={{ top: selectionRect.top - offset.y, left: selectionRect.left - offset.x, width: selectionRect.width, height: selectionRect.height, backgroundColor: 'rgba(99, 102, 241, 0.12)', zIndex: 8 }} />
+          {/* 1. Selection Perimeter Outline & Background - Isolated Stacking Context z-index: 8 (below blur z-12) */}
+          <div
+            id="table-cell-selection"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              zIndex: 8,
+              pointerEvents: 'none',
+              clipPath: selectionRect.minColLeft !== undefined && selectionRect.wrapperRight !== undefined
+                ? `polygon(${selectionRect.minColLeft - offset.x}px 0, ${selectionRect.wrapperRight - offset.x}px 0, ${selectionRect.wrapperRight - offset.x}px 100%, ${selectionRect.minColLeft - offset.x}px 100%)`
+                : undefined,
+            }}
+          >
+            <div
+              className="fixed pointer-events-none rounded-[2px] transition-all duration-75 z-[8] border-2 border-[color-mix(in_srgb,var(--editor-primary)_85%,transparent)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--editor-primary)_20%,transparent)]"
+              style={{
+                top: selectionRect.top - offset.y,
+                left: selectionRect.left - offset.x,
+                width: selectionRect.width,
+                height: selectionRect.height,
+                borderColor: 'color-mix(in srgb, var(--editor-primary, #faaf2d) 85%, transparent)',
+                backgroundColor: 'color-mix(in srgb, var(--editor-primary, #faaf2d) 12%, transparent)',
+                zIndex: 8,
+              }}
+            />
+          </div>
 
           {/* 2. Expandable 4-dot Circle Trigger & Popover Menu - z-index: 9 (below blur z-12) */}
           {isButtonVisible && (
@@ -458,7 +458,8 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                 <Popover.Anchor asChild>
                   <button type="button" onPointerDown={handlePointerDown} onClick={e => { e.preventDefault(); e.stopPropagation() }}
                     onMouseEnter={() => setIsBtnHovered(true)} onMouseLeave={() => setIsBtnHovered(false)}
-                    className={`rounded-full bg-indigo-600 dark:bg-violet-500 text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-[9] select-none ${isExpanded ? 'w-4 h-4 -ml-2' : 'w-2 h-2 -ml-1'}`}
+                    style={{ backgroundColor: 'var(--editor-primary, #faaf2d)' }}
+                    className={`rounded-full bg-[var(--editor-primary)] text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-[9] select-none ${isExpanded ? 'w-4 h-4 -ml-2' : 'w-2 h-2 -ml-1'}`}
                     title="Click for options, drag to adjust cell selection" aria-label="Table cells option">
                     <svg className={`w-2.5 h-2.5 fill-current transition-opacity duration-150 ${isExpanded ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`} viewBox="0 0 16 16">
                       <circle cx="5" cy="5" r="1.5" /><circle cx="11" cy="5" r="1.5" /><circle cx="5" cy="11" r="1.5" /><circle cx="11" cy="11" r="1.5" />
@@ -466,7 +467,11 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                   </button>
                 </Popover.Anchor>
                 <Popover.Portal container={typeof document !== 'undefined' ? ((appendTo?.current as HTMLElement) || document.body) : undefined}>
-                  <Popover.Content side="right" align="center" sideOffset={10} collisionPadding={16} className="z-[1350] outline-none animate-in fade-in-0 zoom-in-95 duration-150" style={{ zIndex: 1350 }}>
+                  <Popover.Content
+                    side="right" align="center" sideOffset={10} collisionPadding={16} style={{ zIndex: 1350 }}
+                    data-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
+                    className={cn('z-[1350] outline-none animate-in fade-in-0 zoom-in-95 duration-150', editor?.view?.dom?.closest('.editor-theme-dark') ? 'editor-theme-dark dark theme-dark' : 'editor-theme-light theme-light')}
+                  >
                     <div className="glass-menu min-w-[12rem] p-1.5 shadow-2xl rounded-xl flex flex-col gap-0.5 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
                       <TableAlignmentSubmenu editor={editor} scope="cell" />
                       <div className="h-[1px] bg-black/5 dark:bg-white/10 my-0.5" />

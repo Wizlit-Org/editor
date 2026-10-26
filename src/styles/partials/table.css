@@ -25,6 +25,10 @@
       max-width: calc(100% + (100cqw - 100%) / 2) !important;
     }
 
+    &.has-left-blur {
+      /* Left 40px blur boundary guard when horizontally scrolled */
+    }
+
     &::-webkit-scrollbar {
       display: none !important;
       width: 0 !important;
@@ -90,10 +94,10 @@
       }
     }
 
-    .dark td,
-    .dark th,
     .theme-dark td,
-    .theme-dark th {
+    .theme-dark th,
+    .editor-theme-dark td,
+    .editor-theme-dark th {
       border-color: rgba(255, 255, 255, 0.16) !important;
     }
 
@@ -103,8 +107,8 @@
       color: rgba(55, 53, 47, 0.9) !important;
     }
 
-    .dark th,
-    .theme-dark th {
+    .theme-dark th,
+    .editor-theme-dark th {
       background-color: rgba(255, 255, 255, 0.08) !important;
       color: rgba(255, 255, 255, 0.95) !important;
     }
@@ -136,16 +140,16 @@
     td.selectedCell,
     th.selectedCell,
     .selectedCell {
-      background-color: rgba(200, 200, 255, 0.4) !important;
+      background-color: color-mix(in srgb, var(--editor-primary, #faaf2d) 20%, transparent) !important;
     }
 
-    .dark td.selectedCell,
-    .dark th.selectedCell,
     .theme-dark td.selectedCell,
     .theme-dark th.selectedCell,
-    .dark .selectedCell,
-    .theme-dark .selectedCell {
-      background-color: rgba(100, 120, 255, 0.3) !important;
+    .editor-theme-dark td.selectedCell,
+    .editor-theme-dark th.selectedCell,
+    .theme-dark .selectedCell,
+    .editor-theme-dark .selectedCell {
+      background-color: color-mix(in srgb, var(--editor-primary, #faaf2d) 30%, transparent) !important;
     }
 
     /* Suppress ProseMirror native grip widgets completely to eliminate double rendering */
@@ -166,4 +170,11 @@ div:has(> .drag-handle),
 .drag-handle {
   z-index: 60 !important;
 }
+
+#table-col-grips,
+#table-cell-selection,
+#table-overlays-wrapper {
+  pointer-events: none !important;
+}
+
 
