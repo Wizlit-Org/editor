@@ -131,47 +131,6 @@
   caret-color: var(--editor-caret, var(--editor-primary, #faaf2d)) !important;
 }
 
-/* 2. Links inside Editor Content */
-.editor-theme-light .ProseMirror a,
-.dark .editor-theme-light .ProseMirror a,
-.editor-theme-dark .ProseMirror a {
-  color: var(--editor-primary, #faaf2d) !important;
-  text-decoration-color: var(--editor-primary, #faaf2d) !important;
-}
-
-.editor-theme-light .ProseMirror a:hover,
-.dark .editor-theme-light .ProseMirror a:hover,
-.editor-theme-dark .ProseMirror a:hover {
-  text-decoration-color: var(--editor-primary, #faaf2d) !important;
-  color: var(--editor-primary, #faaf2d) !important;
-  filter: brightness(1.1);
-}
-
-/* 3. Toolbar Active Buttons */
-.editor-theme-light button[data-active="true"],
-.editor-theme-dark button[data-active="true"] {
-  color: var(--editor-primary, #faaf2d) !important;
-  background-color: color-mix(in srgb, var(--editor-primary, #faaf2d) 15%, transparent) !important;
-  border-color: color-mix(in srgb, var(--editor-primary, #faaf2d) 25%, transparent) !important;
-}
-
-.editor-theme-dark button[data-active="true"] {
-  background-color: color-mix(in srgb, var(--editor-primary, #faaf2d) 20%, transparent) !important;
-  border-color: color-mix(in srgb, var(--editor-primary, #faaf2d) 30%, transparent) !important;
-}
-
-.editor-theme-light button[data-active="true"] svg,
-.editor-theme-dark button[data-active="true"] svg {
-  color: var(--editor-primary, #faaf2d) !important;
-}
-
-/* 4. Focus Rings and Interactive Elements */
-.editor-theme-light *:focus-visible,
-.editor-theme-dark *:focus-visible {
-  outline-color: var(--editor-primary, #faaf2d) !important;
-}
-
-
 /* 5. Theme Token Utility Bindings (Preserves exact 1:1 original opacities via color-mix) */
 [class*="text-[var(--editor-primary)]"] {
   color: var(--editor-primary, #faaf2d) !important;
