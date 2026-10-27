@@ -152,6 +152,17 @@
   border-color: var(--editor-primary, #faaf2d) !important;
 }
 
-
-
-
+/* ==========================================================================
+   Smart Paste Preview Dialog: Force 100% transparent preview stage
+   ========================================================================== */
+[data-paste-preview-dialog="true"] [data-live-preview-container="true"],
+[data-paste-preview-dialog="true"] [data-live-preview-viewport="true"],
+[data-paste-preview-dialog="true"] [data-live-preview-content="true"],
+[data-paste-preview-dialog="true"] .ProseMirror,
+[data-paste-preview-dialog="true"] [data-live-preview-viewport="true"] .theme-light,
+[data-paste-preview-dialog="true"] [data-live-preview-viewport="true"] .theme-dark,
+[data-paste-preview-dialog="true"] [data-live-preview-viewport="true"] .editor-theme-light,
+[data-paste-preview-dialog="true"] [data-live-preview-viewport="true"] .editor-theme-dark {
+  background-color: transparent !important;
+  background: transparent !important;
+}

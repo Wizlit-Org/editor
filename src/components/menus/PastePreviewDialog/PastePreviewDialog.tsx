@@ -389,6 +389,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
 
       {/* 3단: 박스 틀 없는 1:1 라이브 미리보기 */}
       <div
+        data-live-preview-container="true"
         style={{
           flex: 1,
           width: '100%',
@@ -397,6 +398,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',
+          backgroundColor: 'transparent',
           opacity: isVisible ? 1 : 0,
           transform: isVisible
             ? 'translateY(0px) scale(1)'
@@ -405,6 +407,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
               : 'scale(0.96)',
           transition: `opacity ${animTiming}, transform ${animTiming}`,
         }}
+        className="w-full flex-1 min-h-0 flex items-center justify-center overflow-hidden bg-transparent"
       >
         <LivePreviewCanvas
           data={data}
