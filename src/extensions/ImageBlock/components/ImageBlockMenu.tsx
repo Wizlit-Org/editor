@@ -138,14 +138,14 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
       pluginKey="imageBlockMenu"
       shouldShow={shouldShow}
       updateDelay={0}
-      className={cn('z-50', isClosedByScroll && '!hidden pointer-events-none')}
+      className={cn('z-[1340]', isClosedByScroll && '!hidden pointer-events-none')}
       appendTo={appendTo?.current || undefined}
       options={IMAGE_BLOCK_MENU_OPTIONS}
       getReferencedVirtualElement={getReferencedVirtualElement}
     >
       <div
         ref={menuRef}
-        className="inline-flex h-full leading-none gap-0.5 p-1 rounded-xl items-center z-50 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-xl border border-black/[0.08] dark:border-white/[0.1] shadow-xl ring-1 ring-white/40 dark:ring-white/5 text-zinc-800 dark:text-zinc-200"
+        className="inline-flex h-full leading-none gap-0.5 p-1 rounded-xl items-center z-[1340] bg-white/85 dark:bg-[#202020]/90 backdrop-blur-xl border border-black/[0.08] dark:border-white/[0.1] shadow-xl ring-1 ring-white/40 dark:ring-white/5 text-zinc-800 dark:text-zinc-200"
       >
         <Toolbar.Button
           tooltip="Align left"

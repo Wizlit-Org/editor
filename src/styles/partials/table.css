@@ -141,6 +141,19 @@
     th.selectedCell,
     .selectedCell {
       background-color: color-mix(in srgb, var(--editor-primary, #faaf2d) 20%, transparent) !important;
+      user-select: none !important;
+      -webkit-user-select: none !important;
+
+      & * {
+        user-select: none !important;
+        -webkit-user-select: none !important;
+      }
+
+      &::selection,
+      & *::selection {
+        background-color: transparent !important;
+        color: inherit !important;
+      }
     }
 
     .theme-dark td.selectedCell,

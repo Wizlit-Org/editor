@@ -133,9 +133,10 @@ export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
   const BTN_CLASS =
     'h-7 w-7 p-0 shrink-0 inline-flex items-center justify-center leading-none text-zinc-700 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white hover:bg-white/60 active:bg-white/80 dark:hover:bg-white/[0.1] dark:active:bg-white/[0.16] rounded-lg border border-transparent hover:border-white/50 dark:hover:border-white/[0.08] transition-all duration-150'
   const ACTIVE_CLASS =
-    'bg-[color-mix(in_srgb,var(--editor-primary)_15%,transparent)] text-[var(--editor-primary)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)] border-[color-mix(in_srgb,var(--editor-primary)_25%,transparent)] dark:border-[color-mix(in_srgb,var(--editor-primary)_30%,transparent)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] font-semibold'
+    'bg-black/10 text-neutral-800 dark:bg-white/20 dark:text-neutral-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] font-semibold'
 
-  if (!editor || !editor.isEditable) {
+  const isVisible = Boolean(editor?.isEditable)
+  if (!editor) {
     return null
   }
 
@@ -158,11 +159,11 @@ export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
           justifyContent: 'center',
           alignItems: 'center',
           pointerEvents: 'none',
-          zIndex: 40,
+          zIndex: 1350,
           transform: 'none',
           translate: 'none',
         }}
-        className="fixed z-[40] pointer-events-none select-none flex items-center justify-center"
+        className="fixed z-[1350] pointer-events-none select-none flex items-center justify-center"
       >
         <div
           role="toolbar"
@@ -175,7 +176,7 @@ export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
             e.preventDefault()
           }}
           style={{
-            pointerEvents: 'auto',
+            pointerEvents: isVisible ? 'auto' : 'none',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -196,7 +197,11 @@ export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
               ? '0 12px 32px -4px rgba(0, 0, 0, 0.55), 0 4px 12px -2px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.16)'
               : '0 10px 28px -4px rgba(15, 23, 42, 0.14), 0 4px 10px -2px rgba(15, 23, 42, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.92)',
           }}
-          className="inline-flex h-full leading-none gap-0.5 p-1.5 rounded-2xl items-center justify-center text-zinc-800 dark:text-zinc-100 pointer-events-auto"
+          className={`inline-flex h-full leading-none gap-0.5 p-1.5 rounded-2xl items-center justify-center text-zinc-800 dark:text-zinc-100 transition-all duration-200 ease-out ${
+            isVisible
+              ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
+              : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
+          }`}
         >
           <MemoContentTypePicker options={blockOptions} />
           <div className="h-4 w-[1px] bg-zinc-900/10 dark:bg-white/15 mx-1 shrink-0" />
@@ -251,7 +256,7 @@ export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
           >
             <Icon name="Code" className="w-3.5 h-3.5" />
           </MemoButton>
-          <EditLinkPopover onSetLink={commands.onLink} />
+          <EditLinkPopover editor={editor} onSetLink={commands.onLink} />
         </div>
       </div>
     </>

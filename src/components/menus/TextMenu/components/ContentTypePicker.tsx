@@ -1,6 +1,6 @@
 import { Icon } from '@/components/ui/Icon'
 import { icons } from 'lucide-react'
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import * as Dropdown from '@radix-ui/react-dropdown-menu'
 import { Toolbar } from '@/components/ui/Toolbar'
 
@@ -39,14 +39,33 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
 
   const activeLabel = activeItem?.label || 'Paragraph'
   const activeIcon = activeItem?.icon || 'Pilcrow'
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    const handleClose = (e: Event) => {
+      if ((e as CustomEvent).detail !== 'contentTypePicker') {
+        setOpen(false)
+      }
+    }
+    window.addEventListener('tiptap:close-menus', handleClose)
+    return () => window.removeEventListener('tiptap:close-menus', handleClose)
+  }, [])
 
   return (
-    <Dropdown.Root>
+    <Dropdown.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (next) {
+          window.dispatchEvent(new CustomEvent('tiptap:close-menus', { detail: 'contentTypePicker' }))
+        }
+        setOpen(next)
+      }}
+    >
       <Dropdown.Trigger asChild>
         <Toolbar.Button
           active={activeItem?.id !== 'paragraph' && !!activeItem?.type}
           className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 leading-none text-zinc-700 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white hover:bg-white/60 active:bg-white/80 dark:hover:bg-white/[0.1] dark:active:bg-white/[0.16] rounded-lg border border-transparent hover:border-white/50 dark:hover:border-white/[0.08] transition-all duration-150 text-xs font-medium"
-          activeClassname="bg-[color-mix(in_srgb,var(--editor-primary)_15%,transparent)] text-[var(--editor-primary)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)] border-[color-mix(in_srgb,var(--editor-primary)_25%,transparent)] dark:border-[color-mix(in_srgb,var(--editor-primary)_30%,transparent)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5)]"
+          activeClassname="bg-black/10 text-neutral-800 dark:bg-white/20 dark:text-neutral-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5)]"
         >
           <Icon name={activeIcon} className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate max-w-[5.5rem] leading-none">{activeLabel}</span>
@@ -59,7 +78,7 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
         align="start"
         sideOffset={10}
         collisionPadding={12}
-        className="z-[1350] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
+        className="z-[1360] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
       >
         <div
           style={{

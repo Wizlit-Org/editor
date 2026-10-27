@@ -161,6 +161,12 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
         }
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          element.classList.remove('heading-toc-highlight')
+          void element.offsetWidth
+          element.classList.add('heading-toc-highlight')
+          setTimeout(() => {
+            element?.classList.remove('heading-toc-highlight')
+          }, 1600)
         } else if (editor.isEditable) {
           editor.chain().focus(pos + 1, { scrollIntoView: true }).run()
         }

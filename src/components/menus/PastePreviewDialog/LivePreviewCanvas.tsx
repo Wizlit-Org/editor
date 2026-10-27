@@ -327,6 +327,7 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
   return (
     <div
       ref={viewportRef}
+      data-live-preview-viewport="true"
       onScrollCapture={e => e.stopPropagation()}
       onWheelCapture={e => e.stopPropagation()}
       style={{
@@ -343,12 +344,13 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
         color: isDark ? '#f4f4f5' : '#18181b',
       }}
       className={`w-full h-full flex-1 min-h-0 overflow-hidden flex items-center justify-center !bg-transparent ${
-        isDark ? 'dark theme-dark text-zinc-100' : 'theme-light text-zinc-900'
+        isDark ? 'dark text-zinc-100' : 'text-zinc-900'
       } [&_figure]:!my-0 [&_.node-imageBlock]:!my-0 [&_[data-node-view-wrapper]]:!my-0 [&_.ProseMirror]:!bg-transparent`}
     >
       {/* Frameless Center Stage Preview: Auto-Scaled & Animated on Option Switch Without Box Frame */}
       <div
         ref={contentRef}
+        data-live-preview-content="true"
         onClick={e => e.stopPropagation()}
         style={{
           width: isBlockMedia ? 'min(672px, 90vw)' : 'fit-content',

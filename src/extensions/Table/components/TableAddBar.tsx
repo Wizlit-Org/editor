@@ -52,7 +52,6 @@ export const TableAddBar: React.FC<TableAddBarProps> = ({
             left: tableRect.right + 4 - ox,
             height: rightBarHeight,
             width: 14,
-            zIndex: 30,
           }}
           onMouseDown={e => {
             e.preventDefault()
@@ -77,7 +76,6 @@ export const TableAddBar: React.FC<TableAddBarProps> = ({
             left: bottomBarLeft - ox,
             width: bottomBarWidth,
             height: 14,
-            zIndex: 30,
           }}
           onMouseDown={e => {
             e.preventDefault()
