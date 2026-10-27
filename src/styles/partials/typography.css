@@ -51,6 +51,8 @@
   h5,
   h6 {
     @apply font-bold first:mt-0 last:mb-0;
+    scroll-margin-top: 88px;
+    border-radius: 4px;
   }
 
   h4,
