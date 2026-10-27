@@ -413,7 +413,7 @@ export const LinkMenu = ({
       pluginKey="linkMenu"
       shouldShow={shouldShow}
       updateDelay={0}
-      className={cn('z-[1380]', (isClosedByScroll || isDismissed) && '!hidden pointer-events-none')}
+      className={cn('z-[1340]', (isClosedByScroll || isDismissed) && '!hidden pointer-events-none')}
       appendTo={appendTo?.current || (typeof document !== 'undefined' ? document.body : undefined)}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={menuOptions}

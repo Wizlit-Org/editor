@@ -354,7 +354,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 1450,
+        zIndex: 1390,
         outline: 'none',
         display: 'flex',
         flexDirection: 'column',
@@ -372,7 +372,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
         WebkitBackdropFilter: 'blur(24px) saturate(160%)',
         transition: `opacity ${animTiming}`,
       }}
-      className="fixed inset-0 z-[1450] flex flex-col items-center justify-between select-none"
+      className="fixed inset-0 z-[1390] flex flex-col items-center justify-between select-none"
     >
       {/* 1단 & 2단: 헤더 (제목 + 1줄 설명 + 선택지 탭 독) */}
       <PastePreviewHeader

@@ -90,7 +90,7 @@ export const Tooltip = ({
             ref={refs.setFloating}
             style={{
               ...floatingStyles,
-              zIndex: 99999,
+              zIndex: 1370,
             }}
             {...getFloatingProps()}
           >

@@ -1,6 +1,6 @@
 import { Icon } from '@/components/ui/Icon'
 import { icons } from 'lucide-react'
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import * as Dropdown from '@radix-ui/react-dropdown-menu'
 import { Toolbar } from '@/components/ui/Toolbar'
 
@@ -39,9 +39,28 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
 
   const activeLabel = activeItem?.label || 'Paragraph'
   const activeIcon = activeItem?.icon || 'Pilcrow'
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    const handleClose = (e: Event) => {
+      if ((e as CustomEvent).detail !== 'contentTypePicker') {
+        setOpen(false)
+      }
+    }
+    window.addEventListener('tiptap:close-menus', handleClose)
+    return () => window.removeEventListener('tiptap:close-menus', handleClose)
+  }, [])
 
   return (
-    <Dropdown.Root>
+    <Dropdown.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (next) {
+          window.dispatchEvent(new CustomEvent('tiptap:close-menus', { detail: 'contentTypePicker' }))
+        }
+        setOpen(next)
+      }}
+    >
       <Dropdown.Trigger asChild>
         <Toolbar.Button
           active={activeItem?.id !== 'paragraph' && !!activeItem?.type}
@@ -59,7 +78,7 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
         align="start"
         sideOffset={10}
         collisionPadding={12}
-        className="z-[1380] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
+        className="z-[1360] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
       >
         <div
           style={{

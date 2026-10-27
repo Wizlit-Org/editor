@@ -3,7 +3,7 @@ import { Icon } from '@/components/ui/Icon'
 import { Toolbar } from '@/components/ui/Toolbar'
 import * as Popover from '@radix-ui/react-popover'
 import { Editor } from '@tiptap/react'
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 
 export type EditLinkPopoverProps = {
   editor?: Editor
@@ -15,8 +15,21 @@ export const EditLinkPopover = ({ editor, onSetLink }: EditLinkPopoverProps) => 
   const [initialText, setInitialText] = useState('')
   const [initialUrl, setInitialUrl] = useState('')
 
+  useEffect(() => {
+    const handleClose = (e: Event) => {
+      if ((e as CustomEvent).detail !== 'editLink') {
+        setOpen(false)
+      }
+    }
+    window.addEventListener('tiptap:close-menus', handleClose)
+    return () => window.removeEventListener('tiptap:close-menus', handleClose)
+  }, [])
+
   const handleOpenChange = useCallback(
     (nextOpen: boolean) => {
+      if (nextOpen) {
+        window.dispatchEvent(new CustomEvent('tiptap:close-menus', { detail: 'editLink' }))
+      }
       if (nextOpen && editor && !editor.isDestroyed) {
         const { from, to, empty } = editor.state.selection
         const rawText = !empty ? editor.state.doc.textBetween(from, to, ' ').trim() : ''
@@ -62,7 +75,7 @@ export const EditLinkPopover = ({ editor, onSetLink }: EditLinkPopoverProps) => 
         align="center"
         sideOffset={10}
         collisionPadding={12}
-        className="z-[1380] outline-none"
+        className="z-[1360] outline-none"
       >
         <LinkEditorPanel
           initialText={initialText}

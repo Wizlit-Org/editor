@@ -135,7 +135,8 @@ export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
   const ACTIVE_CLASS =
     'bg-black/10 text-neutral-800 dark:bg-white/20 dark:text-neutral-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] font-semibold'
 
-  if (!editor || !editor.isEditable) {
+  const isVisible = Boolean(editor?.isEditable)
+  if (!editor) {
     return null
   }
 
@@ -175,7 +176,7 @@ export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
             e.preventDefault()
           }}
           style={{
-            pointerEvents: 'auto',
+            pointerEvents: isVisible ? 'auto' : 'none',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -196,7 +197,11 @@ export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
               ? '0 12px 32px -4px rgba(0, 0, 0, 0.55), 0 4px 12px -2px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.16)'
               : '0 10px 28px -4px rgba(15, 23, 42, 0.14), 0 4px 10px -2px rgba(15, 23, 42, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.92)',
           }}
-          className="inline-flex h-full leading-none gap-0.5 p-1.5 rounded-2xl items-center justify-center text-zinc-800 dark:text-zinc-100 pointer-events-auto"
+          className={`inline-flex h-full leading-none gap-0.5 p-1.5 rounded-2xl items-center justify-center text-zinc-800 dark:text-zinc-100 transition-all duration-200 ease-out ${
+            isVisible
+              ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
+              : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
+          }`}
         >
           <MemoContentTypePicker options={blockOptions} />
           <div className="h-4 w-[1px] bg-zinc-900/10 dark:bg-white/15 mx-1 shrink-0" />
