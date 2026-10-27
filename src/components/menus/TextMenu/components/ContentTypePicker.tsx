@@ -59,7 +59,7 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
         align="start"
         sideOffset={10}
         collisionPadding={12}
-        className="z-[1350] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
+        className="z-[1380] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
       >
         <div
           style={{

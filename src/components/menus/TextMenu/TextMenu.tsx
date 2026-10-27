@@ -158,11 +158,11 @@ export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
           justifyContent: 'center',
           alignItems: 'center',
           pointerEvents: 'none',
-          zIndex: 40,
+          zIndex: 1350,
           transform: 'none',
           translate: 'none',
         }}
-        className="fixed z-[40] pointer-events-none select-none flex items-center justify-center"
+        className="fixed z-[1350] pointer-events-none select-none flex items-center justify-center"
       >
         <div
           role="toolbar"
@@ -251,7 +251,7 @@ export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
           >
             <Icon name="Code" className="w-3.5 h-3.5" />
           </MemoButton>
-          <EditLinkPopover onSetLink={commands.onLink} />
+          <EditLinkPopover editor={editor} onSetLink={commands.onLink} />
         </div>
       </div>
     </>

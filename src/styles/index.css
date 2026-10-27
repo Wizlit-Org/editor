@@ -286,3 +286,14 @@
   background-color: transparent !important;
   background: transparent !important;
 }
+
+/* ==========================================================================
+   Link Preview Panel Isolation: Guarantee neutral link colors until hovered
+   ========================================================================== */
+.link-preview-panel a:not(:hover) {
+  color: inherit !important;
+}
+
+.link-preview-panel a:hover {
+  color: var(--editor-primary, #faaf2d) !important;
+}
