@@ -54,8 +54,8 @@
   --editor-bg: #191919 !important;
   --editor-text: #e3e3e3 !important;
   --editor-subtext: #9b9b9b !important;
-  --editor-caret: #e3e3e3;
-  --editor-selection: rgba(255, 255, 255, 0.2);
+  --editor-caret: var(--editor-primary, #faaf2d);
+  --editor-selection: color-mix(in srgb, var(--editor-primary, #faaf2d) 30%, transparent);
   --editor-divider: rgba(255, 255, 255, 0.1) !important;
 
   --glass-panel-bg: rgba(32, 32, 32, 0.75) !important;
@@ -171,12 +171,6 @@
   outline-color: var(--editor-primary, #faaf2d) !important;
 }
 
-.editor-theme-light [class*="focus:ring-"],
-.editor-theme-light [class*="focus-visible:ring-"],
-.editor-theme-dark [class*="focus:ring-"],
-.editor-theme-dark [class*="focus-visible:ring-"] {
-  --tw-ring-color: var(--editor-primary, #faaf2d) !important;
-}
 
 /* 5. Theme Token Utility Bindings (Preserves exact 1:1 original opacities via color-mix) */
 [class*="text-[var(--editor-primary)]"] {
