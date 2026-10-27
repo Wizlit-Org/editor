@@ -354,7 +354,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 1450,
+        zIndex: 1390,
         outline: 'none',
         display: 'flex',
         flexDirection: 'column',
@@ -372,7 +372,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
         WebkitBackdropFilter: 'blur(24px) saturate(160%)',
         transition: `opacity ${animTiming}`,
       }}
-      className="fixed inset-0 z-[1450] flex flex-col items-center justify-between select-none"
+      className="fixed inset-0 z-[1390] flex flex-col items-center justify-between select-none"
     >
       {/* 1단 & 2단: 헤더 (제목 + 1줄 설명 + 선택지 탭 독) */}
       <PastePreviewHeader
@@ -389,6 +389,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
 
       {/* 3단: 박스 틀 없는 1:1 라이브 미리보기 */}
       <div
+        data-live-preview-container="true"
         style={{
           flex: 1,
           width: '100%',
@@ -397,6 +398,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',
+          backgroundColor: 'transparent',
           opacity: isVisible ? 1 : 0,
           transform: isVisible
             ? 'translateY(0px) scale(1)'
@@ -405,6 +407,7 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
               : 'scale(0.96)',
           transition: `opacity ${animTiming}, transform ${animTiming}`,
         }}
+        className="w-full flex-1 min-h-0 flex items-center justify-center overflow-hidden bg-transparent"
       >
         <LivePreviewCanvas
           data={data}

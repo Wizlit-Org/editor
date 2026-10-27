@@ -68,7 +68,6 @@ export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
             top: dragIndicator.top - oy,
             width: dragIndicator.width,
             height: dragIndicator.height,
-            zIndex: 25,
           }}
         />
       )}
@@ -81,7 +80,7 @@ export const TableDragOverlays: React.FC<TableDragOverlaysProps> = ({
               ? 'bg-rose-950/95 border border-rose-500/80 text-rose-200 shadow-rose-950/50'
               : 'bg-zinc-900/95 dark:bg-zinc-800/95 border border-white/10 text-white shadow-black/40'
           }`}
-          style={{ left: dragGhost.x - ox, top: dragGhost.y - oy, zIndex: 30 }}
+          style={{ left: dragGhost.x - ox, top: dragGhost.y - oy }}
         >
           <span className={`w-1.5 h-1.5 rounded-full ${dragGhost.isBlocked ? 'bg-rose-400' : 'bg-[var(--editor-primary)]'}`} />
           <span>{dragGhost.label}</span>

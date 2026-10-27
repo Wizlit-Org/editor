@@ -316,16 +316,15 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
       computePositionConfig={positionConfig}
     >
       <div
-        className={`w-[48px] h-[32px] flex items-center gap-0 select-none relative !z-[100] !pointer-events-auto after:content-[''] after:absolute after:top-0 after:bottom-0 after:-right-6 after:w-6 after:pointer-events-auto transition-opacity duration-150 ease-out ${
+        className={`w-[48px] h-[32px] flex items-center gap-0 select-none relative !pointer-events-auto after:content-[''] after:absolute after:top-0 after:bottom-0 after:-right-6 after:w-6 after:pointer-events-auto transition-opacity duration-150 ease-out ${
           shouldHideHandle ? 'hidden pointer-events-none opacity-0 !w-0 !h-0 overflow-hidden' : ''
         }`}
-        style={shouldHideHandle ? { display: 'none', pointerEvents: 'none', visibility: 'hidden', zIndex: 100 } : { zIndex: 100, pointerEvents: 'auto' }}
+        style={shouldHideHandle ? { display: 'none', pointerEvents: 'none', visibility: 'hidden' } : { pointerEvents: 'auto' }}
       >
         <button
           type="button"
           onClick={actions.handleAdd}
-          style={{ zIndex: 100, pointerEvents: 'auto' }}
-          className="w-[24px] h-[32px] rounded-[10px] p-0 flex items-center justify-center transition-colors duration-150 hover:bg-black/[0.06] dark:hover:bg-white/[0.08] hover:backdrop-blur-sm cursor-pointer outline-none relative !z-[100] !pointer-events-auto"
+          className="w-[24px] h-[32px] rounded-[10px] p-0 flex items-center justify-center transition-colors duration-150 hover:bg-black/[0.06] dark:hover:bg-white/[0.08] hover:backdrop-blur-sm cursor-pointer outline-none relative !pointer-events-auto"
           title="Click to add a block below"
           aria-label="Add block below"
         >
@@ -360,8 +359,7 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
                 setDragHandleLocked(false)
                 setMenuOpen((prev) => !prev)
               }}
-              style={{ zIndex: 100, pointerEvents: 'auto' }}
-              className="w-[24px] h-[32px] rounded-[10px] p-0 flex items-center justify-center transition-colors duration-150 hover:bg-black/[0.06] dark:hover:bg-white/[0.08] hover:backdrop-blur-sm cursor-grab active:cursor-grabbing outline-none relative !z-[100] !pointer-events-auto"
+              className="w-[24px] h-[32px] rounded-[10px] p-0 flex items-center justify-center transition-colors duration-150 hover:bg-black/[0.06] dark:hover:bg-white/[0.08] hover:backdrop-blur-sm cursor-grab active:cursor-grabbing outline-none relative !pointer-events-auto"
               title="Drag to move, click for options"
               aria-label="Drag handle and block menu"
             >
@@ -382,7 +380,6 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
               )}
               data-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
               data-editor-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
-              style={{ zIndex: 1350 }}
             >
               <div className="glass-menu p-1.5 flex flex-col min-w-[15rem] max-h-[24rem] overflow-y-auto bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200 shadow-xl rounded-xl transition-all duration-150">
                 {menuView === 'main' && (

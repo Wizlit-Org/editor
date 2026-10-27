@@ -216,7 +216,7 @@ export const SmartPasteMenu: React.FC<SmartPasteMenuProps> = ({ editor }) => {
     <>
       {/* Invisible backdrop to capture outside clicks */}
       <div
-        className="fixed inset-0 z-[49]"
+        className="fixed inset-0 z-[1349]"
         onClick={() => handleClose(true)}
       />
 
@@ -224,7 +224,7 @@ export const SmartPasteMenu: React.FC<SmartPasteMenuProps> = ({ editor }) => {
       <div
         ref={menuRef}
         style={{ top: `${top}px`, left: `${left}px` }}
-        className="fixed z-50 min-w-[240px] max-w-[320px] p-1.5 shadow-2xl rounded-xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-black/10 dark:border-white/10 text-zinc-800 dark:text-zinc-200 animate-in fade-in-0 zoom-in-95 duration-150 select-none"
+        className="fixed z-[1350] min-w-[240px] max-w-[320px] p-1.5 shadow-2xl rounded-xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-black/10 dark:border-white/10 text-zinc-800 dark:text-zinc-200 animate-in fade-in-0 zoom-in-95 duration-150 select-none"
       >
         {/* Header Indicator */}
         <div className="flex items-center justify-between px-2.5 py-1.5 mb-1 border-b border-black/5 dark:border-white/10">

@@ -231,18 +231,18 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       editor={editor}
       pluginKey="tableRowMenu"
       updateDelay={0}
-      className={cn('z-[1350]', (!isMenuOpen || isClosedByScroll) && '!hidden pointer-events-none')}
+      className={cn('z-[1340]', (!isMenuOpen || isClosedByScroll) && '!hidden pointer-events-none')}
       appendTo={appendTo?.current || (typeof document !== 'undefined' ? document.body : undefined)}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={TABLE_ROW_MENU_OPTIONS}
       shouldShow={shouldShow}
     >
       <div
-        style={{ display: !isMenuOpen || isClosedByScroll ? 'none' : undefined, zIndex: 1350 }}
+        style={{ display: !isMenuOpen || isClosedByScroll ? 'none' : undefined }}
         data-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
         data-editor-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
         className={cn(
-          'glass-menu min-w-[14rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 z-[1350] bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200',
+          'glass-menu min-w-[14rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200',
           editor?.view?.dom?.closest('.editor-theme-dark')
             ? 'editor-theme-dark dark theme-dark'
             : 'editor-theme-light theme-light',

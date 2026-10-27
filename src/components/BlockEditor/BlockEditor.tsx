@@ -333,8 +333,6 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     root.style.setProperty('--editor-primary', themeColor)
     root.style.setProperty('--editor-accent', `color-mix(in srgb, ${themeColor} 15%, transparent)`)
     root.style.setProperty('--editor-accent-border', `color-mix(in srgb, ${themeColor} 25%, transparent)`)
-    root.style.setProperty('--editor-caret', themeColor)
-    root.style.setProperty('--editor-selection', `color-mix(in srgb, ${themeColor} 20%, transparent)`)
   }, [themeColor])
 
   if (!editor) {
@@ -352,8 +350,6 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           '--editor-primary': themeColor,
           '--editor-accent': `color-mix(in srgb, ${themeColor} 15%, transparent)`,
           '--editor-accent-border': `color-mix(in srgb, ${themeColor} 25%, transparent)`,
-          '--editor-caret': themeColor,
-          '--editor-selection': `color-mix(in srgb, ${themeColor} 20%, transparent)`,
         } as React.CSSProperties)
       : {}),
   }
