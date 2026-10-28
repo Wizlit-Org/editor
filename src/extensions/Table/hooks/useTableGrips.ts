@@ -215,12 +215,28 @@ export function useTableGrips(editor: Editor) {
   useEffect(() => {
     if (!editor) return
 
+    const handleSelectionChange = () => {
+      const isCell =
+        editor.state.selection.constructor.name === 'CellSelection' ||
+        Boolean((editor.state.selection as any).$anchorCell)
+      if (!isCell && !isHovered) {
+        clearHoverTimer()
+        setIsHovered(false)
+        setCurrentTableEl(null)
+        setTableRect(null)
+      } else {
+        triggerUpdate()
+      }
+    }
+
     editor.on('transaction', triggerUpdate)
     editor.on('update', triggerUpdate)
+    editor.on('selectionUpdate', handleSelectionChange)
 
     return () => {
       editor.off('transaction', triggerUpdate)
       editor.off('update', triggerUpdate)
+      editor.off('selectionUpdate', handleSelectionChange)
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
     }
@@ -315,17 +331,33 @@ export function useTableGrips(editor: Editor) {
           const inBottomBar = Boolean(target.closest('[aria-label="Add row at end"]'))
           setShowBottomAddBar(Boolean(isLastRow || isNearBottomEdge || inBottomBar))
         } else {
-          if (!hoverTimerRef.current) {
-            hoverTimerRef.current = setTimeout(() => {
-              setIsHovered(false)
-              setCurrentTableEl(null)
-              setTableRect(null)
-              setHoveredColIndex(null)
-              setHoveredRowIndex(null)
-              setShowRightAddBar(false)
-              setShowBottomAddBar(false)
-              hoverTimerRef.current = null
-            }, 300)
+          // Table / buffer zone out: 0ms hide if no cell is selected
+          const isCellSelected =
+            editor.state.selection.constructor.name === 'CellSelection' ||
+            Boolean((editor.state.selection as any).$anchorCell)
+
+          if (!isCellSelected) {
+            clearHoverTimer()
+            setIsHovered(false)
+            setCurrentTableEl(null)
+            setTableRect(null)
+            setHoveredColIndex(null)
+            setHoveredRowIndex(null)
+            setShowRightAddBar(false)
+            setShowBottomAddBar(false)
+          } else {
+            if (!hoverTimerRef.current) {
+              hoverTimerRef.current = setTimeout(() => {
+                setIsHovered(false)
+                setCurrentTableEl(null)
+                setTableRect(null)
+                setHoveredColIndex(null)
+                setHoveredRowIndex(null)
+                setShowRightAddBar(false)
+                setShowBottomAddBar(false)
+                hoverTimerRef.current = null
+              }, 150)
+            }
           }
         }
       }

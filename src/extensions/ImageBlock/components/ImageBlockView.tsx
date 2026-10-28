@@ -44,7 +44,8 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
   extension,
   selected,
 }) => {
-  const { src: rawSrc, align = 'center', width = '100%', caption = '' } = node.attrs
+  const { src: rawSrc, align = 'center', width = '100%', caption = '', margin = 'normal' } = node.attrs
+  const marginPx = margin === 'relaxed' ? 56 : margin === 'tight' ? 24 : 40
   const { onImageClick, convertSrc } = extension.options
   const editorEditable = editor.isEditable
 
@@ -260,7 +261,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
   return (
     <NodeViewWrapper
       className="node-imageBlock w-full overflow-visible"
-      style={{ marginTop: '40px', marginBottom: '40px' }}
+      style={{ marginTop: `${marginPx}px`, marginBottom: `${marginPx}px` }}
     >
       <div
         ref={containerRef}

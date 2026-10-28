@@ -27,7 +27,8 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
   updateAttributes,
   selected,
 }) => {
-  const { src, align = 'center', width = '100%', caption = '', isEditing = false } = node.attrs
+  const { src, align = 'center', width = '100%', caption = '', isEditing = false, margin = 'normal' } = node.attrs
+  const marginPx = margin === 'relaxed' ? 56 : margin === 'tight' ? 24 : 40
   const editorEditable = editor.isEditable
 
   const [emptyUrlInput, setEmptyUrlInput] = useState(src || '')
@@ -177,7 +178,7 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
     return (
       <NodeViewWrapper
         className="node-youtube w-full"
-        style={{ marginTop: '40px', marginBottom: '40px' }}
+        style={{ marginTop: `${marginPx}px`, marginBottom: `${marginPx}px` }}
       >
         <div
           ref={containerRef}
@@ -296,7 +297,7 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
   return (
     <NodeViewWrapper
       className="node-youtube w-full overflow-visible"
-      style={{ marginTop: '40px', marginBottom: '40px' }}
+      style={{ marginTop: `${marginPx}px`, marginBottom: `${marginPx}px` }}
     >
       <div
         ref={containerRef}
