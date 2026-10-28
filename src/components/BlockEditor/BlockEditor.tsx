@@ -393,7 +393,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
               <ImageBlockMenu editor={editor} appendTo={menuContainerRef} />
               <YoutubeBlockMenu editor={editor} appendTo={menuContainerRef} />
               <YoutubeDialog editor={editor} appendTo={menuContainerRef} />
-              <PastePreviewDialog editor={editor} />
+              <PastePreviewDialog editor={editor} theme={theme} />
             </>
           )}
         </div>

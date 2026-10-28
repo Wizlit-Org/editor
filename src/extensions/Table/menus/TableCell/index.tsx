@@ -413,6 +413,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   const dangerClass = "w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-red-600 dark:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 select-none cursor-pointer"
   const isExpanded = isBtnHovered || menuOpen
 
+  const isMultiCells = getActiveCells().length > 1
   const shouldRender = mounted && (!isScrolling || isDraggingHandleRef.current) && typeof document !== 'undefined' && selectionRect && !editor.view?.dragging && (isCellSelected || editor.isActive('tableCell') || editor.isActive('tableHeader') || Boolean(tableGripPluginKey.getState(editor.state)))
   if (!shouldRender) return <></>
 
@@ -445,7 +446,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                 width: selectionRect.width,
                 height: selectionRect.height,
                 borderColor: 'color-mix(in srgb, var(--editor-primary, #faaf2d) 85%, transparent)',
-                backgroundColor: 'color-mix(in srgb, var(--editor-primary, #faaf2d) 12%, transparent)',
+                backgroundColor: isMultiCells ? 'color-mix(in srgb, var(--editor-primary, #faaf2d) 12%, transparent)' : 'transparent',
                 zIndex: 8,
               }}
             />
@@ -470,7 +471,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                   <Popover.Content side="right" align="center" sideOffset={10} collisionPadding={16} data-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
                     className={cn('z-[1340] outline-none animate-in fade-in-0 zoom-in-95 duration-150', editor?.view?.dom?.closest('.editor-theme-dark') ? 'editor-theme-dark dark theme-dark' : 'editor-theme-light theme-light')}
                   >
-                    <div className="glass-menu min-w-[12rem] p-1.5 shadow-2xl rounded-xl flex flex-col gap-0.5 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
+                    <div className="glass-menu min-w-[12rem] p-1.5 shadow-2xl rounded-xl flex flex-col gap-0.5 bg-white dark:bg-[#202020]/95 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
                       <TableAlignmentSubmenu editor={editor} scope="cell" />
                       <div className="h-[1px] bg-black/5 dark:bg-white/10 my-0.5" />
                       {canMerge && <button type="button" onClick={onMergeCells} className={itemClass}><Icon name="Combine" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" /><span>Merge cells</span></button>}

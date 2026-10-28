@@ -406,6 +406,8 @@ export const LinkMenu = ({
     [onHide],
   )
 
+  const isDark = Boolean(editor?.view?.dom?.closest('.editor-theme-dark'))
+
   return (
     <BaseBubbleMenu
       ref={menuRef}
@@ -413,7 +415,11 @@ export const LinkMenu = ({
       pluginKey="linkMenu"
       shouldShow={shouldShow}
       updateDelay={0}
-      className={cn('z-[1340]', (isClosedByScroll || isDismissed) && '!hidden pointer-events-none')}
+      className={cn(
+        'z-[1340]',
+        isDark ? 'editor-theme-dark dark theme-dark' : 'editor-theme-light theme-light',
+        (isClosedByScroll || isDismissed) && '!hidden pointer-events-none',
+      )}
       appendTo={appendTo?.current || (typeof document !== 'undefined' ? document.body : undefined)}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={menuOptions}
