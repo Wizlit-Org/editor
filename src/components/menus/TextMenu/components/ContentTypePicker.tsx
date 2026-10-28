@@ -85,7 +85,7 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
             backdropFilter: 'blur(20px) saturate(190%)',
             WebkitBackdropFilter: 'blur(20px) saturate(190%)',
           }}
-          className="glass-menu flex flex-col gap-0.5 p-1.5 min-w-[13rem] max-h-[22rem] overflow-y-auto rounded-2xl bg-white/70 dark:bg-zinc-900/75 backdrop-blur-2xl backdrop-saturate-150 border border-white/75 dark:border-white/[0.14] ring-1 ring-slate-900/[0.06] dark:ring-black/50 shadow-[0_12px_36px_-4px_rgba(0,0,0,0.16),inset_0_1px_0_0_rgba(255,255,255,0.85)] dark:shadow-[0_12px_36px_-4px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.14)] text-zinc-800 dark:text-zinc-100"
+          className="glass-menu flex flex-col gap-0.5 p-1.5 min-w-[13rem] max-h-[22rem] overflow-y-auto rounded-2xl bg-white dark:bg-[#202020]/95 backdrop-blur-2xl border border-black/10 dark:border-white/[0.14] ring-1 ring-slate-900/[0.06] dark:ring-black/50 shadow-[0_12px_36px_-4px_rgba(0,0,0,0.16),inset_0_1px_0_0_rgba(255,255,255,0.85)] dark:shadow-[0_12px_36px_-4px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.14)] text-zinc-800 dark:text-zinc-100"
         >
           {options.map(option => {
             if (isOption(option)) {

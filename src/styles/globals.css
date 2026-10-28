@@ -31,16 +31,16 @@
   --editor-selection: rgba(0, 0, 0, 0.12) !important;
   --editor-divider: rgba(0, 0, 0, 0.08) !important;
 
-  --glass-panel-bg: rgba(255, 255, 255, 0.88) !important;
-  --glass-panel-border: rgba(228, 228, 231, 0.8) !important;
+  --glass-panel-bg: #ffffff !important;
+  --glass-panel-border: rgba(228, 228, 231, 0.9) !important;
   --glass-panel-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.08) !important;
 
-  --glass-menu-bg: rgba(255, 255, 255, 0.96) !important;
+  --glass-menu-bg: #ffffff !important;
   --glass-menu-border: rgba(228, 228, 231, 0.9) !important;
   --glass-menu-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.12) !important;
 
-  --glass-toolbar-bg: rgba(255, 255, 255, 0.92) !important;
-  --glass-toolbar-border: rgba(228, 228, 231, 0.8) !important;
+  --glass-toolbar-bg: #ffffff !important;
+  --glass-toolbar-border: rgba(228, 228, 231, 0.9) !important;
   --glass-toolbar-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.06) !important;
 
   --glass-item-hover: rgba(0, 0, 0, 0.05) !important;
@@ -97,6 +97,8 @@
   color: var(--editor-text) !important;
   border-color: var(--glass-panel-border) !important;
   box-shadow: var(--glass-panel-shadow) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .editor-theme-dark .glass-menu {

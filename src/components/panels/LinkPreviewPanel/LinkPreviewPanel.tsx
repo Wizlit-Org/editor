@@ -155,7 +155,7 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
   return (
     <div
       data-ignore-external-label="true"
-      className="link-preview-panel w-[320px] bg-white/95 dark:bg-[#202020]/95 backdrop-blur-xl border border-zinc-200/80 dark:border-white/10 shadow-[0_12px_32px_rgba(0,0,0,0.18)] dark:shadow-[0_16px_36px_rgba(0,0,0,0.55),inset_0_1px_0_0_rgba(255,255,255,0.08)] rounded-xl text-zinc-800 dark:text-zinc-200 animate-in fade-in-0 zoom-in-95 duration-150 overflow-hidden flex flex-col select-none"
+      className="link-preview-panel w-[320px] bg-white dark:bg-[#202020]/95 backdrop-blur-xl border border-zinc-200/80 dark:border-white/10 shadow-[0_12px_32px_rgba(0,0,0,0.18)] dark:shadow-[0_16px_36px_rgba(0,0,0,0.55),inset_0_1px_0_0_rgba(255,255,255,0.08)] rounded-xl text-zinc-800 dark:text-zinc-200 animate-in fade-in-0 zoom-in-95 duration-150 overflow-hidden flex flex-col select-none"
     >
       {/* 1. Top Notion-style Inline Action Toolbar */}
       <div className="h-9 px-2.5 flex items-center justify-between gap-1.5 border-b border-zinc-200/60 dark:border-white/10 bg-zinc-50/70 dark:bg-white/[0.03]">

@@ -119,16 +119,16 @@
   background-color: #ffffff !important;
   color: #222325 !important;
 
-  --glass-panel-bg: rgba(255, 255, 255, 0.88);
-  --glass-panel-border: rgba(228, 228, 231, 0.8);
+  --glass-panel-bg: #ffffff;
+  --glass-panel-border: rgba(228, 228, 231, 0.9);
   --glass-panel-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.08);
 
-  --glass-menu-bg: rgba(255, 255, 255, 0.96);
+  --glass-menu-bg: #ffffff;
   --glass-menu-border: rgba(228, 228, 231, 0.9);
   --glass-menu-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.12);
 
-  --glass-toolbar-bg: rgba(255, 255, 255, 0.92);
-  --glass-toolbar-border: rgba(228, 228, 231, 0.8);
+  --glass-toolbar-bg: #ffffff;
+  --glass-toolbar-border: rgba(228, 228, 231, 0.9);
   --glass-toolbar-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.06);
 
   --glass-item-hover: rgba(0, 0, 0, 0.05);
