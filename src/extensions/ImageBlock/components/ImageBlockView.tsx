@@ -260,7 +260,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
   return (
     <NodeViewWrapper
       className="node-imageBlock w-full overflow-visible"
-      style={{ marginTop: '24px', marginBottom: '24px' }}
+      style={{ marginTop: '40px', marginBottom: '40px' }}
     >
       <div
         ref={containerRef}
