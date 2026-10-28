@@ -58,20 +58,20 @@
   --editor-selection: rgba(255, 255, 255, 0.2) !important;
   --editor-divider: rgba(255, 255, 255, 0.1) !important;
 
-  --glass-panel-bg: rgba(32, 32, 32, 0.75) !important;
+  --glass-panel-bg: rgba(32, 32, 32, 0.85) !important;
   --glass-panel-border: rgba(255, 255, 255, 0.1) !important;
-  --glass-panel-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 4px 16px 0 rgba(0, 0, 0, 0.3) !important;
+  --glass-panel-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 4px 16px 0 rgba(0, 0, 0, 0.35) !important;
 
-  --glass-menu-bg: rgba(37, 37, 37, 0.92) !important;
+  --glass-menu-bg: rgba(37, 37, 37, 0.95) !important;
   --glass-menu-border: rgba(255, 255, 255, 0.1) !important;
-  --glass-menu-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 8px 24px -4px rgba(0, 0, 0, 0.4) !important;
+  --glass-menu-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 8px 24px -4px rgba(0, 0, 0, 0.45) !important;
 
-  --glass-toolbar-bg: rgba(32, 32, 32, 0.85) !important;
+  --glass-toolbar-bg: rgba(32, 32, 32, 0.88) !important;
   --glass-toolbar-border: rgba(255, 255, 255, 0.1) !important;
-  --glass-toolbar-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 4px 12px 0 rgba(0, 0, 0, 0.25) !important;
+  --glass-toolbar-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 4px 12px 0 rgba(0, 0, 0, 0.3) !important;
 
-  --glass-item-hover: rgba(255, 255, 255, 0.06) !important;
-  --glass-item-active: rgba(255, 255, 255, 0.1) !important;
+  --glass-item-hover: rgba(255, 255, 255, 0.08) !important;
+  --glass-item-active: rgba(255, 255, 255, 0.14) !important;
 }
 
 /* Force light theme on internal components when inside .editor-theme-light */
@@ -86,6 +86,29 @@
   background-color: var(--glass-panel-bg) !important;
   color: var(--editor-text) !important;
   border-color: var(--glass-panel-border) !important;
+}
+
+/* Force dark theme on internal components when inside .editor-theme-dark (even inside a white/light modal) */
+.editor-theme-dark .glass-panel,
+.editor-theme-dark .glass-menu,
+.editor-theme-dark .glass-toolbar,
+.editor-theme-dark [data-surface] {
+  background-color: var(--glass-panel-bg) !important;
+  color: var(--editor-text) !important;
+  border-color: var(--glass-panel-border) !important;
+  box-shadow: var(--glass-panel-shadow) !important;
+}
+
+.editor-theme-dark .glass-menu {
+  background-color: var(--glass-menu-bg) !important;
+  border-color: var(--glass-menu-border) !important;
+  box-shadow: var(--glass-menu-shadow) !important;
+}
+
+.editor-theme-dark .glass-toolbar {
+  background-color: var(--glass-toolbar-bg) !important;
+  border-color: var(--glass-toolbar-border) !important;
+  box-shadow: var(--glass-toolbar-shadow) !important;
 }
 
 /* Force text and canvas color on ProseMirror editor body */

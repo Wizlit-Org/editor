@@ -155,10 +155,10 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
   return (
     <div
       data-ignore-external-label="true"
-      className="link-preview-panel w-[320px] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200/80 dark:border-zinc-800/80 shadow-[0_12px_32px_rgba(0,0,0,0.18)] dark:shadow-[0_16px_36px_rgba(0,0,0,0.45)] rounded-xl text-zinc-800 dark:text-zinc-200 animate-in fade-in-0 zoom-in-95 duration-150 overflow-hidden flex flex-col select-none"
+      className="link-preview-panel w-[320px] bg-white/95 dark:bg-[#202020]/95 backdrop-blur-xl border border-zinc-200/80 dark:border-white/10 shadow-[0_12px_32px_rgba(0,0,0,0.18)] dark:shadow-[0_16px_36px_rgba(0,0,0,0.55),inset_0_1px_0_0_rgba(255,255,255,0.08)] rounded-xl text-zinc-800 dark:text-zinc-200 animate-in fade-in-0 zoom-in-95 duration-150 overflow-hidden flex flex-col select-none"
     >
       {/* 1. Top Notion-style Inline Action Toolbar */}
-      <div className="h-9 px-2.5 flex items-center justify-between gap-1.5 border-b border-zinc-200/60 dark:border-zinc-800/80 bg-zinc-50/70 dark:bg-zinc-800/30">
+      <div className="h-9 px-2.5 flex items-center justify-between gap-1.5 border-b border-zinc-200/60 dark:border-white/10 bg-zinc-50/70 dark:bg-white/[0.03]">
         {/* Left: Favicon + Clickable Link / Domain */}
         <div className="inline-flex items-center gap-1.5 min-w-0 flex-1">
           <span className="w-3.5 h-3.5 shrink-0 flex items-center justify-center">
@@ -268,7 +268,7 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
       {/* 2. Notion-style Glass Skeleton or Rich Bookmark Card */}
       {loading ? (
         <div className="flex flex-col animate-pulse">
-          <div className="w-full h-24 bg-black/[0.04] dark:bg-white/[0.04] border-b border-zinc-200/50 dark:border-zinc-800/50 flex items-center justify-center">
+          <div className="w-full h-24 bg-black/[0.04] dark:bg-white/[0.04] border-b border-zinc-200/50 dark:border-white/10 flex items-center justify-center">
             <Icon name="Globe" className="w-6 h-6 text-zinc-300 dark:text-zinc-600 opacity-60" />
           </div>
           <div className="p-3 flex flex-col gap-2">
@@ -285,7 +285,7 @@ export const LinkPreviewPanel: React.FC<LinkPreviewPanelProps> = ({
             <a
               {...(!disableDefaultAction ? defaultProps : {})}
               onClick={handleLinkClick}
-              className="relative w-full h-32 bg-zinc-100 dark:bg-zinc-800/40 overflow-hidden block group cursor-pointer border-b border-zinc-200/60 dark:border-zinc-800/60"
+              className="relative w-full h-32 bg-zinc-100 dark:bg-zinc-800/40 overflow-hidden block group cursor-pointer border-b border-zinc-200/60 dark:border-white/10"
             >
               <img
                 src={meta!.image!}

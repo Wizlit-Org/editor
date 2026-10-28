@@ -8,6 +8,16 @@
     }
   }
 
+  :is(.theme-dark, .editor-theme-dark, .dark) & code:not(pre code) {
+    color: #ff7b72 !important;
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+
+    &::selection {
+      background-color: rgba(255, 255, 255, 0.2) !important;
+    }
+  }
+
   pre {
     @apply caret-white text-zinc-100 rounded-lg p-4;
     background-color: transparent;
