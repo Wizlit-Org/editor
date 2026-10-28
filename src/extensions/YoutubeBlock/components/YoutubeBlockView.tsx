@@ -177,7 +177,7 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
     return (
       <NodeViewWrapper
         className="node-youtube w-full"
-        style={{ marginTop: '16px', marginBottom: '16px' }}
+        style={{ marginTop: '24px', marginBottom: '24px' }}
       >
         <div
           ref={containerRef}
@@ -296,7 +296,7 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
   return (
     <NodeViewWrapper
       className="node-youtube w-full overflow-visible"
-      style={{ marginTop: '16px', marginBottom: '16px' }}
+      style={{ marginTop: '24px', marginBottom: '24px' }}
     >
       <div
         ref={containerRef}
