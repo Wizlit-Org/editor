@@ -25,7 +25,10 @@ export const YoutubeBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element =
   }, [editor])
 
   const getReferencedVirtualElement = useCallback(
-    () => ({ getBoundingClientRect: getReferenceClientRect }),
+    () => ({
+      getBoundingClientRect: getReferenceClientRect,
+      getClientRects: () => [getReferenceClientRect()],
+    }),
     [getReferenceClientRect],
   )
 

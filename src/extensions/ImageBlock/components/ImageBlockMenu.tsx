@@ -48,7 +48,9 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
   }, [editor])
 
   const getReferenceClientRect = useCallback(() => {
-    const renderContainer = getRenderContainer(editor, 'node-imageBlock')
+    const renderContainer =
+      getRenderContainer(editor, 'node-imageBlock') ||
+      editor.view?.dom?.querySelector('.node-imageBlock, [data-type="node-imageBlock"]')
     const rect = renderContainer?.getBoundingClientRect() || new DOMRect(-1000, -1000, 0, 0)
 
     return rect
