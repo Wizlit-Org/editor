@@ -26,30 +26,16 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof document !== 'undefined') {
       const editorDom = editor?.view?.dom as HTMLElement | undefined
-      if (editorDom?.closest('.editor-theme-dark')) return true
-      if (editorDom?.closest('.editor-theme-light')) return false
-      if (editorDom?.closest('.dark, .theme-dark, .notion-dark-canvas')) return true
-      if (editorDom?.closest('.theme-light, .notion-light-canvas')) return false
-      return false
+      return Boolean(editorDom?.closest('.editor-theme-dark'))
     }
     return false
   })
 
-  // Synchronize light/dark theme with editor container
+  // Synchronize light/dark theme strictly with editor container theme class
   useEffect(() => {
     if (typeof document === 'undefined' || !data) return
     const editorDom = editor?.view?.dom as HTMLElement | undefined
-    if (editorDom?.closest('.editor-theme-dark')) {
-      setIsDark(true)
-    } else if (editorDom?.closest('.editor-theme-light')) {
-      setIsDark(false)
-    } else if (editorDom?.closest('.dark, .theme-dark, .notion-dark-canvas')) {
-      setIsDark(true)
-    } else if (editorDom?.closest('.theme-light, .notion-light-canvas')) {
-      setIsDark(false)
-    } else {
-      setIsDark(false)
-    }
+    setIsDark(Boolean(editorDom?.closest('.editor-theme-dark')))
   }, [data, editor])
 
   // Freeze background editor & trap IME / input events while dialog is active
