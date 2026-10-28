@@ -157,17 +157,17 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
       style={{ marginTop: '12px', marginBottom: '12px' }}
     >
       <div className="w-full max-w-full min-w-0 rounded-xl overflow-hidden bg-zinc-900/85 dark:bg-[#18181b]/80 backdrop-blur-xl border border-black/10 dark:border-white/15 shadow-2xl transition-all ring-1 ring-black/5 dark:ring-white/5">
-        {/* Code Header Bar: macOS 3-dot + Language Badge on Left, Action Buttons on Right */}
-        <div className="flex items-center justify-between px-3.5 py-2 border-b border-white/[0.08] bg-white/[0.03]">
-          <div className="flex items-center gap-2.5">
+        {/* Code Header Bar: macOS 3-dot + Language Badge on Left, Action Buttons on Right (Slim 28px) */}
+        <div className="flex items-center justify-between px-3 py-1 min-h-[28px] border-b border-white/[0.08] bg-white/[0.03]">
+          <div className="flex items-center gap-2">
             {/* macOS 3-dot decoration */}
             <div className="flex items-center gap-1.5 select-none" aria-hidden="true">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500/80 inline-block" />
-              <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80 inline-block" />
-              <span className="w-2.5 h-2.5 rounded-full bg-green-500/80 inline-block" />
+              <span className="w-2 h-2 rounded-full bg-red-500/80 inline-block" />
+              <span className="w-2 h-2 rounded-full bg-yellow-500/80 inline-block" />
+              <span className="w-2 h-2 rounded-full bg-green-500/80 inline-block" />
             </div>
 
-            <div className="h-3 w-[1px] bg-white/10 mx-0.5" />
+            <div className="h-2.5 w-[1px] bg-white/10 mx-0.5" />
 
             <div className="relative" ref={buttonPositionRef}>
               <button
@@ -192,7 +192,7 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
               onClick={toggleWrap}
               tabIndex={-1}
               className={cn(
-                'p-1 rounded-md text-xs transition-colors',
+                'h-6 w-6 p-0 flex items-center justify-center rounded-md text-xs transition-colors',
                 shouldWrap
                   ? 'bg-blue-500/20 text-blue-300'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/10',
@@ -206,7 +206,7 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
               onClick={handleCopy}
               tabIndex={-1}
               className={cn(
-                'flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] transition-colors',
+                'h-6 flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] transition-colors',
                 isCopied
                   ? 'bg-green-500/20 text-green-300 font-medium'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/10',
