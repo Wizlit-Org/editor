@@ -22,6 +22,14 @@ export const LinkMenu = ({
   const [isDismissed, setIsDismissed] = useState(false)
   const isDismissedRef = useRef(false)
 
+  useEffect(() => {
+    if (menuRef.current) {
+      menuRef.current.style.setProperty('background-color', 'transparent', 'important')
+      menuRef.current.style.setProperty('border-radius', '12px', 'important')
+      menuRef.current.style.setProperty('overflow', 'hidden', 'important')
+    }
+  })
+
   const updateMenuPosition = useCallback(() => {
     try {
       editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'updatePosition'))
@@ -416,11 +424,11 @@ export const LinkMenu = ({
       shouldShow={shouldShow}
       updateDelay={0}
       className={cn(
-        'link-bubble-menu z-[1340] !bg-transparent',
+        'link-bubble-menu z-[1340] !bg-transparent rounded-xl overflow-hidden',
         isDark ? 'editor-theme-dark dark theme-dark' : 'editor-theme-light theme-light',
         (isClosedByScroll || isDismissed) && '!hidden pointer-events-none',
       )}
-      style={{ backgroundColor: 'transparent' }}
+      style={{ backgroundColor: 'transparent', borderRadius: '12px', overflow: 'hidden' }}
       appendTo={appendTo?.current || (typeof document !== 'undefined' ? document.body : undefined)}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={menuOptions}
