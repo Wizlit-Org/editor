@@ -28,7 +28,7 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
   selected,
 }) => {
   const { src, align = 'center', width = '100%', caption = '', isEditing = false, margin = '3' } = node.attrs
-  const marginPx = margin === '1' ? 12 : margin === '2' || margin === 'tight' ? 24 : margin === '4' ? 48 : margin === '5' || margin === 'relaxed' ? 56 : 40
+  const marginPx = margin === '1' ? 12 : margin === '2' || margin === 'tight' ? 24 : margin === '4' || margin === '5' || margin === 'relaxed' ? 56 : 40
   const editorEditable = editor.isEditable
 
   const [emptyUrlInput, setEmptyUrlInput] = useState(src || '')

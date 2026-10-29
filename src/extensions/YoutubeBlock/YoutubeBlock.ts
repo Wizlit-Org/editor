@@ -73,7 +73,7 @@ declare module '@tiptap/core' {
       setYoutubeWidth: (width: number) => ReturnType
       setYoutubeCaption: (caption: string) => ReturnType
       setYoutubeMargin: (
-        margin: '1' | '2' | '3' | '4' | '5' | 'tight' | 'normal' | 'relaxed',
+        margin: '1' | '2' | '3' | '4' | 'tight' | 'normal' | 'relaxed',
       ) => ReturnType
       updateYoutubeUrl: (url: string) => ReturnType
     }

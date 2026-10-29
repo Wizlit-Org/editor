@@ -80,24 +80,20 @@ export const YoutubeBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element =
       ? '1단'
       : currentMargin === '2' || currentMargin === 'tight'
         ? '2단'
-        : currentMargin === '4'
+        : currentMargin === '4' || currentMargin === '5' || currentMargin === 'relaxed'
           ? '4단'
-          : currentMargin === '5' || currentMargin === 'relaxed'
-            ? '5단'
-            : '3단'
+          : '3단'
 
   const onToggleMargin = useCallback(() => {
     const cur = (editor.getAttributes('youtube').margin as string) || '3'
     const nxt =
       cur === '3' || cur === 'normal'
         ? '4'
-        : cur === '4'
-          ? '5'
-          : cur === '5' || cur === 'relaxed'
-            ? '1'
-            : cur === '1'
-              ? '2'
-              : '3'
+        : cur === '4' || cur === '5' || cur === 'relaxed'
+          ? '1'
+          : cur === '1'
+            ? '2'
+            : '3'
     editor
       .chain()
       .focus(undefined, { scrollIntoView: false })

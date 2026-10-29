@@ -19,7 +19,7 @@ declare module '@tiptap/core' {
       setImageBlockWidth: (width: number) => ReturnType
       setImageBlockCaption: (caption: string) => ReturnType
       setImageBlockMargin: (
-        margin: '1' | '2' | '3' | '4' | '5' | 'tight' | 'normal' | 'relaxed',
+        margin: '1' | '2' | '3' | '4' | 'tight' | 'normal' | 'relaxed',
       ) => ReturnType
     }
   }

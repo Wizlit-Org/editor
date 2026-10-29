@@ -45,7 +45,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
   selected,
 }) => {
   const { src: rawSrc, align = 'center', width = '100%', caption = '', margin = '3' } = node.attrs
-  const marginPx = margin === '1' ? 12 : margin === '2' || margin === 'tight' ? 24 : margin === '4' ? 48 : margin === '5' || margin === 'relaxed' ? 56 : 40
+  const marginPx = margin === '1' ? 12 : margin === '2' || margin === 'tight' ? 24 : margin === '4' || margin === '5' || margin === 'relaxed' ? 56 : 40
   const { onImageClick, convertSrc } = extension.options
   const editorEditable = editor.isEditable
 
