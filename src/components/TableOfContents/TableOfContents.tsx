@@ -141,9 +141,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
     (pos: number, id?: string) => {
       setIsStickyDropdownOpen(false)
       if (id && typeof window !== 'undefined') {
-        const url = new URL(window.location.href)
-        url.hash = id
-        window.history.pushState(null, '', url.toString())
+        window.history.replaceState(window.history.state, '', `#${id}`)
       }
       if (editor.isEditable) {
         editor.chain().focus(undefined, { scrollIntoView: false }).setTextSelection(pos + 1).run()
