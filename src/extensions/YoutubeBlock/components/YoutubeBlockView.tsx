@@ -27,8 +27,8 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
   updateAttributes,
   selected,
 }) => {
-  const { src, align = 'center', width = '100%', caption = '', isEditing = false, margin = 'normal' } = node.attrs
-  const marginPx = margin === 'relaxed' ? 56 : margin === 'tight' ? 24 : 40
+  const { src, align = 'center', width = '100%', caption = '', isEditing = false, margin = '3' } = node.attrs
+  const marginPx = margin === '1' ? 12 : margin === '2' || margin === 'tight' ? 24 : margin === '4' ? 48 : margin === '5' || margin === 'relaxed' ? 56 : 40
   const editorEditable = editor.isEditable
 
   const [emptyUrlInput, setEmptyUrlInput] = useState(src || '')
@@ -102,7 +102,8 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
     (event: React.MouseEvent) => {
       event.preventDefault()
       event.stopPropagation()
-      editor.commands.setNodeSelection(getPos())
+      window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
+      editor.chain().focus(undefined, { scrollIntoView: false }).setNodeSelection(getPos()).run()
     },
     [editor, getPos],
   )

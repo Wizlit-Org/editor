@@ -126,20 +126,38 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
         isImageLeft: ctx.editor.isActive('imageBlock', { align: 'left' }),
         isImageCenter: ctx.editor.isActive('imageBlock', { align: 'center' }),
         isImageRight: ctx.editor.isActive('imageBlock', { align: 'right' }),
-        currentMargin: (ctx.editor.getAttributes('imageBlock').margin as 'tight' | 'normal' | 'relaxed') || 'normal',
+        currentMargin: (ctx.editor.getAttributes('imageBlock').margin as string) || '3',
       }
     },
   })
 
-  const marginLabel = currentMargin === 'relaxed' ? '넓게' : currentMargin === 'tight' ? '좁게' : '보통'
+  const marginLabel =
+    currentMargin === '1'
+      ? '1단'
+      : currentMargin === '2' || currentMargin === 'tight'
+        ? '2단'
+        : currentMargin === '4'
+          ? '4단'
+          : currentMargin === '5' || currentMargin === 'relaxed'
+            ? '5단'
+            : '3단'
 
   const onToggleMargin = useCallback(() => {
-    const cur = (editor.getAttributes('imageBlock').margin as 'tight' | 'normal' | 'relaxed') || 'normal'
-    const nxt = cur === 'normal' ? 'relaxed' : cur === 'relaxed' ? 'tight' : 'normal'
+    const cur = (editor.getAttributes('imageBlock').margin as string) || '3'
+    const nxt =
+      cur === '3' || cur === 'normal'
+        ? '4'
+        : cur === '4'
+          ? '5'
+          : cur === '5' || cur === 'relaxed'
+            ? '1'
+            : cur === '1'
+              ? '2'
+              : '3'
     editor
       .chain()
       .focus(undefined, { scrollIntoView: false })
-      .setImageBlockMargin(nxt)
+      .setImageBlockMargin(nxt as any)
       .run()
   }, [editor])
 
@@ -193,12 +211,12 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
         <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />
 
         <Toolbar.Button
-          tooltip={`여백: ${marginLabel}`}
+          tooltip={`여백 설정 (${marginLabel})`}
           onClick={onToggleMargin}
           className="h-7 px-1.5 flex items-center gap-1 text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/5 dark:active:bg-white/10 rounded-md border border-transparent transition-colors duration-150 cursor-pointer text-xs"
         >
           <Icon name="MoveVertical" className="w-3.5 h-3.5" />
-          <span>{marginLabel}</span>
+          <span>{`여백: ${marginLabel}`}</span>
         </Toolbar.Button>
 
         <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />

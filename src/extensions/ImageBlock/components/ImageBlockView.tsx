@@ -44,8 +44,8 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
   extension,
   selected,
 }) => {
-  const { src: rawSrc, align = 'center', width = '100%', caption = '', margin = 'normal' } = node.attrs
-  const marginPx = margin === 'relaxed' ? 56 : margin === 'tight' ? 24 : 40
+  const { src: rawSrc, align = 'center', width = '100%', caption = '', margin = '3' } = node.attrs
+  const marginPx = margin === '1' ? 12 : margin === '2' || margin === 'tight' ? 24 : margin === '4' ? 48 : margin === '5' || margin === 'relaxed' ? 56 : 40
   const { onImageClick, convertSrc } = extension.options
   const editorEditable = editor.isEditable
 
@@ -114,7 +114,8 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
 
   const onClick = useCallback(
     (event: React.MouseEvent<HTMLImageElement>) => {
-      editor.commands.setNodeSelection(getPos())
+      window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
+      editor.chain().focus(undefined, { scrollIntoView: false }).setNodeSelection(getPos()).run()
       if (onImageClick && !editorEditable && src) {
         onImageClick(src, event as any)
       }
@@ -280,7 +281,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
         <div className="relative group/image w-full flex flex-col p-0 m-0 leading-none overflow-visible">
           {/* Inner image frame: clipped with rounded-lg + crisp theme focus ring when selected */}
           <div
-            onClick={editorEditable ? () => editor.commands.setNodeSelection(getPos()) : undefined}
+            onClick={editorEditable ? () => { window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock')); editor.chain().focus(undefined, { scrollIntoView: false }).setNodeSelection(getPos()).run() } : undefined}
             className={cn(
               'relative rounded-lg overflow-hidden w-full flex flex-col p-0 m-0 leading-none bg-black/[0.02] dark:bg-white/[0.02] transition-shadow duration-150',
               isFocused &&

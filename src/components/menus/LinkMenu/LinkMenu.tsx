@@ -416,10 +416,11 @@ export const LinkMenu = ({
       shouldShow={shouldShow}
       updateDelay={0}
       className={cn(
-        'z-[1340]',
+        'link-bubble-menu z-[1340] !bg-transparent',
         isDark ? 'editor-theme-dark dark theme-dark' : 'editor-theme-light theme-light',
         (isClosedByScroll || isDismissed) && '!hidden pointer-events-none',
       )}
+      style={{ backgroundColor: 'transparent' }}
       appendTo={appendTo?.current || (typeof document !== 'undefined' ? document.body : undefined)}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={menuOptions}

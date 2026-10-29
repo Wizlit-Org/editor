@@ -18,7 +18,9 @@ declare module '@tiptap/core' {
       setImageBlockAlign: (align: 'left' | 'center' | 'right') => ReturnType
       setImageBlockWidth: (width: number) => ReturnType
       setImageBlockCaption: (caption: string) => ReturnType
-      setImageBlockMargin: (margin: 'tight' | 'normal' | 'relaxed') => ReturnType
+      setImageBlockMargin: (
+        margin: '1' | '2' | '3' | '4' | '5' | 'tight' | 'normal' | 'relaxed',
+      ) => ReturnType
     }
   }
 }
@@ -72,10 +74,12 @@ export const ImageBlock = Image.extend<ImageBlockOptions>({
           attributes.caption ? { 'data-caption': attributes.caption } : {},
       },
       margin: {
-        default: 'normal',
-        parseHTML: element => element.getAttribute('data-margin') || 'normal',
+        default: '3',
+        parseHTML: element => element.getAttribute('data-margin') || '3',
         renderHTML: attributes =>
-          !attributes.margin || attributes.margin === 'normal' ? {} : { 'data-margin': attributes.margin },
+          !attributes.margin || attributes.margin === '3' || attributes.margin === 'normal'
+            ? {}
+            : { 'data-margin': attributes.margin },
       },
       alt: {
         default: undefined,

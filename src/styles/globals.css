@@ -199,6 +199,13 @@
   color: inherit !important;
 }
 
+.link-bubble-menu,
+.editor-theme-dark.link-bubble-menu,
+.theme-dark.link-bubble-menu {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
 /* ==========================================================================
    Heading Scroll Margin & TOC Highlight Flash Animation
    ========================================================================== */
