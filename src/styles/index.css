@@ -143,7 +143,7 @@
   --editor-caret: #e3e3e3 !important;
   --editor-selection: rgba(255, 255, 255, 0.2) !important;
   --editor-divider: rgba(255, 255, 255, 0.1) !important;
-  background-color: #191919 !important;
+  background-color: transparent !important;
   color: #e3e3e3 !important;
 
   --glass-panel-bg: rgba(32, 32, 32, 0.85);
@@ -218,12 +218,12 @@
 }
 
 .notion-light-canvas {
-  background-color: #ffffff;
+  background-color: transparent;
   color: #222325;
 }
 
 .notion-dark-canvas {
-  background-color: #191919;
+  background-color: transparent;
   color: #e3e3e3;
 }
 

@@ -345,6 +345,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     : 'theme-light notion-light-canvas editor-theme-light'
 
   const themeColorStyle: React.CSSProperties = {
+    backgroundColor: 'transparent',
     ...(themeColor
       ? ({
           '--editor-primary': themeColor,
@@ -357,7 +358,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   return (
     <>
       <div
-        className={`relative flex w-full max-w-full min-w-0 min-h-full h-auto flex-[1_0_auto] overflow-x-clip [overflow-x:clip] box-border ${themeClass} ${className}`.trim()}
+        className={`relative flex w-full max-w-full min-w-0 min-h-full h-auto flex-[1_0_auto] overflow-x-clip [overflow-x:clip] box-border bg-transparent ${themeClass} ${className}`.trim()}
         data-theme={isDark ? 'dark' : 'light'}
         data-editor-theme={isDark ? 'dark' : 'light'}
         ref={menuContainerRef}
