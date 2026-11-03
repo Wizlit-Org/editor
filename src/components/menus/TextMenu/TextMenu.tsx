@@ -14,19 +14,26 @@ const MemoContentTypePicker = memo(ContentTypePicker)
 export type TextMenuProps = {
   editor: Editor
   appendTo?: React.RefObject<any>
+  theme?: 'light' | 'dark'
 }
 
-export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
+export const TextMenu = ({ editor, appendTo, theme }: TextMenuProps) => {
   const commands = useTextmenuCommands(editor)
   const states = useTextmenuStates(editor)
   const blockOptions = useTextmenuContentTypes(editor)
   const probeRef = useRef<HTMLDivElement>(null)
-  const [isDark, setIsDark] = useState(false)
+  const [isDark, setIsDark] = useState(() => (theme ? theme === 'dark' : false))
   const [dockPos, setDockPos] = useState<{ left: string; width: string; bottom: string }>({
     left: '0px',
     width: '100%',
     bottom: '8px',
   })
+
+  useEffect(() => {
+    if (theme) {
+      setIsDark(theme === 'dark')
+    }
+  }, [theme])
 
   const updateDockPosition = useCallback(() => {
     if (typeof window === 'undefined' || !editor || editor.isDestroyed) return
@@ -109,6 +116,7 @@ export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
 
     window.addEventListener('resize', handleLayoutChange, { passive: true })
     window.addEventListener('scroll', handleLayoutChange, { capture: true, passive: true })
+    window.addEventListener('wizlit:editor-theme-change', handleLayoutChange)
 
     const pmDom = editor?.view?.dom as HTMLElement | undefined
     const containerEl =
@@ -122,11 +130,20 @@ export const TextMenu = ({ editor, appendTo }: TextMenuProps) => {
       if (containerEl?.parentElement) ro.observe(containerEl.parentElement)
     }
 
+    let mo: MutationObserver | null = null
+    if (typeof MutationObserver !== 'undefined') {
+      mo = new MutationObserver(handleLayoutChange)
+      if (containerEl) mo.observe(containerEl, { attributes: true, attributeFilter: ['class', 'data-theme', 'data-editor-theme'] })
+      if (document.documentElement) mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] })
+    }
+
     return () => {
       window.cancelAnimationFrame(rafId)
       window.removeEventListener('resize', handleLayoutChange)
       window.removeEventListener('scroll', handleLayoutChange, { capture: true })
+      window.removeEventListener('wizlit:editor-theme-change', handleLayoutChange)
       ro?.disconnect()
+      mo?.disconnect()
     }
   }, [appendTo, editor, updateDockPosition])
 

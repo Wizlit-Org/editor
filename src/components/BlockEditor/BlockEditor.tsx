@@ -386,7 +386,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           />
           {!readOnly && (
             <>
-              <TextMenu editor={editor} appendTo={menuContainerRef} />
+              <TextMenu editor={editor} appendTo={menuContainerRef} theme={theme} />
               <TableRowMenu editor={editor} appendTo={menuContainerRef} />
               <TableColumnMenu editor={editor} appendTo={menuContainerRef} />
               <TableCellMenu editor={editor} appendTo={menuContainerRef} />
