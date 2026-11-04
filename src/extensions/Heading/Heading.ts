@@ -15,13 +15,14 @@ export const Heading = TiptapHeading.extend({
     return {
       ...this.parent?.(),
       id: {
-        default: null,
+        default: () => generateUUID(),
         rendered: true,
         keepOnSplit: false,
         parseHTML: element =>
           element.getAttribute('id') ||
           element.getAttribute('data-id') ||
-          element.getAttribute('data-toc-id'),
+          element.getAttribute('data-toc-id') ||
+          generateUUID(),
         renderHTML: attributes => {
           if (!attributes.id) {
             return {}
@@ -42,28 +43,6 @@ export const Heading = TiptapHeading.extend({
     const level = hasLevel ? nodeLevel : this.options.levels[0]
 
     return [`h${level}`, mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0]
-  },
-
-  onCreate() {
-    // Initial document pass: ensure existing headings without id get one
-    const tr = this.editor.state.tr
-    let modified = false
-
-    this.editor.state.doc.descendants((node, pos) => {
-      if (node.type.name === this.name && !node.attrs.id) {
-        tr.setNodeMarkup(pos, undefined, {
-          ...node.attrs,
-          id: generateUUID(),
-        })
-        modified = true
-      }
-    })
-
-    if (modified) {
-      tr.setMeta('addToHistory', false)
-      tr.setMeta('preventUpdate', true)
-      this.editor.view.dispatch(tr)
-    }
   },
 
   addProseMirrorPlugins() {
