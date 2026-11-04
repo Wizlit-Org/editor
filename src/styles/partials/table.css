@@ -4,8 +4,8 @@
     width: 100cqw !important;
     max-width: 100cqw !important;
     min-width: 0 !important;
-    margin-top: 1.5rem !important;
-    margin-bottom: 1.5rem !important;
+    margin-top: 12px !important;
+    margin-bottom: 12px !important;
     margin-left: calc((100% - 100cqw) / 2) !important;
     margin-right: 0 !important;
     padding-left: calc((100cqw - 100%) / 2) !important;
@@ -94,23 +94,34 @@
       }
     }
 
-    .theme-dark td,
-    .theme-dark th,
-    .editor-theme-dark td,
-    .editor-theme-dark th {
-      border-color: rgba(255, 255, 255, 0.16) !important;
+    .editor-theme-dark &,
+    .theme-dark & {
+      border-color: rgba(255, 255, 255, 0.12) !important;
+    }
+
+    .editor-theme-dark & td,
+    .editor-theme-dark & th,
+    .theme-dark & td,
+    .theme-dark & th {
+      border-color: rgba(255, 255, 255, 0.12) !important;
     }
 
     th {
-      background-color: rgba(15, 22, 36, 0.06) !important;
+      background-color: rgba(15, 22, 36, 0.04) !important;
       font-weight: 600 !important;
       color: rgba(55, 53, 47, 0.9) !important;
     }
 
-    .theme-dark th,
-    .editor-theme-dark th {
-      background-color: rgba(255, 255, 255, 0.08) !important;
-      color: rgba(255, 255, 255, 0.95) !important;
+    .editor-theme-light & th,
+    .theme-light & th {
+      background-color: rgba(15, 22, 36, 0.04) !important;
+      color: rgba(55, 53, 47, 0.9) !important;
+    }
+
+    .editor-theme-dark & th,
+    .theme-dark & th {
+      background-color: rgba(255, 255, 255, 0.06) !important;
+      color: rgba(255, 255, 255, 0.92) !important;
     }
 
     &.resizing {

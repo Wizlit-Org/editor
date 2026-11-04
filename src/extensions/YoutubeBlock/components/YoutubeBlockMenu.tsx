@@ -25,7 +25,10 @@ export const YoutubeBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element =
   }, [editor])
 
   const getReferencedVirtualElement = useCallback(
-    () => ({ getBoundingClientRect: getReferenceClientRect }),
+    () => ({
+      getBoundingClientRect: getReferenceClientRect,
+      getClientRects: () => [getReferenceClientRect()],
+    }),
     [getReferenceClientRect],
   )
 
@@ -60,16 +63,43 @@ export const YoutubeBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element =
     )
   }, [editor])
 
-  const { isCenter, isLeft, isRight } = useEditorState({
+  const { isCenter, isLeft, isRight, currentMargin } = useEditorState({
     editor,
     selector: ctx => {
       return {
         isLeft: ctx.editor.isActive('youtube', { align: 'left' }),
         isCenter: ctx.editor.isActive('youtube', { align: 'center' }),
         isRight: ctx.editor.isActive('youtube', { align: 'right' }),
+        currentMargin: (ctx.editor.getAttributes('youtube').margin as string) || '3',
       }
     },
   })
+
+  const marginLabel =
+    currentMargin === '1'
+      ? '1단'
+      : currentMargin === '2' || currentMargin === 'tight'
+        ? '2단'
+        : currentMargin === '4' || currentMargin === '5' || currentMargin === 'relaxed'
+          ? '4단'
+          : '3단'
+
+  const onToggleMargin = useCallback(() => {
+    const cur = (editor.getAttributes('youtube').margin as string) || '3'
+    const nxt =
+      cur === '3' || cur === 'normal'
+        ? '4'
+        : cur === '4' || cur === '5' || cur === 'relaxed'
+          ? '1'
+          : cur === '1'
+            ? '2'
+            : '3'
+    editor
+      .chain()
+      .focus(undefined, { scrollIntoView: false })
+      .setYoutubeMargin(nxt as any)
+      .run()
+  }, [editor])
 
   const BTN_CLASS =
     'h-7 w-7 p-0 flex items-center justify-center text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/5 dark:active:bg-white/10 rounded-md border border-transparent transition-colors'
@@ -112,6 +142,17 @@ export const YoutubeBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element =
           activeClassname={ACTIVE_CLASS}
         >
           <Icon name="AlignRight" className="w-4 h-4" />
+        </Toolbar.Button>
+
+        <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />
+
+        <Toolbar.Button
+          tooltip={`여백 설정 (${marginLabel})`}
+          onClick={onToggleMargin}
+          className="h-7 px-1.5 flex items-center gap-1 text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/5 dark:active:bg-white/10 rounded-md border border-transparent transition-colors duration-150 cursor-pointer text-xs"
+        >
+          <Icon name="MoveVertical" className="w-3.5 h-3.5" />
+          <span>{`여백: ${marginLabel}`}</span>
         </Toolbar.Button>
 
         <div className="h-4 w-[1px] bg-black/10 dark:bg-white/10 mx-1 shrink-0" />

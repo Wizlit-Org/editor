@@ -72,6 +72,9 @@ declare module '@tiptap/core' {
       setYoutubeAlign: (align: 'left' | 'center' | 'right') => ReturnType
       setYoutubeWidth: (width: number) => ReturnType
       setYoutubeCaption: (caption: string) => ReturnType
+      setYoutubeMargin: (
+        margin: '1' | '2' | '3' | '4' | 'tight' | 'normal' | 'relaxed',
+      ) => ReturnType
       updateYoutubeUrl: (url: string) => ReturnType
     }
   }
@@ -116,6 +119,14 @@ export const YoutubeBlock = Youtube.extend<YoutubeBlockOptions>({
         parseHTML: element => element.getAttribute('data-caption') || '',
         renderHTML: attributes =>
           attributes.caption ? { 'data-caption': attributes.caption } : {},
+      },
+      margin: {
+        default: '3',
+        parseHTML: element => element.getAttribute('data-margin') || '3',
+        renderHTML: attributes =>
+          !attributes.margin || attributes.margin === '3' || attributes.margin === 'normal'
+            ? {}
+            : { 'data-margin': attributes.margin },
       },
       isEditing: {
         default: false,
@@ -197,6 +208,11 @@ export const YoutubeBlock = Youtube.extend<YoutubeBlockOptions>({
         caption =>
         ({ commands }) =>
           commands.updateAttributes(this.name, { caption }),
+
+      setYoutubeMargin:
+        margin =>
+        ({ commands }) =>
+          commands.updateAttributes(this.name, { margin }),
 
       updateYoutubeUrl:
         url =>
