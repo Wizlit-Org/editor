@@ -44,7 +44,8 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
   extension,
   selected,
 }) => {
-  const { src: rawSrc, align = 'center', width = '100%', caption = '' } = node.attrs
+  const { src: rawSrc, align = 'center', width = '100%', caption = '', margin = '3' } = node.attrs
+  const marginPx = margin === '1' ? 12 : margin === '2' || margin === 'tight' ? 24 : margin === '4' || margin === '5' || margin === 'relaxed' ? 56 : 40
   const { onImageClick, convertSrc } = extension.options
   const editorEditable = editor.isEditable
 
@@ -113,7 +114,8 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
 
   const onClick = useCallback(
     (event: React.MouseEvent<HTMLImageElement>) => {
-      editor.commands.setNodeSelection(getPos())
+      window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
+      editor.chain().focus(undefined, { scrollIntoView: false }).setNodeSelection(getPos()).run()
       if (onImageClick && !editorEditable && src) {
         onImageClick(src, event as any)
       }
@@ -251,14 +253,17 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
   )
 
   // Show hover UI when editable and hovered/resizing, and track focused/selected state
-  const isFocused = Boolean(editorEditable && (selected || isNodeSelected || isEditingCaption))
-  const isInteracting = editorEditable && (isHovered || isResizing || isFocused)
+  const isFocused = Boolean(editorEditable && (selected || isNodeSelected))
+  const isInteracting = editorEditable && (isHovered || isResizing || isFocused || isEditingCaption)
 
   const PILL_HANDLE_CLASS =
     'w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150 bg-white/60 dark:bg-white/45 backdrop-blur-md border border-white/90 dark:border-white/70 shadow-[0_2px_12px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.95)] hover:bg-white/85 dark:hover:bg-white/75 hover:scale-y-105'
 
   return (
-    <NodeViewWrapper className="w-full my-4 overflow-visible">
+    <NodeViewWrapper
+      className="node-imageBlock w-full overflow-visible"
+      style={{ marginTop: `${marginPx}px`, marginBottom: `${marginPx}px` }}
+    >
       <div
         ref={containerRef}
         className={cn(wrapperClassName, 'overflow-visible')}
@@ -276,7 +281,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
         <div className="relative group/image w-full flex flex-col p-0 m-0 leading-none overflow-visible">
           {/* Inner image frame: clipped with rounded-lg + crisp theme focus ring when selected */}
           <div
-            onClick={editorEditable ? () => editor.commands.setNodeSelection(getPos()) : undefined}
+            onClick={editorEditable ? () => { window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock')); editor.chain().focus(undefined, { scrollIntoView: false }).setNodeSelection(getPos()).run() } : undefined}
             className={cn(
               'relative rounded-lg overflow-hidden w-full flex flex-col p-0 m-0 leading-none bg-black/[0.02] dark:bg-white/[0.02] transition-shadow duration-150',
               isFocused &&
@@ -454,8 +459,8 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
                 value={caption}
                 onChange={e => updateAttributes({ caption: e.target.value })}
                 onBlur={() => {
+                  setIsEditingCaption(false)
                   if (!caption.trim()) {
-                    setIsEditingCaption(false)
                     updateAttributes({ caption: '' })
                   }
                 }}

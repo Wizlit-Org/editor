@@ -27,7 +27,8 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
   updateAttributes,
   selected,
 }) => {
-  const { src, align = 'center', width = '100%', caption = '', isEditing = false } = node.attrs
+  const { src, align = 'center', width = '100%', caption = '', isEditing = false, margin = '3' } = node.attrs
+  const marginPx = margin === '1' ? 12 : margin === '2' || margin === 'tight' ? 24 : margin === '4' || margin === '5' || margin === 'relaxed' ? 56 : 40
   const editorEditable = editor.isEditable
 
   const [emptyUrlInput, setEmptyUrlInput] = useState(src || '')
@@ -101,7 +102,8 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
     (event: React.MouseEvent) => {
       event.preventDefault()
       event.stopPropagation()
-      editor.commands.setNodeSelection(getPos())
+      window.dispatchEvent(new CustomEvent('tiptap:reset-scroll-lock'))
+      editor.chain().focus(undefined, { scrollIntoView: false }).setNodeSelection(getPos()).run()
     },
     [editor, getPos],
   )
@@ -175,7 +177,10 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
     if (!editorEditable) return <></>
 
     return (
-      <NodeViewWrapper className="w-full my-4">
+      <NodeViewWrapper
+        className="node-youtube w-full"
+        style={{ marginTop: `${marginPx}px`, marginBottom: `${marginPx}px` }}
+      >
         <div
           ref={containerRef}
           className="mx-auto w-full max-w-lg p-6 rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-[#18181b]/85 backdrop-blur-2xl shadow-2xl flex flex-col items-center justify-center gap-4 text-center select-none transition-all"
@@ -262,8 +267,8 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
   )
 
   // Show hover UI when editable and hovered/resizing, and track focused/selected state
-  const isFocused = Boolean(editorEditable && (selected || isNodeSelected || isEditingCaption))
-  const isInteracting = editorEditable && (isHovered || isResizing || isFocused)
+  const isFocused = Boolean(editorEditable && (selected || isNodeSelected))
+  const isInteracting = editorEditable && (isHovered || isResizing || isFocused || isEditingCaption)
 
   const PILL_HANDLE_CLASS =
     'w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150 bg-white/60 dark:bg-white/45 backdrop-blur-md border border-white/90 dark:border-white/70 shadow-[0_2px_12px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.95)] hover:bg-white/85 dark:hover:bg-white/75 hover:scale-y-105'
@@ -291,7 +296,10 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
   }, [videoId, listId, src])
 
   return (
-    <NodeViewWrapper className="w-full my-4 overflow-visible">
+    <NodeViewWrapper
+      className="node-youtube w-full overflow-visible"
+      style={{ marginTop: `${marginPx}px`, marginBottom: `${marginPx}px` }}
+    >
       <div
         ref={containerRef}
         className={cn(wrapperClassName, 'overflow-visible')}
@@ -417,8 +425,8 @@ export const YoutubeBlockView: React.FC<YoutubeBlockViewProps> = ({
                 value={caption}
                 onChange={e => updateAttributes({ caption: e.target.value })}
                 onBlur={() => {
+                  setIsEditingCaption(false)
                   if (!caption.trim()) {
-                    setIsEditingCaption(false)
                     updateAttributes({ caption: '' })
                   }
                 }}

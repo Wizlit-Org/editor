@@ -2,6 +2,7 @@ import { Editor } from '@tiptap/react'
 
 export interface PastePreviewDialogProps {
   editor: Editor
+  theme?: 'light' | 'dark'
 }
 
 export interface PasteOptionItem {

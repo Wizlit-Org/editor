@@ -16,41 +16,14 @@ import { PasteOptionItem, PastePreviewDialogProps } from './types'
 
 export type { PastePreviewDialogProps, PasteOptionItem }
 
-export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }) => {
+export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor, theme = 'light' }) => {
   const [data, setData] = useState<SmartPasteEventDetail | null>(null)
   const [selectedId, setSelectedId] = useState<string>('')
   const [isEntered, setIsEntered] = useState<boolean>(false)
   const [isExiting, setIsExiting] = useState<boolean>(false)
   const [descAnim, setDescAnim] = useState<boolean>(true)
   const dialogRef = useRef<HTMLDivElement>(null)
-  const [isDark, setIsDark] = useState<boolean>(() => {
-    if (typeof document !== 'undefined') {
-      const editorDom = editor?.view?.dom as HTMLElement | undefined
-      if (editorDom?.closest('.editor-theme-dark')) return true
-      if (editorDom?.closest('.editor-theme-light')) return false
-      if (editorDom?.closest('.dark, .theme-dark, .notion-dark-canvas')) return true
-      if (editorDom?.closest('.theme-light, .notion-light-canvas')) return false
-      return false
-    }
-    return false
-  })
-
-  // Synchronize light/dark theme with editor container
-  useEffect(() => {
-    if (typeof document === 'undefined' || !data) return
-    const editorDom = editor?.view?.dom as HTMLElement | undefined
-    if (editorDom?.closest('.editor-theme-dark')) {
-      setIsDark(true)
-    } else if (editorDom?.closest('.editor-theme-light')) {
-      setIsDark(false)
-    } else if (editorDom?.closest('.dark, .theme-dark, .notion-dark-canvas')) {
-      setIsDark(true)
-    } else if (editorDom?.closest('.theme-light, .notion-light-canvas')) {
-      setIsDark(false)
-    } else {
-      setIsDark(false)
-    }
-  }, [data, editor])
+  const isDark = theme === 'dark'
 
   // Freeze background editor & trap IME / input events while dialog is active
   useEffect(() => {
@@ -372,7 +345,9 @@ export const PastePreviewDialog: React.FC<PastePreviewDialogProps> = ({ editor }
         WebkitBackdropFilter: 'blur(24px) saturate(160%)',
         transition: `opacity ${animTiming}`,
       }}
-      className="fixed inset-0 z-[1390] flex flex-col items-center justify-between select-none"
+      className={`fixed inset-0 z-[1390] flex flex-col items-center justify-between select-none ${
+        isDark ? 'editor-theme-dark dark theme-dark' : 'editor-theme-light theme-light'
+      }`}
     >
       {/* 1단 & 2단: 헤더 (제목 + 1줄 설명 + 선택지 탭 독) */}
       <PastePreviewHeader

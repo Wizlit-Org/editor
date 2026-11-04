@@ -344,7 +344,7 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
         color: isDark ? '#f4f4f5' : '#18181b',
       }}
       className={`w-full h-full flex-1 min-h-0 overflow-hidden flex items-center justify-center !bg-transparent ${
-        isDark ? 'dark text-zinc-100' : 'text-zinc-900'
+        isDark ? 'editor-theme-dark dark text-zinc-100' : 'editor-theme-light text-zinc-900'
       } [&_figure]:!my-0 [&_.node-imageBlock]:!my-0 [&_[data-node-view-wrapper]]:!my-0 [&_.ProseMirror]:!bg-transparent`}
     >
       {/* Frameless Center Stage Preview: Auto-Scaled & Animated on Option Switch Without Box Frame */}
