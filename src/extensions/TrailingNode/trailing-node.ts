@@ -36,7 +36,12 @@ export const TrailingNode = Extension.create<TrailingNodeOptions>({
     return [
       new Plugin({
         key: plugin,
-        appendTransaction: (_, __, state) => {
+        appendTransaction: (transactions, _, state) => {
+          const docChanged = transactions.some(tr => tr.docChanged)
+          if (!docChanged) {
+            return
+          }
+
           const { doc, tr, schema } = state
           const shouldInsertNodeAtEnd = plugin.getState(state)
           const endPosition = doc.content.size
