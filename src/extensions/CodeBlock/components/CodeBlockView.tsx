@@ -158,7 +158,11 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
     >
       <div className="w-full max-w-full min-w-0 rounded-xl overflow-hidden bg-zinc-900/85 dark:bg-[#18181b]/80 backdrop-blur-xl border border-black/10 dark:border-white/15 shadow-2xl transition-all ring-1 ring-black/5 dark:ring-white/5">
         {/* Code Header Bar: macOS 3-dot + Language Badge on Left, Action Buttons on Right (Slim 28px) */}
-        <div className="flex items-center justify-between px-3 py-1 min-h-[28px] border-b border-white/[0.08] bg-white/[0.03]">
+        <div
+          contentEditable={false}
+          style={{ userSelect: 'none' }}
+          className="flex items-center justify-between px-3 py-1 min-h-[28px] border-b border-white/[0.08] bg-white/[0.03] select-none"
+        >
           <div className="flex items-center gap-2">
             {/* macOS 3-dot decoration */}
             <div className="flex items-center gap-1.5 select-none" aria-hidden="true">
@@ -233,8 +237,8 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
           }
         >
           <NodeViewContent
-            as="div"
-            className={cn('font-mono', shouldWrap ? 'whitespace-pre-wrap break-all' : 'whitespace-pre')}
+            as="code"
+            className={cn('font-mono block', shouldWrap ? 'whitespace-pre-wrap break-all' : 'whitespace-pre')}
             style={shouldWrap ? { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } : { whiteSpace: 'pre' }}
           />
         </pre>
