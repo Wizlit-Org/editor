@@ -85,6 +85,9 @@ export const LinkMenu = ({
       if (linkEl) return true
     } catch {}
 
+    const storageEl = (editor.storage as any)?.link?.clickedElement as HTMLAnchorElement | null
+    if (storageEl && storageEl.isConnected) return true
+
     return false
   }, [editor])
 
@@ -318,10 +321,20 @@ export const LinkMenu = ({
   }, [editor, setEditMode])
 
   const shouldShow = useCallback(() => {
-    if (!editor.isFocused && !showEditRef.current) return false
     if (isDismissedRef.current) return false
     const storage = (editor.storage as any)?.link
     if (storage?.isDismissed) return false
+
+    const isClickedLink = Boolean(storage?.clickedElement && (storage.clickedElement as HTMLElement).isConnected)
+
+    // 1. 읽기모드 (!editor.isEditable): 링크 클릭(isClickedLink) 시에만 팝업 허용 (마운트 시 자동 팝업 방어)
+    if (!editor.isEditable) {
+      if (!isClickedLink) return false
+    } else {
+      // 2. 편집모드 (editor.isEditable): 링크 클릭(isClickedLink) 또는 포커스 상태 링크 선택/편집 시 허용
+      if (!editor.isFocused && !showEditRef.current && !isClickedLink) return false
+    }
+
     if (showEditRef.current) return true
     const isLink = checkIsLinkActive()
     if (!isLink) return false
