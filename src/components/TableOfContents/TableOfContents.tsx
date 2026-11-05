@@ -17,9 +17,17 @@ interface HeadingItem {
 const getScrollParent = (node: HTMLElement | null): HTMLElement | Window => {
   if (!node || typeof window === 'undefined') return window
   let parent = node.parentElement
-  while (parent) {
-    const { overflowY } = window.getComputedStyle(parent)
-    if (overflowY === 'auto' || overflowY === 'scroll') {
+  while (parent && parent !== document.body && parent !== document.documentElement) {
+    const style = window.getComputedStyle(parent)
+    const oy = style.overflowY
+    const ox = style.overflow
+    if (
+      oy === 'auto' ||
+      oy === 'scroll' ||
+      oy === 'overlay' ||
+      ox === 'auto' ||
+      ox === 'scroll'
+    ) {
       return parent
     }
     parent = parent.parentElement
@@ -40,6 +48,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
   })
   const isProgrammaticScrollRef = useRef(false)
   const programmaticScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const activeScrollContainerRef = useRef<HTMLElement | Window | null>(null)
 
   const unlockProgrammaticScroll = useCallback(() => {
     if (programmaticScrollTimerRef.current) {
@@ -89,15 +98,30 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
     let rafId: number | null = null
 
     const checkScrolledOut = () => {
-      if (!inlineContainerRef.current) return
-      const rect = inlineContainerRef.current.getBoundingClientRect()
-      const scrollParent = getScrollParent(inlineContainerRef.current)
-      const topOffset = scrollParent instanceof HTMLElement ? scrollParent.getBoundingClientRect().top : 0
-      
-      const isPast = rect.bottom <= topOffset + 16
-      setIsScrolledOut(prev => (prev === isPast ? prev : isPast))
-      if (!isPast) {
-        setIsStickyDropdownOpen(prev => (prev ? false : prev))
+      const scrollParent =
+        (activeScrollContainerRef.current instanceof HTMLElement &&
+         ((inlineContainerRef.current && activeScrollContainerRef.current.contains(inlineContainerRef.current)) ||
+          (editor.view?.dom && activeScrollContainerRef.current.contains(editor.view.dom)))
+          ? activeScrollContainerRef.current
+          : null) ||
+        getScrollParent(inlineContainerRef.current || editor.view?.dom)
+
+      const isHtmlElement =
+        scrollParent instanceof HTMLElement &&
+        scrollParent !== document.documentElement &&
+        scrollParent !== document.body
+
+      const containerTop = isHtmlElement
+        ? scrollParent.getBoundingClientRect().top
+        : 0
+
+      if (inlineContainerRef.current) {
+        const rect = inlineContainerRef.current.getBoundingClientRect()
+        const isPast = rect.bottom <= containerTop + 16
+        setIsScrolledOut(prev => (prev === isPast ? prev : isPast))
+        if (!isPast) {
+          setIsStickyDropdownOpen(prev => (prev ? false : prev))
+        }
       }
 
       // If smooth programmatic scroll from TOC click is active, prevent scroll spy jitter
@@ -105,10 +129,11 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
         return
       }
 
-      const scrollTop =
-        scrollParent instanceof HTMLElement
-          ? scrollParent.scrollTop
-          : (typeof window !== 'undefined' ? window.scrollY || document.documentElement.scrollTop || 0 : 0)
+      const scrollTop = isHtmlElement
+        ? scrollParent.scrollTop
+        : (typeof window !== 'undefined'
+            ? window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0
+            : 0)
 
       // Track active heading
       if (headings && headings.length > 0) {
@@ -131,7 +156,8 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
           }
           if (element) {
             const er = element.getBoundingClientRect()
-            if (er.top <= topOffset + 120) {
+            const distFromTop = er.top - containerTop
+            if (distFromTop <= 120) {
               currentActive = h.id
             }
           }
@@ -178,6 +204,21 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
       })
     }
 
+    const onScroll = (e: Event) => {
+      const target = e.target
+      if (target && target instanceof HTMLElement) {
+        if (
+          (inlineContainerRef.current && target.contains(inlineContainerRef.current)) ||
+          (editor.view?.dom && target.contains(editor.view.dom))
+        ) {
+          activeScrollContainerRef.current = target
+        }
+      } else if (target === document || target === window) {
+        activeScrollContainerRef.current = window
+      }
+      scheduledCheck()
+    }
+
     const handleManualScrollStart = () => {
       if (isProgrammaticScrollRef.current) {
         unlockProgrammaticScroll()
@@ -186,7 +227,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
 
     checkScrolledOut()
 
-    window.addEventListener('scroll', scheduledCheck, { passive: true, capture: true })
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true })
     window.addEventListener('resize', scheduledCheck, { passive: true })
     window.addEventListener('wheel', handleManualScrollStart, { passive: true, capture: true })
     window.addEventListener('touchmove', handleManualScrollStart, { passive: true, capture: true })
@@ -199,7 +240,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
         clearTimeout(programmaticScrollTimerRef.current)
         programmaticScrollTimerRef.current = null
       }
-      window.removeEventListener('scroll', scheduledCheck, { capture: true })
+      window.removeEventListener('scroll', onScroll, { capture: true })
       window.removeEventListener('resize', scheduledCheck)
       window.removeEventListener('wheel', handleManualScrollStart, { capture: true })
       window.removeEventListener('touchmove', handleManualScrollStart, { capture: true })
