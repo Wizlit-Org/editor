@@ -1,9 +1,8 @@
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
 import { all, createLowlight } from 'lowlight'
 import { ReactNodeViewRenderer } from '@tiptap/react'
-import { TextSelection } from 'prosemirror-state'
+import { Selection, TextSelection, Plugin } from 'prosemirror-state'
 import { CodeBlockView } from './components/CodeBlockView'
-import { Plugin } from 'prosemirror-state'
 
 const lowlight = createLowlight(all)
 
@@ -282,6 +281,45 @@ export const CodeBlock = CodeBlockLowlight.extend({
         }
         
         return originalBackspace ? originalBackspace({ editor }) : false
+      },
+
+      'ArrowUp': ({ editor }) => {
+        if (!editor.isActive('codeBlock')) {
+          return false
+        }
+
+        const { state, view } = editor
+        const { selection, schema, doc } = state
+        const { $from, empty } = selection
+
+        // 선택 영역이 있거나 코드블록 내부가 아니면 기본 처리
+        if (!empty || $from.parent.type !== this.type) {
+          return false
+        }
+
+        // 커서가 코드 블록 내부의 '첫 번째 줄'인지 판별
+        const textBefore = $from.parent.textBetween(0, $from.parentOffset, null, '\ufffc')
+        const isFirstLine = !textBefore.includes('\n')
+
+        if (!isFirstLine) {
+          return false
+        }
+
+        const blockStart = $from.before()
+
+        // 1) 문서의 맨 첫 번째 블록인 경우: 상단에 빈 paragraph 삽입 후 이동
+        if (blockStart <= 1) {
+          const tr = state.tr.insert(0, schema.nodes.paragraph.create())
+          tr.setSelection(TextSelection.create(tr.doc, 1))
+          view.dispatch(tr)
+          return true
+        }
+
+        // 2) 이전 블록이 이미 존재하는 경우: 이전 블록의 끝 위치로 selection 이동
+        const prevBlockPos = doc.resolve(blockStart - 1)
+        const tr = state.tr.setSelection(Selection.near(prevBlockPos, -1))
+        view.dispatch(tr)
+        return true
       }
     }
   },
