@@ -318,6 +318,7 @@ export const LinkMenu = ({
   }, [editor, setEditMode])
 
   const shouldShow = useCallback(() => {
+    if (!editor.isFocused && !showEditRef.current) return false
     if (isDismissedRef.current) return false
     const storage = (editor.storage as any)?.link
     if (storage?.isDismissed) return false
@@ -437,7 +438,6 @@ export const LinkMenu = ({
         <LinkEditorPanel
           initialUrl={link}
           initialText={currentLinkText}
-          initialOpenInNewTab={target === '_blank'}
           onSetLink={onSetLink}
           onCancel={() => setEditMode(false)}
         />

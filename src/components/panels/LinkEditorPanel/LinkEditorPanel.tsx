@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { Icon } from '@/components/ui/Icon'
 import { Surface } from '@/components/ui/Surface'
+import { determineLinkTarget } from '@/components/menus/LinkMenu/utils/linkHelpers'
 
 export type LinkEditorPanelProps = {
   initialUrl?: string
@@ -22,12 +23,10 @@ export const normalizeUrl = (input: string): string => {
 export const useLinkEditorState = ({
   initialUrl,
   initialText,
-  initialOpenInNewTab = true,
   onSetLink,
 }: LinkEditorPanelProps) => {
   const [url, setUrl] = useState(initialUrl || '')
   const [text, setText] = useState(initialText || '')
-  const [openInNewTab, setOpenInNewTab] = useState(initialOpenInNewTab)
 
   useEffect(() => {
     setUrl(initialUrl || '')
@@ -36,10 +35,6 @@ export const useLinkEditorState = ({
   useEffect(() => {
     setText(initialText || '')
   }, [initialText])
-
-  useEffect(() => {
-    setOpenInNewTab(initialOpenInNewTab ?? true)
-  }, [initialOpenInNewTab])
 
   const onUrlChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setUrl(event.target.value)
@@ -69,10 +64,11 @@ export const useLinkEditorState = ({
       e.preventDefault()
       if (isValidUrl) {
         const finalUrl = normalizeUrl(url)
+        const openInNewTab = determineLinkTarget(finalUrl) === '_blank'
         onSetLink(finalUrl, text.trim() ? text.trim() : undefined, openInNewTab)
       }
     },
-    [url, text, isValidUrl, openInNewTab, onSetLink],
+    [url, text, isValidUrl, onSetLink],
   )
 
   return {
@@ -80,8 +76,6 @@ export const useLinkEditorState = ({
     setUrl,
     text,
     setText,
-    openInNewTab,
-    setOpenInNewTab,
     onUrlChange,
     onTextChange,
     handleSubmit,
@@ -92,14 +86,12 @@ export const useLinkEditorState = ({
 export const LinkEditorPanel: React.FC<LinkEditorPanelProps> = ({
   onSetLink,
   onCancel,
-  initialOpenInNewTab,
   initialUrl,
   initialText,
 }) => {
   const urlInputRef = useRef<HTMLInputElement>(null)
   const state = useLinkEditorState({
     onSetLink,
-    initialOpenInNewTab,
     initialUrl,
     initialText,
   })
@@ -148,36 +140,24 @@ export const LinkEditorPanel: React.FC<LinkEditorPanelProps> = ({
           />
         </label>
 
-        {/* 3. Action bar with New Tab toggle and Submit */}
-        <div className="flex items-center justify-between pt-0.5">
-          <label className="flex items-center gap-1.5 cursor-pointer select-none text-[11px] text-zinc-600 dark:text-zinc-300">
-            <input
-              type="checkbox"
-              checked={state.openInNewTab}
-              onChange={e => state.setOpenInNewTab(e.target.checked)}
-              className="rounded text-zinc-900 dark:text-zinc-100 focus:ring-0 cursor-pointer"
-            />
-            <span>새 탭에서 열기</span>
-          </label>
-
-          <div className="flex items-center gap-1.5">
-            {onCancel && (
-              <button
-                type="button"
-                onClick={onCancel}
-                className="px-2.5 py-1 rounded-lg text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
-              >
-                취소
-              </button>
-            )}
+        {/* 3. Action bar with Submit */}
+        <div className="flex items-center justify-end gap-1.5 pt-0.5">
+          {onCancel && (
             <button
-              type="submit"
-              disabled={!state.isValidUrl}
-              className="px-3 py-1 rounded-lg text-xs font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white disabled:opacity-40 disabled:pointer-events-none transition-colors shadow-xs cursor-pointer"
+              type="button"
+              onClick={onCancel}
+              className="px-2.5 py-1 rounded-lg text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
             >
-              적용
+              취소
             </button>
-          </div>
+          )}
+          <button
+            type="submit"
+            disabled={!state.isValidUrl}
+            className="px-3 py-1 rounded-lg text-xs font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white disabled:opacity-40 disabled:pointer-events-none transition-colors shadow-xs cursor-pointer"
+          >
+            적용
+          </button>
         </div>
       </form>
     </Surface>
