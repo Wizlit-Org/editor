@@ -32,7 +32,22 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
   const [isInlineExpanded, setIsInlineExpanded] = useState(true)
   const [isScrolledOut, setIsScrolledOut] = useState(false)
   const [isStickyDropdownOpen, setIsStickyDropdownOpen] = useState(false)
-  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null)
+  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined' && window.location.hash) {
+      return window.location.hash.slice(1)
+    }
+    return null
+  })
+  const isProgrammaticScrollRef = useRef(false)
+  const programmaticScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const unlockProgrammaticScroll = useCallback(() => {
+    if (programmaticScrollTimerRef.current) {
+      clearTimeout(programmaticScrollTimerRef.current)
+      programmaticScrollTimerRef.current = null
+    }
+    isProgrammaticScrollRef.current = false
+  }, [])
 
   // Track doc changes to extract headings in real-time
   const headings = useEditorState({
@@ -85,9 +100,20 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
         setIsStickyDropdownOpen(prev => (prev ? false : prev))
       }
 
+      // If smooth programmatic scroll from TOC click is active, prevent scroll spy jitter
+      if (isProgrammaticScrollRef.current) {
+        return
+      }
+
+      const scrollTop =
+        scrollParent instanceof HTMLElement
+          ? scrollParent.scrollTop
+          : (typeof window !== 'undefined' ? window.scrollY || document.documentElement.scrollTop || 0 : 0)
+
       // Track active heading
       if (headings && headings.length > 0) {
         let currentActive: string | null = null
+
         for (const h of headings) {
           let element: HTMLElement | null = null
           if (h.id) {
@@ -110,8 +136,37 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
             }
           }
         }
-        const nextActiveId = currentActive || headings[0]?.id || null
-        setActiveHeadingId(prev => (prev === nextActiveId ? prev : nextActiveId))
+
+        // At top: scrollTop <= 60px OR before first heading
+        const isAtTop = scrollTop <= 60 || !currentActive
+
+        if (isAtTop) {
+          setActiveHeadingId(null)
+          if (typeof window !== 'undefined' && window.location.hash) {
+            window.history.replaceState(
+              window.history.state,
+              '',
+              window.location.pathname + window.location.search,
+            )
+          }
+        } else {
+          setActiveHeadingId(prev => (prev === currentActive ? prev : currentActive))
+          if (typeof window !== 'undefined') {
+            const nextHash = `#${currentActive}`
+            if (window.location.hash !== nextHash) {
+              window.history.replaceState(window.history.state, '', nextHash)
+            }
+          }
+        }
+      } else {
+        setActiveHeadingId(null)
+        if (typeof window !== 'undefined' && window.location.hash) {
+          window.history.replaceState(
+            window.history.state,
+            '',
+            window.location.pathname + window.location.search,
+          )
+        }
       }
     }
 
@@ -123,24 +178,49 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
       })
     }
 
+    const handleManualScrollStart = () => {
+      if (isProgrammaticScrollRef.current) {
+        unlockProgrammaticScroll()
+      }
+    }
+
     checkScrolledOut()
 
     window.addEventListener('scroll', scheduledCheck, { passive: true, capture: true })
     window.addEventListener('resize', scheduledCheck, { passive: true })
+    window.addEventListener('wheel', handleManualScrollStart, { passive: true, capture: true })
+    window.addEventListener('touchmove', handleManualScrollStart, { passive: true, capture: true })
 
     return () => {
       if (rafId !== null) {
         window.cancelAnimationFrame(rafId)
       }
+      if (programmaticScrollTimerRef.current) {
+        clearTimeout(programmaticScrollTimerRef.current)
+        programmaticScrollTimerRef.current = null
+      }
       window.removeEventListener('scroll', scheduledCheck, { capture: true })
       window.removeEventListener('resize', scheduledCheck)
+      window.removeEventListener('wheel', handleManualScrollStart, { capture: true })
+      window.removeEventListener('touchmove', handleManualScrollStart, { capture: true })
     }
-  }, [editor, headings])
+  }, [editor, headings, unlockProgrammaticScroll])
 
   const handleScrollToHeading = useCallback(
     (pos: number, id?: string) => {
       setIsStickyDropdownOpen(false)
       if (id && typeof window !== 'undefined') {
+        // Programmatic scroll lock: prevent scroll spy hash flutter during smooth scroll
+        isProgrammaticScrollRef.current = true
+        if (programmaticScrollTimerRef.current) {
+          clearTimeout(programmaticScrollTimerRef.current)
+        }
+        programmaticScrollTimerRef.current = setTimeout(() => {
+          isProgrammaticScrollRef.current = false
+          programmaticScrollTimerRef.current = null
+        }, 1000)
+
+        setActiveHeadingId(id)
         window.history.replaceState(window.history.state, '', `#${id}`)
       }
       if (editor.isEditable) {

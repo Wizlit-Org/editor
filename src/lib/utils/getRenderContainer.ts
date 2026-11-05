@@ -10,7 +10,7 @@ export const getRenderContainer = (editor: Editor, nodeType: string): HTMLElemen
 
   if (!view || !view.dom) return null
 
-  const matchesTarget = (el: Element | null): el is HTMLElement => {
+  const matchesTarget = (el: Element | null): boolean => {
     if (!el || !(el instanceof HTMLElement)) return false
     if (el.getAttribute('data-type') === nodeType) return true
     if (el.classList?.contains(nodeType)) return true
