@@ -50,6 +50,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
     typeof window !== 'undefined' && window.location.hash ? window.location.hash.slice(1) : null,
   )
   const isInitialAnchorJumpRef = useRef<boolean>(Boolean(initialHashRef.current))
+  const hasScrolledToTargetRef = useRef<boolean>(false)
   const isProgrammaticScrollRef = useRef(Boolean(initialHashRef.current))
   const programmaticScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const activeScrollContainerRef = useRef<HTMLElement | Window | null>(null)
@@ -140,38 +141,42 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
             ? window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0
             : 0)
 
-      // Track active heading
-      if (headings && headings.length > 0) {
-        let currentActive: string | null = null
+      if (!headings || headings.length === 0) {
+        setActiveHeadingId(null)
+        return
+      }
 
-        for (const h of headings) {
-          let element: HTMLElement | null = null
-          if (h.id) {
-            element =
-              document.getElementById(h.id) ||
-              document.querySelector(`[data-id="${h.id}"], [data-toc-id="${h.id}"]`)
-          }
-          if (!element) {
-            try {
-              const dom =
-                (editor.view.nodeDOM(h.pos) as HTMLElement) ||
-                (editor.view.domAtPos(h.pos).node as HTMLElement)
-              element = dom && dom.nodeType === 1 ? dom : dom?.parentElement
-            } catch {}
-          }
-          if (element) {
-            const er = element.getBoundingClientRect()
-            const distFromTop = er.top - containerTop
-            if (distFromTop <= 120) {
-              currentActive = h.id
-            }
+      let currentActive: string | null = null
+
+      for (const h of headings) {
+        let element: HTMLElement | null = null
+        if (h.id) {
+          element =
+            document.getElementById(h.id) ||
+            document.querySelector(`[data-id="${h.id}"], [data-toc-id="${h.id}"]`)
+        }
+        if (!element) {
+          try {
+            const dom =
+              (editor.view.nodeDOM(h.pos) as HTMLElement) ||
+              (editor.view.domAtPos(h.pos).node as HTMLElement)
+            element = dom && dom.nodeType === 1 ? dom : dom?.parentElement
+          } catch {}
+        }
+        if (element) {
+          const er = element.getBoundingClientRect()
+          const distFromTop = er.top - containerTop
+          if (distFromTop <= 120) {
+            currentActive = h.id
           }
         }
+      }
 
-        // At top: scrollTop <= 60px OR before first heading
-        const isAtTop = scrollTop <= 60 || !currentActive
+      // At top: scrollTop <= 60px OR before first heading
+      const isAtTop = scrollTop <= 60 || !currentActive
 
-        if (isAtTop) {
+      if (isAtTop) {
+        if (!isInitialAnchorJumpRef.current) {
           setActiveHeadingId(null)
           if (typeof window !== 'undefined' && window.location.hash) {
             window.history.replaceState(
@@ -180,23 +185,14 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
               window.location.pathname + window.location.search,
             )
           }
-        } else {
-          setActiveHeadingId(prev => (prev === currentActive ? prev : currentActive))
-          if (typeof window !== 'undefined') {
-            const nextHash = `#${currentActive}`
-            if (window.location.hash !== nextHash) {
-              window.history.replaceState(window.history.state, '', nextHash)
-            }
-          }
         }
       } else {
-        setActiveHeadingId(null)
-        if (typeof window !== 'undefined' && window.location.hash) {
-          window.history.replaceState(
-            window.history.state,
-            '',
-            window.location.pathname + window.location.search,
-          )
+        setActiveHeadingId(prev => (prev === currentActive ? prev : currentActive))
+        if (typeof window !== 'undefined') {
+          const nextHash = `#${currentActive}`
+          if (window.location.hash !== nextHash) {
+            window.history.replaceState(window.history.state, '', nextHash)
+          }
         }
       }
     }
@@ -279,6 +275,8 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
 
         if (el) {
           isProgrammaticScrollRef.current = true
+          hasScrolledToTargetRef.current = true
+          initialHashRef.current = null
           setActiveHeadingId(hash)
           el.scrollIntoView({ behavior: 'smooth', block: 'start' })
           el.classList.remove('heading-toc-highlight')
@@ -292,10 +290,10 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
             isInitialAnchorJumpRef.current = false
             programmaticScrollTimerRef.current = null
           }, 1200)
-        } else if (attempts < 15) {
+        } else if (attempts < 25) {
           attempts++
           setTimeout(tryScroll, 100)
-        } else {
+        } else if (headings && headings.length > 0) {
           isProgrammaticScrollRef.current = false
           isInitialAnchorJumpRef.current = false
         }
@@ -303,14 +301,20 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
       setTimeout(tryScroll, 60)
     }
 
-    if (initialHashRef.current) {
-      scrollToHash(initialHashRef.current)
-      initialHashRef.current = null
+    const targetHash =
+      initialHashRef.current ||
+      (typeof window !== 'undefined' && window.location.hash ? window.location.hash.slice(1) : null)
+
+    if (targetHash && !hasScrolledToTargetRef.current) {
+      scrollToHash(targetHash)
     }
 
     const onHashChange = () => {
       const hash = window.location.hash?.slice(1)
-      if (hash) scrollToHash(hash)
+      if (hash) {
+        hasScrolledToTargetRef.current = false
+        scrollToHash(hash)
+      }
     }
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
