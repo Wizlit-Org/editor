@@ -51,6 +51,11 @@ export const LinkMenu = ({
       storage.clickedCoords = null
       storage.clickedElement = null
     }
+    if (menuRef.current) {
+      menuRef.current.style.visibility = 'hidden'
+      menuRef.current.style.opacity = '0'
+      menuRef.current.style.display = 'none'
+    }
     try {
       editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'hide'))
     } catch {}
@@ -62,6 +67,9 @@ export const LinkMenu = ({
     const storage = (editor.storage as any)?.link
     if (storage) {
       storage.isDismissed = false
+    }
+    if (menuRef.current) {
+      menuRef.current.style.removeProperty('display')
     }
   }, [editor])
 
@@ -187,7 +195,6 @@ export const LinkMenu = ({
   useEffect(() => {
     const handleOutsideClick = (e: Event) => {
       if (isDismissedRef.current) return
-      if (!checkIsLinkActive() && !showEditRef.current) return
 
       const target = (e as MouseEvent | PointerEvent).target as HTMLElement | null
       if (!target) return
@@ -222,7 +229,7 @@ export const LinkMenu = ({
       window.removeEventListener('touchstart', handleOutsideClick, { capture: true })
       window.removeEventListener('tiptap:dismiss-link-menu', dismissMenu)
     }
-  }, [checkIsLinkActive, dismissMenu])
+  }, [dismissMenu])
 
   // Floating UI autoUpdate & ResizeObserver: keep position firmly docked when content size changes
   useEffect(() => {
@@ -442,12 +449,17 @@ export const LinkMenu = ({
         isDark ? 'editor-theme-dark dark theme-dark' : 'editor-theme-light theme-light',
         (isClosedByScroll || isDismissed) && '!hidden pointer-events-none',
       )}
-      style={{ backgroundColor: 'transparent', borderRadius: '12px', overflow: 'hidden' }}
+      style={{
+        backgroundColor: 'transparent',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        display: isClosedByScroll || isDismissed ? 'none' : undefined,
+      }}
       appendTo={appendTo?.current || (typeof document !== 'undefined' ? document.body : undefined)}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={menuOptions}
     >
-      {showEdit ? (
+      {isClosedByScroll || isDismissed ? null : showEdit ? (
         <LinkEditorPanel
           initialUrl={link}
           initialText={currentLinkText}
