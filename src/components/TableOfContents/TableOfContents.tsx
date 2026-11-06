@@ -264,7 +264,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
           if (sp instanceof HTMLElement && sp !== document.body && sp !== document.documentElement && sp.scrollHeight > sp.clientHeight) {
             const cRect = sp.getBoundingClientRect()
             const eRect = el.getBoundingClientRect()
-            sp.scrollTo({ top: Math.max(0, sp.scrollTop + (eRect.top - cRect.top) - 16), behavior: 'smooth' })
+            sp.scrollTo({ top: Math.max(0, sp.scrollTop + (eRect.top - cRect.top) - 88), behavior: 'smooth' })
           } else {
             el.scrollIntoView({ behavior: 'smooth', block: 'start' })
           }
@@ -345,7 +345,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
           if (sp instanceof HTMLElement && sp !== document.body && sp !== document.documentElement && sp.scrollHeight > sp.clientHeight) {
             const cRect = sp.getBoundingClientRect()
             const eRect = element.getBoundingClientRect()
-            sp.scrollTo({ top: Math.max(0, sp.scrollTop + (eRect.top - cRect.top) - 16), behavior: 'smooth' })
+            sp.scrollTo({ top: Math.max(0, sp.scrollTop + (eRect.top - cRect.top) - 88), behavior: 'smooth' })
           } else {
             element.scrollIntoView({ behavior: 'smooth', block: 'start' })
           }

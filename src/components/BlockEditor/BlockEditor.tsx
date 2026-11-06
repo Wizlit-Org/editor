@@ -244,7 +244,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           if (scrollContainer && scrollContainer instanceof HTMLElement && scrollContainer.scrollHeight > scrollContainer.clientHeight) {
             const cRect = scrollContainer.getBoundingClientRect()
             const tRect = target.getBoundingClientRect()
-            const targetTop = scrollContainer.scrollTop + (tRect.top - cRect.top) - 16
+            const targetTop = scrollContainer.scrollTop + (tRect.top - cRect.top) - 88
             scrollContainer.scrollTo({ top: Math.max(0, targetTop), behavior: delay < 350 ? 'auto' : 'smooth' })
           } else {
             target.scrollIntoView({ behavior: 'smooth', block: 'start' })
