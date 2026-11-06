@@ -21,15 +21,7 @@ const getScrollParent = (node: HTMLElement | null): HTMLElement | Window => {
     const style = window.getComputedStyle(parent)
     const oy = style.overflowY
     const ox = style.overflow
-    if (
-      oy === 'auto' ||
-      oy === 'scroll' ||
-      oy === 'overlay' ||
-      ox === 'auto' ||
-      ox === 'scroll'
-    ) {
-      return parent
-    }
+    if (oy === 'auto' || oy === 'scroll' || oy === 'overlay' || ox === 'auto' || ox === 'scroll') return parent
     parent = parent.parentElement
   }
   return window
@@ -87,15 +79,8 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
     },
     equalityFn: (prev, next) => {
       if (!prev && !next) return true
-      if (!prev || !next) return false
-      if (prev.length !== next.length) return false
-      return prev.every(
-        (item, i) =>
-          item.id === next[i]?.id &&
-          item.level === next[i]?.level &&
-          item.text === next[i]?.text &&
-          item.pos === next[i]?.pos,
-      )
+      if (!prev || !next || prev.length !== next.length) return false
+      return prev.every((item, i) => item.id === next[i]?.id && item.level === next[i]?.level && item.text === next[i]?.text && item.pos === next[i]?.pos)
     },
   })
 
@@ -176,14 +161,11 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
       const isAtTop = scrollTop <= 60 || !currentActive
 
       if (isAtTop) {
-        if (!isInitialAnchorJumpRef.current) {
+        // Only strip hash if not during initial anchor jump and target has already been scrolled to (or no target was requested)
+        if (!isInitialAnchorJumpRef.current && (hasScrolledToTargetRef.current || !initialHashRef.current)) {
           setActiveHeadingId(null)
           if (typeof window !== 'undefined' && window.location.hash) {
-            window.history.replaceState(
-              window.history.state,
-              '',
-              window.location.pathname + window.location.search,
-            )
+            window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search)
           }
         }
       } else {
@@ -278,7 +260,14 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
           hasScrolledToTargetRef.current = true
           initialHashRef.current = null
           setActiveHeadingId(hash)
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          const sp = getScrollParent(el)
+          if (sp instanceof HTMLElement && sp !== document.body && sp !== document.documentElement && sp.scrollHeight > sp.clientHeight) {
+            const cRect = sp.getBoundingClientRect()
+            const eRect = el.getBoundingClientRect()
+            sp.scrollTo({ top: Math.max(0, sp.scrollTop + (eRect.top - cRect.top) - 16), behavior: 'smooth' })
+          } else {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
           el.classList.remove('heading-toc-highlight')
           void el.offsetWidth
           el.classList.add('heading-toc-highlight')
@@ -352,13 +341,18 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
           element = dom && dom.nodeType === 1 ? dom : dom?.parentElement
         }
         if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          const sp = getScrollParent(element)
+          if (sp instanceof HTMLElement && sp !== document.body && sp !== document.documentElement && sp.scrollHeight > sp.clientHeight) {
+            const cRect = sp.getBoundingClientRect()
+            const eRect = element.getBoundingClientRect()
+            sp.scrollTo({ top: Math.max(0, sp.scrollTop + (eRect.top - cRect.top) - 16), behavior: 'smooth' })
+          } else {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
           element.classList.remove('heading-toc-highlight')
           void element.offsetWidth
           element.classList.add('heading-toc-highlight')
-          setTimeout(() => {
-            element?.classList.remove('heading-toc-highlight')
-          }, 1600)
+          setTimeout(() => element?.classList.remove('heading-toc-highlight'), 1600)
         } else if (editor.isEditable) {
           editor.chain().focus(pos + 1, { scrollIntoView: true }).run()
         }

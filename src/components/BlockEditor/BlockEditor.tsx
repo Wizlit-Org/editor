@@ -223,7 +223,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       hash = rawHash
     }
 
-    const intervals = [50, 150, 300, 600, 1200, 2000]
+    const intervals = [50, 150, 300, 450, 600, 1000, 1500]
     intervals.forEach(delay => {
       const timer = setTimeout(() => {
         let target: Element | null = null
@@ -240,8 +240,18 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
         }
 
         if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          clearPollingTimers()
+          const scrollContainer = target.closest('.memo-scroll-surface') || target.closest('[class*="overflow-auto"]')
+          if (scrollContainer && scrollContainer instanceof HTMLElement && scrollContainer.scrollHeight > scrollContainer.clientHeight) {
+            const cRect = scrollContainer.getBoundingClientRect()
+            const tRect = target.getBoundingClientRect()
+            const targetTop = scrollContainer.scrollTop + (tRect.top - cRect.top) - 16
+            scrollContainer.scrollTo({ top: Math.max(0, targetTop), behavior: delay < 350 ? 'auto' : 'smooth' })
+          } else {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+          if (delay >= 350) {
+            clearPollingTimers()
+          }
         }
       }, delay)
       pollingTimersRef.current.push(timer)
