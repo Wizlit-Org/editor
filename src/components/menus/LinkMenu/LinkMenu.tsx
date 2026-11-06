@@ -51,6 +51,11 @@ export const LinkMenu = ({
       storage.clickedCoords = null
       storage.clickedElement = null
     }
+    if (menuRef.current) {
+      menuRef.current.style.visibility = 'hidden'
+      menuRef.current.style.opacity = '0'
+      menuRef.current.style.display = 'none'
+    }
     try {
       editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'hide'))
     } catch {}
@@ -62,6 +67,9 @@ export const LinkMenu = ({
     const storage = (editor.storage as any)?.link
     if (storage) {
       storage.isDismissed = false
+    }
+    if (menuRef.current) {
+      menuRef.current.style.removeProperty('display')
     }
   }, [editor])
 
@@ -84,6 +92,9 @@ export const LinkMenu = ({
           : (el?.parentElement?.closest('a') as HTMLAnchorElement | null)
       if (linkEl) return true
     } catch {}
+
+    const storageEl = (editor.storage as any)?.link?.clickedElement as HTMLAnchorElement | null
+    if (storageEl && storageEl.isConnected) return true
 
     return false
   }, [editor])
@@ -184,7 +195,6 @@ export const LinkMenu = ({
   useEffect(() => {
     const handleOutsideClick = (e: Event) => {
       if (isDismissedRef.current) return
-      if (!checkIsLinkActive() && !showEditRef.current) return
 
       const target = (e as MouseEvent | PointerEvent).target as HTMLElement | null
       if (!target) return
@@ -199,27 +209,33 @@ export const LinkMenu = ({
         return
       }
 
-      // Don't dismiss if click is on an <a> element inside the editor
-      if (target.closest?.('a')) {
+      // Don't dismiss only if click is directly on the active clicked <a> element itself
+      const storage = (editor.storage as any)?.link
+      const clickedEl = storage?.clickedElement as HTMLElement | null
+      if (clickedEl && (clickedEl === target || clickedEl.contains(target))) {
         return
       }
 
       dismissMenu()
     }
 
-    // Capture on window to bypass stopPropagation in modal/container wrappers
+    // Capture on document & window to bypass stopPropagation in modal/container wrappers
+    document.addEventListener('pointerdown', handleOutsideClick, { capture: true })
+    document.addEventListener('mousedown', handleOutsideClick, { capture: true })
     window.addEventListener('pointerdown', handleOutsideClick, { capture: true, passive: true })
     window.addEventListener('mousedown', handleOutsideClick, { capture: true, passive: true })
     window.addEventListener('touchstart', handleOutsideClick, { capture: true, passive: true })
     window.addEventListener('tiptap:dismiss-link-menu', dismissMenu)
 
     return () => {
+      document.removeEventListener('pointerdown', handleOutsideClick, { capture: true })
+      document.removeEventListener('mousedown', handleOutsideClick, { capture: true })
       window.removeEventListener('pointerdown', handleOutsideClick, { capture: true })
       window.removeEventListener('mousedown', handleOutsideClick, { capture: true })
       window.removeEventListener('touchstart', handleOutsideClick, { capture: true })
       window.removeEventListener('tiptap:dismiss-link-menu', dismissMenu)
     }
-  }, [checkIsLinkActive, dismissMenu])
+  }, [editor, dismissMenu])
 
   // Floating UI autoUpdate & ResizeObserver: keep position firmly docked when content size changes
   useEffect(() => {
@@ -304,23 +320,38 @@ export const LinkMenu = ({
       }
       isClosedByScrollRef.current = true
       setIsClosedByScroll(true)
-      setEditMode(false)
-      try {
-        editor.view.dispatch(editor.state.tr.setMeta('linkMenu', 'hide'))
-      } catch {}
+      dismissMenu()
     }
     window.addEventListener('tiptap:close-menus', handleCloseMenus)
     window.addEventListener('scroll', handleCloseMenus, { passive: true, capture: true })
+    document.addEventListener('scroll', handleCloseMenus, { passive: true, capture: true })
     return () => {
       window.removeEventListener('tiptap:close-menus', handleCloseMenus)
       window.removeEventListener('scroll', handleCloseMenus, { capture: true })
+      document.removeEventListener('scroll', handleCloseMenus, { capture: true })
     }
-  }, [editor, setEditMode])
+  }, [dismissMenu])
 
   const shouldShow = useCallback(() => {
     if (isDismissedRef.current) return false
     const storage = (editor.storage as any)?.link
     if (storage?.isDismissed) return false
+
+    const isClickedLink = Boolean(storage?.clickedElement && (storage.clickedElement as HTMLElement).isConnected)
+
+    // 1. 읽기모드 (!editor.isEditable): 유효 링크 직접 클릭(isClickedLink) 시에만 허용
+    if (!editor.isEditable && !isClickedLink) return false
+
+    // 2. 편집모드 (editor.isEditable): 링크 클릭(isClickedLink) 또는 포커스 상태 링크 선택/편집 시 허용
+    if (editor.isEditable && !editor.isFocused && !showEditRef.current && !isClickedLink) return false
+
+    // 3. EMPTY_URL_GUARD: href가 없거나 빈 문자열이면 링크 메뉴 100% 렌더링 차단 (빈 툴바 방지)
+    const linkHref =
+      (editor.getAttributes('link').href as string) ||
+      (editor.storage as any)?.link?.clickedElement?.getAttribute('href') ||
+      ''
+    if (!showEditRef.current && (!linkHref || !linkHref.trim())) return false
+
     if (showEditRef.current) return true
     const isLink = checkIsLinkActive()
     if (!isLink) return false
@@ -426,22 +457,26 @@ export const LinkMenu = ({
       className={cn(
         'link-bubble-menu z-[1340] !bg-transparent rounded-xl overflow-hidden',
         isDark ? 'editor-theme-dark dark theme-dark' : 'editor-theme-light theme-light',
-        (isClosedByScroll || isDismissed) && '!hidden pointer-events-none',
+        (isClosedByScroll || isDismissed || (!showEdit && (!link || !link.trim()))) && '!hidden pointer-events-none',
       )}
-      style={{ backgroundColor: 'transparent', borderRadius: '12px', overflow: 'hidden' }}
+      style={{
+        backgroundColor: 'transparent',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        display: isClosedByScroll || isDismissed || (!showEdit && (!link || !link.trim())) ? 'none' : undefined,
+      }}
       appendTo={appendTo?.current || (typeof document !== 'undefined' ? document.body : undefined)}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={menuOptions}
     >
-      {showEdit ? (
+      {isClosedByScroll || isDismissed ? null : showEdit ? (
         <LinkEditorPanel
           initialUrl={link}
           initialText={currentLinkText}
-          initialOpenInNewTab={target === '_blank'}
           onSetLink={onSetLink}
           onCancel={() => setEditMode(false)}
         />
-      ) : (
+      ) : link && link.trim() ? (
         <LinkPreviewPanel
           url={link}
           onClear={onUnsetLink}
@@ -451,7 +486,7 @@ export const LinkMenu = ({
           disableDefaultAction={disableDefaultAction}
           onUpdatePosition={updateMenuPosition}
         />
-      )}
+      ) : null}
     </BaseBubbleMenu>
   )
 }

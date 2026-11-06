@@ -1,9 +1,8 @@
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
 import { all, createLowlight } from 'lowlight'
 import { ReactNodeViewRenderer } from '@tiptap/react'
-import { TextSelection } from 'prosemirror-state'
+import { Selection, TextSelection, Plugin } from 'prosemirror-state'
 import { CodeBlockView } from './components/CodeBlockView'
-import { Plugin } from 'prosemirror-state'
 
 const lowlight = createLowlight(all)
 
@@ -282,6 +281,115 @@ export const CodeBlock = CodeBlockLowlight.extend({
         }
         
         return originalBackspace ? originalBackspace({ editor }) : false
+      },
+
+      'ArrowUp': ({ editor }) => {
+        const { state, view } = editor
+        const { selection, schema, doc } = state
+        const { $from, empty } = selection
+
+        if (!empty) {
+          return false
+        }
+
+        // Case 1: 커서가 codeBlock 내부에 있는 경우 -> 상단으로 탈출
+        if ($from.parent.type === this.type) {
+          const textBefore = $from.parent.textBetween(0, $from.parentOffset, null, '\ufffc')
+          const isFirstLine = !textBefore.includes('\n')
+          if (!isFirstLine) {
+            return false
+          }
+
+          const blockStart = $from.before()
+
+          // 1-1) 문서의 맨 첫 번째 블록인 경우: 상단에 빈 paragraph 삽입 후 이동
+          if (blockStart <= 1) {
+            const tr = state.tr.insert(0, schema.nodes.paragraph.create())
+            tr.setSelection(TextSelection.create(tr.doc, 1))
+            view.dispatch(tr)
+            return true
+          }
+
+          // 1-2) 이전 블록이 이미 존재하는 경우: 이전 블록의 끝 위치로 이동
+          const prevBlockPos = doc.resolve(blockStart - 1)
+          const tr = state.tr.setSelection(Selection.near(prevBlockPos, -1))
+          view.dispatch(tr)
+          return true
+        }
+
+        // Case 2: 커서가 codeBlock 바로 아래 텍스트블록의 첫 줄에 있는 경우 -> codeBlock 끝으로 진입
+        if ($from.parent.isTextblock && $from.parent.type !== this.type) {
+          const textBefore = $from.parent.textBetween(0, $from.parentOffset, null, '\ufffc')
+          const isFirstLine = !textBefore.includes('\n')
+          if (isFirstLine) {
+            const before = $from.before()
+            if (before > 0) {
+              const prevNode = doc.resolve(before).nodeBefore
+              if (prevNode && prevNode.type === this.type) {
+                const tr = state.tr.setSelection(TextSelection.create(doc, before - 1))
+                view.dispatch(tr)
+                return true
+              }
+            }
+          }
+        }
+
+        return false
+      },
+
+      'ArrowDown': ({ editor }) => {
+        const { state, view } = editor
+        const { selection, schema, doc } = state
+        const { $from, empty } = selection
+
+        if (!empty) {
+          return false
+        }
+
+        // Case 1: 커서가 codeBlock 내부에 있는 경우 -> 하단으로 탈출
+        if ($from.parent.type === this.type) {
+          const textAfter = $from.parent.textBetween($from.parentOffset, $from.parent.nodeSize - 2, null, '\ufffc')
+          const isLastLine = !textAfter.includes('\n')
+          if (!isLastLine) {
+            return false
+          }
+
+          const blockEnd = $from.after()
+          if (blockEnd === undefined) return false
+
+          const nodeAfter = doc.nodeAt(blockEnd)
+          if (nodeAfter) {
+            // 다음 블록 시작 위치로 이동
+            const tr = state.tr.setSelection(Selection.near(doc.resolve(blockEnd + 1), 1))
+            view.dispatch(tr)
+            return true
+          } else {
+            // 문서 맨 끝인 경우: 하단에 빈 paragraph 삽입 후 이동
+            const tr = state.tr.insert(blockEnd, schema.nodes.paragraph.create())
+            tr.setSelection(TextSelection.create(tr.doc, blockEnd + 1))
+            view.dispatch(tr)
+            return true
+          }
+        }
+
+        // Case 2: 커서가 codeBlock 바로 위 텍스트블록의 마지막 줄에 있는 경우 -> codeBlock 첫 줄로 진입
+        if ($from.parent.isTextblock && $from.parent.type !== this.type) {
+          const textAfter = $from.parent.textBetween($from.parentOffset, $from.parent.nodeSize - 2, null, '\ufffc')
+          const isLastLine = !textAfter.includes('\n')
+          if (isLastLine) {
+            const after = $from.after()
+            if (after !== undefined) {
+              const nextNode = doc.nodeAt(after)
+              if (nextNode && nextNode.type === this.type) {
+                const tr = state.tr.setSelection(TextSelection.create(doc, after + 1))
+                view.dispatch(tr)
+                return true
+              }
+            }
+          }
+        }
+
+        return false
       }
     }
   },

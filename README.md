@@ -1,33 +1,39 @@
 # 📝 Wizlit Editor (`@wizlit/editor`)
 
-> **역할**: Wizlit Path 및 위즐릿 플랫폼 전역에서 사용되는 TipTap 2.x 기반 노션(Notion)형 리치 블록 에디터 라이브러리  
-> **UI 디자인**: Apple VisionOS / 노션 등급의 리얼 프로스티드 글라스모피즘 (`backdrop-filter: blur(24px) saturate(160%)`, 다크/라이트 테마 자동 동기화)  
-> **아키텍처**: 호스트 프레임워크와 완전히 분리된 100% 독립 실행형(Standalone Isolation) 컴포넌트 패키지  
-> **기술 스택**: React 19, TypeScript, TipTap v2, Tailwind CSS, browser-image-compression  
+> 🎯 **목적**: Wizlit Path 및 위즐릿 플랫폼 전역에서 사용되는 **TipTap v3 (3.32.0)** 기반 노션(Notion)형 리치 블록 에디터 독립 라이브러리.  
+> 🧭 **단일 원천(SSOT)**: [`/AGENTS.md`](/AGENTS.md) | 에디터 기능 명세: [`/계획서/path/06_에디터_시스템.md`](/계획서/path/06_에디터_시스템.md) | 에디터 전용 구현 팁: [`/references/tips/EDITOR.md`](/references/tips/EDITOR.md)  
+> ⚙️ **기술 스택**: `React 19`, `TypeScript`, `TipTap v3 (3.32.0)`, `ProseMirror`, `Tailwind CSS`, `Floating UI`, `Storybook (:6006)`
 
 ---
 
-## 🚀 빠른 시작 (Quick Start)
+## 🚀 빠른 시작 및 배포 (Quick Start & Release)
 
-### 설치 및 로컬 빌드
-```bash
+### 로컬 빌드 및 정적 검증
+```powershell
 # 의존성 설치
 npm install
 
-# 번들 빌드 (DTS, CJS, ESM + Tailwind CSS)
+# TypeScript 정적 타입 검증
+npx tsc --noEmit
+
+# 프로덕션 번들 빌드 (DTS, CJS, ESM + Tailwind CSS)
 npm run build
 
-# 로컬 패키지 발행 (Yalc)
-npx yalc publish
+# Storybook 개발 서버 구동 (:6006)
+npm run storybook
+
+# 500줄 상한 검증 (루트에서 실행)
+python -B scripts/check-lines.py .repos/editor
 ```
 
-### 프론트엔드 호스트 프로젝트 연동
-```bash
-# 호스트 앱 디렉토리에서 로컬 패키지 연결
-npx yalc link @wizlit/editor
-
-# 실시간 변경점 즉시 반영 (에디터 디렉토리에서 실행)
-npx yalc push --sig
+### 패키지 버전 발행 및 호스트 연동 (`Git Tag` 트리거 & `yalc`)
+- **CI/CD 자동 배포 (`publish.yml`)**: 브랜치 푸시가 아닌 **Git Tag (`v*`) 푸시 시에만** GitHub Actions npm 배포가 트리거됨 ([`/규칙/07_배포_규칙.md`](/규칙/07_배포_규칙.md) 2.1절 준수).
+  - 로컬 도커 사전 검증(Staging): `dev` 브랜치 커밋에 `vX.Y.Z-staging.N` 태그 푸시 ➔ npm `staging` 태그 발행.
+  - 상용 정식 배포(Production): `dev ➔ main` 병합 후 `main` 커밋에 `vX.Y.Z` 정식 태그 푸시 ➔ npm `latest` 정식 발행.
+- **로컬 즉시 연동 (`yalc`, 선택)**:
+```powershell
+npx yalc publish
+# 호스트 앱(.repos/path-next-react-frontend)에서 연결 시: npx yalc link @wizlit/editor
 ```
 
 ---
@@ -180,6 +186,7 @@ export function MyEditor() {
 ├── src/
 │   ├── components/
 │   │   ├── BlockEditor/           # 메인 BlockEditor 컴포넌트
+│   │   ├── TableOfContents/       # 인라인/스티키 목차 및 스크롤 스파이 URL 해시 실시간 동기화
 │   │   └── menus/
 │   │       ├── PastePreviewDialog/# 스마트 붙여넣기 5단 다이얼로그 및 LivePreviewCanvas
 │   │       ├── TextMenu/          # 하단 플로팅 텍스트 서식 메뉴
@@ -196,7 +203,12 @@ export function MyEditor() {
 │   │   └── useEditorEscGuard.ts   # 계층형 Esc 단축키 격리 가드
 │   └── styles/                    # 리얼 글라스모피즘 스타일 및 전역 CSS
 └── tsup.config.ts                 # 프로덕션 번들 빌드 설정 (DTS / ESM / CJS)
-
-### 💡 Gotchas
-- **비교 기준선(`baselineHTMLRef`) 스냅샷 정합화 및 마운트 순서 역전 방어**: TipTap v3 `Editor.mount()`에서 `commands.focus(autofocus)`가 `emit('create')`보다 먼저 실행되고 `ExtensionManager.setupExtensions()`의 `Heading.onCreate`가 `options.onCreate`보다 먼저 등록되며, `tr.setMeta('preventUpdate', true)`는 TipTap 코어의 `emit('update')` 자체를 스킵하여 `BlockEditor.onUpdate` 내부 기준선 갱신이 누락되는 함정이 존재함. 이를 원천 차단하기 위해 `isReadyForUpdateRef`로 `onCreate` 완료 전 트랜잭션을 무시하고, `getDoc`/`getAnnotatedText` 비교 시 동적 생성되는 헤딩 `id`/`data-id`/`data-toc-id` 속성을 제거하여 비교하며, `onCreate` 및 `setEditable(true)` 시점에 초기 `stats`를 `isChanged: false`와 함께 `onChange`로 즉시 전달하여 수정 모드 진입 직후 글자 수 카운터가 즉시 표시되면서도 저장 버튼 비활성(`hasChanges === false`)이 100% 유지되도록 보장함.
 ```
+
+---
+
+## 💡 핵심 수칙 및 Gotchas
+
+- **에디터 전용 실전 팁 단일 원천(SSOT)**: TipTap v3 마운트/초기화 시점 `isDirty` 오판 방어(`Heading.ts` `parseHTML` UUID 채번), `DragHandle` `useRef` 고정, 테이블/팝오버 포탈 격리, 테마 전환 등 29개 에디터 전용 노하우는 [`/references/tips/EDITOR.md`](/references/tips/EDITOR.md)를 단일 원천으로 준수함.
+- **비교 기준선(`baselineHTMLRef`) 스냅샷 정합화 및 마운트 순서 역전 방어**: `isReadyForUpdateRef`로 `onCreate` 완료 전 트랜잭션을 무시하고, `getDoc`/`getAnnotatedText` 비교 시 동적 생성되는 헤딩 `id`/`data-id`/`data-toc-id` 속성을 제거하여 비교하며, `onCreate` 및 `setEditable(true)` 시점에 초기 `stats`를 `isChanged: false`와 함께 `onChange`로 즉시 전달하여 수정 모드 진입 직후 글자 수 카운터가 표시되면서도 저장 버튼 비활성(`hasChanges === false`)이 100% 유지되도록 보장함.
+- **TOC 스크롤 스파이 및 URL 해시 실시간 동기화 (`replaceState`)**: 본문 스크롤 시 현재 뷰포트에 도달한 Heading ID로 URL Hash를 `replaceState`하여 브라우저 히스토리 스택 누적 없이 실시간 동기화하며, 최상단(`scrollTop <= 60px` 또는 첫 Heading 이전) 도달 시 `replaceState`로 URL 해시를 자동 제거함. 목차 항목 클릭에 의한 smooth 이동 중에는 1000ms 프로그래매틱 스크롤 락(`isProgrammaticScrollRef`, 사용자 휠/터치 시 즉시 해제)을 가동하여 중간 헤딩으로의 해시 플리커링을 원천 차단함.

@@ -17,9 +17,17 @@ interface HeadingItem {
 const getScrollParent = (node: HTMLElement | null): HTMLElement | Window => {
   if (!node || typeof window === 'undefined') return window
   let parent = node.parentElement
-  while (parent) {
-    const { overflowY } = window.getComputedStyle(parent)
-    if (overflowY === 'auto' || overflowY === 'scroll') {
+  while (parent && parent !== document.body && parent !== document.documentElement) {
+    const style = window.getComputedStyle(parent)
+    const oy = style.overflowY
+    const ox = style.overflow
+    if (
+      oy === 'auto' ||
+      oy === 'scroll' ||
+      oy === 'overlay' ||
+      ox === 'auto' ||
+      ox === 'scroll'
+    ) {
       return parent
     }
     parent = parent.parentElement
@@ -32,7 +40,29 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
   const [isInlineExpanded, setIsInlineExpanded] = useState(true)
   const [isScrolledOut, setIsScrolledOut] = useState(false)
   const [isStickyDropdownOpen, setIsStickyDropdownOpen] = useState(false)
-  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null)
+  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined' && window.location.hash) {
+      return window.location.hash.slice(1)
+    }
+    return null
+  })
+  const initialHashRef = useRef<string | null>(
+    typeof window !== 'undefined' && window.location.hash ? window.location.hash.slice(1) : null,
+  )
+  const isInitialAnchorJumpRef = useRef<boolean>(Boolean(initialHashRef.current))
+  const hasScrolledToTargetRef = useRef<boolean>(false)
+  const isProgrammaticScrollRef = useRef(Boolean(initialHashRef.current))
+  const programmaticScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const activeScrollContainerRef = useRef<HTMLElement | Window | null>(null)
+
+  const unlockProgrammaticScroll = useCallback(() => {
+    if (programmaticScrollTimerRef.current) {
+      clearTimeout(programmaticScrollTimerRef.current)
+      programmaticScrollTimerRef.current = null
+    }
+    isProgrammaticScrollRef.current = false
+    isInitialAnchorJumpRef.current = false
+  }, [])
 
   // Track doc changes to extract headings in real-time
   const headings = useEditorState({
@@ -74,44 +104,96 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
     let rafId: number | null = null
 
     const checkScrolledOut = () => {
-      if (!inlineContainerRef.current) return
-      const rect = inlineContainerRef.current.getBoundingClientRect()
-      const scrollParent = getScrollParent(inlineContainerRef.current)
-      const topOffset = scrollParent instanceof HTMLElement ? scrollParent.getBoundingClientRect().top : 0
-      
-      const isPast = rect.bottom <= topOffset + 16
-      setIsScrolledOut(prev => (prev === isPast ? prev : isPast))
-      if (!isPast) {
-        setIsStickyDropdownOpen(prev => (prev ? false : prev))
+      const scrollParent =
+        (activeScrollContainerRef.current instanceof HTMLElement &&
+         ((inlineContainerRef.current && activeScrollContainerRef.current.contains(inlineContainerRef.current)) ||
+          (editor.view?.dom && activeScrollContainerRef.current.contains(editor.view.dom)))
+          ? activeScrollContainerRef.current
+          : null) ||
+        getScrollParent(inlineContainerRef.current || editor.view?.dom)
+
+      const isHtmlElement =
+        scrollParent instanceof HTMLElement &&
+        scrollParent !== document.documentElement &&
+        scrollParent !== document.body
+
+      const containerTop = isHtmlElement
+        ? scrollParent.getBoundingClientRect().top
+        : 0
+
+      if (inlineContainerRef.current) {
+        const rect = inlineContainerRef.current.getBoundingClientRect()
+        const isPast = rect.bottom <= containerTop + 16
+        setIsScrolledOut(prev => (prev === isPast ? prev : isPast))
+        if (!isPast) {
+          setIsStickyDropdownOpen(prev => (prev ? false : prev))
+        }
       }
 
-      // Track active heading
-      if (headings && headings.length > 0) {
-        let currentActive: string | null = null
-        for (const h of headings) {
-          let element: HTMLElement | null = null
-          if (h.id) {
-            element =
-              document.getElementById(h.id) ||
-              document.querySelector(`[data-id="${h.id}"], [data-toc-id="${h.id}"]`)
-          }
-          if (!element) {
-            try {
-              const dom =
-                (editor.view.nodeDOM(h.pos) as HTMLElement) ||
-                (editor.view.domAtPos(h.pos).node as HTMLElement)
-              element = dom && dom.nodeType === 1 ? dom : dom?.parentElement
-            } catch {}
-          }
-          if (element) {
-            const er = element.getBoundingClientRect()
-            if (er.top <= topOffset + 120) {
-              currentActive = h.id
-            }
+      // If smooth programmatic scroll from TOC click or initial anchor restore is active, prevent scroll spy jitter
+      if (isProgrammaticScrollRef.current || isInitialAnchorJumpRef.current) {
+        return
+      }
+
+      const scrollTop = isHtmlElement
+        ? scrollParent.scrollTop
+        : (typeof window !== 'undefined'
+            ? window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0
+            : 0)
+
+      if (!headings || headings.length === 0) {
+        setActiveHeadingId(null)
+        return
+      }
+
+      let currentActive: string | null = null
+
+      for (const h of headings) {
+        let element: HTMLElement | null = null
+        if (h.id) {
+          element =
+            document.getElementById(h.id) ||
+            document.querySelector(`[data-id="${h.id}"], [data-toc-id="${h.id}"]`)
+        }
+        if (!element) {
+          try {
+            const dom =
+              (editor.view.nodeDOM(h.pos) as HTMLElement) ||
+              (editor.view.domAtPos(h.pos).node as HTMLElement)
+            element = dom && dom.nodeType === 1 ? dom : dom?.parentElement
+          } catch {}
+        }
+        if (element) {
+          const er = element.getBoundingClientRect()
+          const distFromTop = er.top - containerTop
+          if (distFromTop <= 120) {
+            currentActive = h.id
           }
         }
-        const nextActiveId = currentActive || headings[0]?.id || null
-        setActiveHeadingId(prev => (prev === nextActiveId ? prev : nextActiveId))
+      }
+
+      // At top: scrollTop <= 60px OR before first heading
+      const isAtTop = scrollTop <= 60 || !currentActive
+
+      if (isAtTop) {
+        if (!isInitialAnchorJumpRef.current) {
+          setActiveHeadingId(null)
+          if (typeof window !== 'undefined' && window.location.hash) {
+            window.history.replaceState(
+              window.history.state,
+              '',
+              window.location.pathname + window.location.search,
+            )
+          }
+        }
+      } else {
+        setActiveHeadingId(prev => (prev === currentActive ? prev : currentActive))
+        if (typeof window !== 'undefined') {
+          const nextHash = `#${currentActive}`
+          if (window.location.hash !== nextHash) {
+            window.history.replaceState(window.history.state, '', nextHash)
+          }
+        }
       }
     }
 
@@ -123,24 +205,136 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
       })
     }
 
+    const onScroll = (e: Event) => {
+      const target = e.target
+      if (target && target instanceof HTMLElement) {
+        if (
+          (inlineContainerRef.current && target.contains(inlineContainerRef.current)) ||
+          (editor.view?.dom && target.contains(editor.view.dom))
+        ) {
+          activeScrollContainerRef.current = target
+        }
+      } else if (target === document || target === window) {
+        activeScrollContainerRef.current = window
+      }
+      scheduledCheck()
+    }
+
+    const handleManualScrollStart = () => {
+      isInitialAnchorJumpRef.current = false
+      if (isProgrammaticScrollRef.current) {
+        unlockProgrammaticScroll()
+      }
+    }
+
     checkScrolledOut()
 
-    window.addEventListener('scroll', scheduledCheck, { passive: true, capture: true })
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true })
     window.addEventListener('resize', scheduledCheck, { passive: true })
+    window.addEventListener('wheel', handleManualScrollStart, { passive: true, capture: true })
+    window.addEventListener('touchmove', handleManualScrollStart, { passive: true, capture: true })
 
     return () => {
       if (rafId !== null) {
         window.cancelAnimationFrame(rafId)
       }
-      window.removeEventListener('scroll', scheduledCheck, { capture: true })
+      if (programmaticScrollTimerRef.current) {
+        clearTimeout(programmaticScrollTimerRef.current)
+        programmaticScrollTimerRef.current = null
+      }
+      window.removeEventListener('scroll', onScroll, { capture: true })
       window.removeEventListener('resize', scheduledCheck)
+      window.removeEventListener('wheel', handleManualScrollStart, { capture: true })
+      window.removeEventListener('touchmove', handleManualScrollStart, { capture: true })
     }
+  }, [editor, headings, unlockProgrammaticScroll])
+
+  // Restore scroll to anchor on initial mount or hashchange
+  useEffect(() => {
+    if (typeof window === 'undefined' || !editor) return
+
+    const scrollToHash = (hash: string) => {
+      if (!hash) return
+      let attempts = 0
+      const tryScroll = () => {
+        let el: HTMLElement | null =
+          document.getElementById(hash) ||
+          document.querySelector(`[data-id="${hash}"], [data-toc-id="${hash}"]`)
+
+        if (!el && headings?.length) {
+          const match = headings.find(h => h.id === hash)
+          if (match) {
+            try {
+              const dom =
+                (editor.view.nodeDOM(match.pos) as HTMLElement) ||
+                (editor.view.domAtPos(match.pos).node as HTMLElement)
+              el = dom && dom.nodeType === 1 ? dom : dom?.parentElement
+            } catch {}
+          }
+        }
+
+        if (el) {
+          isProgrammaticScrollRef.current = true
+          hasScrolledToTargetRef.current = true
+          initialHashRef.current = null
+          setActiveHeadingId(hash)
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          el.classList.remove('heading-toc-highlight')
+          void el.offsetWidth
+          el.classList.add('heading-toc-highlight')
+          setTimeout(() => el?.classList.remove('heading-toc-highlight'), 1600)
+
+          if (programmaticScrollTimerRef.current) clearTimeout(programmaticScrollTimerRef.current)
+          programmaticScrollTimerRef.current = setTimeout(() => {
+            isProgrammaticScrollRef.current = false
+            isInitialAnchorJumpRef.current = false
+            programmaticScrollTimerRef.current = null
+          }, 1200)
+        } else if (attempts < 25) {
+          attempts++
+          setTimeout(tryScroll, 100)
+        } else if (headings && headings.length > 0) {
+          isProgrammaticScrollRef.current = false
+          isInitialAnchorJumpRef.current = false
+        }
+      }
+      setTimeout(tryScroll, 60)
+    }
+
+    const targetHash =
+      initialHashRef.current ||
+      (typeof window !== 'undefined' && window.location.hash ? window.location.hash.slice(1) : null)
+
+    if (targetHash && !hasScrolledToTargetRef.current) {
+      scrollToHash(targetHash)
+    }
+
+    const onHashChange = () => {
+      const hash = window.location.hash?.slice(1)
+      if (hash) {
+        hasScrolledToTargetRef.current = false
+        scrollToHash(hash)
+      }
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
   }, [editor, headings])
 
   const handleScrollToHeading = useCallback(
     (pos: number, id?: string) => {
       setIsStickyDropdownOpen(false)
       if (id && typeof window !== 'undefined') {
+        // Programmatic scroll lock: prevent scroll spy hash flutter during smooth scroll
+        isProgrammaticScrollRef.current = true
+        if (programmaticScrollTimerRef.current) {
+          clearTimeout(programmaticScrollTimerRef.current)
+        }
+        programmaticScrollTimerRef.current = setTimeout(() => {
+          isProgrammaticScrollRef.current = false
+          programmaticScrollTimerRef.current = null
+        }, 1000)
+
+        setActiveHeadingId(id)
         window.history.replaceState(window.history.state, '', `#${id}`)
       }
       if (editor.isEditable) {
@@ -176,6 +370,37 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
     },
     [editor],
   )
+
+  const renderHeadingList = () =>
+    headings.map(item => {
+      const isActive = item.id === activeHeadingId
+      const activeCls = isActive
+        ? 'text-[var(--editor-primary)] font-semibold bg-[color-mix(in_srgb,var(--editor-primary)_10%,transparent)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)]'
+        : ''
+      const indentClass =
+        item.level === 1
+          ? `pl-2 font-medium ${activeCls || 'text-zinc-800 dark:text-[#e3e3e3]'}`
+          : item.level === 2
+          ? `pl-5 ${activeCls || 'text-zinc-600 dark:text-zinc-300'}`
+          : `pl-8 ${activeCls || 'text-zinc-500 dark:text-zinc-400'}`
+
+      return (
+        <button
+          key={item.id}
+          type="button"
+          onClick={() => handleScrollToHeading(item.pos, item.id)}
+          className={`w-full text-left text-xs py-1.5 pr-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] transition-colors truncate flex items-center gap-1.5 ${indentClass}`}
+        >
+          <span
+            className={`text-[10px] shrink-0 font-mono ${isActive ? 'text-[var(--editor-primary)] font-bold' : 'text-zinc-400 dark:text-zinc-500'}`}
+            style={isActive ? { color: 'var(--editor-primary, #faaf2d)' } : undefined}
+          >
+            H{item.level}
+          </span>
+          <span className="truncate">{item.text}</span>
+        </button>
+      )
+    })
 
   if (!headings || headings.length === 0) {
     return null
@@ -220,29 +445,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
             {/* Expanded Content */}
             {isInlineExpanded && (
               <div className="max-h-72 overflow-y-auto px-2 pb-2.5 pt-1 space-y-0.5 border-t border-black/5 dark:border-white/10">
-                {headings.map(item => {
-                  const isActive = item.id === activeHeadingId
-                  const indentClass =
-                    item.level === 1
-                      ? `pl-2 font-medium ${isActive ? 'text-[var(--editor-primary)] font-semibold bg-[color-mix(in_srgb,var(--editor-primary)_10%,transparent)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)]' : 'text-zinc-800 dark:text-[#e3e3e3]'}`
-                      : item.level === 2
-                      ? `pl-5 ${isActive ? 'text-[var(--editor-primary)] font-medium bg-[color-mix(in_srgb,var(--editor-primary)_10%,transparent)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)]' : 'text-zinc-600 dark:text-zinc-300'}`
-                      : `pl-8 ${isActive ? 'text-[var(--editor-primary)] font-medium bg-[color-mix(in_srgb,var(--editor-primary)_10%,transparent)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)]' : 'text-zinc-500 dark:text-zinc-400'}`
-
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => handleScrollToHeading(item.pos, item.id)}
-                      className={`w-full text-left text-xs py-1.5 pr-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] transition-colors truncate flex items-center gap-1.5 ${indentClass}`}
-                    >
-                      <span className={`text-[10px] shrink-0 font-mono ${isActive ? 'text-[var(--editor-primary)] font-bold' : 'text-zinc-400 dark:text-zinc-500'}`} style={isActive ? { color: 'var(--editor-primary, #faaf2d)' } : undefined}>
-                        H{item.level}
-                      </span>
-                      <span className="truncate">{item.text}</span>
-                    </button>
-                  )
-                })}
+                {renderHeadingList()}
               </div>
             )}
           </div>
@@ -283,29 +486,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
               </div>
               <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1" />
               <div className="space-y-0.5">
-                {headings.map(item => {
-                  const isActive = item.id === activeHeadingId
-                  const indentClass =
-                    item.level === 1
-                      ? `pl-2 font-medium ${isActive ? 'text-[var(--editor-primary)] font-semibold bg-[color-mix(in_srgb,var(--editor-primary)_10%,transparent)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)]' : 'text-zinc-800 dark:text-[#e3e3e3]'}`
-                      : item.level === 2
-                      ? `pl-5 ${isActive ? 'text-[var(--editor-primary)] font-medium bg-[color-mix(in_srgb,var(--editor-primary)_10%,transparent)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)]' : 'text-zinc-600 dark:text-zinc-300'}`
-                      : `pl-8 ${isActive ? 'text-[var(--editor-primary)] font-medium bg-[color-mix(in_srgb,var(--editor-primary)_10%,transparent)] dark:bg-[color-mix(in_srgb,var(--editor-primary)_20%,transparent)]' : 'text-zinc-500 dark:text-zinc-400'}`
-
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => handleScrollToHeading(item.pos, item.id)}
-                      className={`w-full text-left text-xs py-1.5 pr-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] transition-colors truncate flex items-center gap-1.5 ${indentClass}`}
-                    >
-                      <span className={`text-[10px] shrink-0 font-mono ${isActive ? 'text-[var(--editor-primary)] font-bold' : 'text-zinc-400 dark:text-zinc-500'}`} style={isActive ? { color: 'var(--editor-primary, #faaf2d)' } : undefined}>
-                        H{item.level}
-                      </span>
-                      <span className="truncate">{item.text}</span>
-                    </button>
-                  )
-                })}
+                {renderHeadingList()}
               </div>
             </div>
           )}

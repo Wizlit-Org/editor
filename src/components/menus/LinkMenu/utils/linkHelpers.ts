@@ -99,15 +99,33 @@ export function getCurrentLinkText(editor: Editor): string {
 }
 
 /**
+ * Determine link target based on domain comparison
+ * Internal relative paths or same host -> '' (current tab)
+ * External hosts -> '_blank' (new tab)
+ */
+export function determineLinkTarget(url: string, currentHost?: string): '' | '_blank' {
+  if (!url) return '';
+  if (url.startsWith('/') || url.startsWith('#') || url.startsWith('?') || url.startsWith('.')) return '';
+  try {
+    const host = currentHost || (typeof window !== 'undefined' ? window.location.host : '');
+    if (!host) return '_blank';
+    const targetUrl = new URL(url.startsWith('//') ? `https:${url}` : (url.includes('://') ? url : `https://${url}`));
+    if (targetUrl.host.toLowerCase() === host.toLowerCase()) return '';
+    return '_blank';
+  } catch { return '_blank'; }
+}
+
+/**
  * Apply updated hyperlink attributes or insert text with link
  */
 export function applySetLink(
   editor: Editor,
   url: string,
   text?: string,
-  openInNewTab?: boolean,
+  _openInNewTab?: boolean,
 ): void {
   try {
+    const target = determineLinkTarget(url)
     editor.chain().focus().extendMarkRange('link').run()
     const { from, to } = editor.state.selection
     const currentText = editor.state.doc.textBetween(from, to)
@@ -126,7 +144,7 @@ export function applySetLink(
                 type: 'link',
                 attrs: {
                   href: url,
-                  target: openInNewTab ? '_blank' : '',
+                  target,
                 },
               },
             ],
@@ -138,7 +156,7 @@ export function applySetLink(
         .chain()
         .focus()
         .extendMarkRange('link')
-        .setLink({ href: url, target: openInNewTab ? '_blank' : '' })
+        .setLink({ href: url, target })
         .run()
     }
   } catch (err) {

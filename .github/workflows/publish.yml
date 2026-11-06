@@ -2,9 +2,14 @@ name: Publish Package
 
 on:
   push:
-    branches:
-      - main
-      - staging
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag name to publish (e.g., v0.1.914-staging.0 or v0.1.914)'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -19,6 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -32,61 +38,44 @@ jobs:
           npm ci || npm install
           npm install --no-save @rollup/rollup-linux-x64-gnu || true
 
-      - name: Determine target version & tag
+      - name: Extract version from Git Tag & inject inline
         id: versioning
         run: |
-          BRANCH="${GITHUB_REF#refs/heads/}"
-          echo "Branch: $BRANCH"
-          
-          NEW_VERSION=$(node -e "
-            const fs = require('fs');
-            const semver = require('semver');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            const current = pkg.version;
-            let next;
-            if ('$BRANCH' === 'staging') {
-              next = current.includes('-staging.') ? semver.inc(current, 'prerelease', 'staging') : semver.inc(current, 'prepatch', 'staging');
-            } else {
-              next = semver.inc(current, 'patch');
-            }
-            pkg.version = next;
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-            console.log(next);
-          ")
-          
-          TAG_NAME="v$NEW_VERSION"
-          NPM_DIST_TAG=$([ "$BRANCH" = "staging" ] && echo "staging" || echo "latest")
-          
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_OUTPUT
+          RAW_TAG="${{ github.event.inputs.tag }}"
+          if [ -z "$RAW_TAG" ]; then
+            RAW_TAG="${GITHUB_REF_NAME}"
+          fi
+          VERSION="${RAW_TAG#v}"
+          if [ -z "$VERSION" ] || [[ ! "$RAW_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "Error: Invalid or missing version tag '$RAW_TAG' (expected vX.Y.Z or vX.Y.Z-staging.N)"
+            exit 1
+          fi
+
+          npm version "${VERSION}" --no-git-tag-version --allow-same-version
+
+          if [[ "$VERSION" == *"-"* ]]; then
+            NPM_DIST_TAG="staging"
+          else
+            NPM_DIST_TAG="latest"
+          fi
+
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "TAG_NAME=v$VERSION" >> $GITHUB_OUTPUT
           echo "NPM_DIST_TAG=$NPM_DIST_TAG" >> $GITHUB_OUTPUT
-          echo "Bumping package.json to $NEW_VERSION with dist-tag $NPM_DIST_TAG..."
+          echo "Injected inline version $VERSION (dist-tag: $NPM_DIST_TAG) without branch commit"
 
       - name: Build
         run: npm run build
 
       - name: Publish to npm
-        run: npm publish --access public --tag ${{ steps.versioning.outputs.NPM_DIST_TAG }} --provenance
+        run: npm publish --tag ${{ steps.versioning.outputs.NPM_DIST_TAG }} --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Create and push Git Tag
+      - name: Create GitHub Release (Official latest only)
+        if: steps.versioning.outputs.NPM_DIST_TAG == 'latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "${{ steps.versioning.outputs.TAG_NAME }}"
-          git push origin "${{ steps.versioning.outputs.TAG_NAME }}" || echo "Tag push skipped or restricted by repo ruleset"
-
-      - name: Sync version to dev branch
-        if: github.ref == 'refs/heads/main'
-        run: |
-          git fetch origin dev:dev || true
-          git checkout dev
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.version = '${{ steps.versioning.outputs.NEW_VERSION }}';
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-          "
-          git commit -am "chore(release): sync version to ${{ steps.versioning.outputs.NEW_VERSION }} [skip ci]" || echo "No changes to commit on dev"
-          git push origin dev || echo "Failed to push to dev branch"
+          gh release view "${{ steps.versioning.outputs.TAG_NAME }}" >/dev/null 2>&1 || \
+          gh release create "${{ steps.versioning.outputs.TAG_NAME }}" --generate-notes --title "${{ steps.versioning.outputs.TAG_NAME }}"
