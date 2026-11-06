@@ -200,28 +200,77 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   // Global Escape guard for editor popovers & selections
   useEditorEscGuard(editor)
 
-  // Anchor jump smooth scroll on mount and hashchange
+  // Anchor jump smooth scroll on mount, hashchange, and content transition with exponential backoff polling
+  const pollingTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  const prevContentRef = useRef<string>(content)
+
+  const clearPollingTimers = useCallback(() => {
+    pollingTimersRef.current.forEach(timer => clearTimeout(timer))
+    pollingTimersRef.current = []
+  }, [])
+
+  const scrollToAnchor = useCallback(() => {
+    if (typeof window === 'undefined') return
+    const rawHash = window.location.hash?.slice(1)
+    if (!rawHash) return
+
+    clearPollingTimers()
+
+    let hash = rawHash
+    try {
+      hash = decodeURIComponent(rawHash)
+    } catch {
+      hash = rawHash
+    }
+
+    const intervals = [50, 150, 300, 600, 1200, 2000]
+    intervals.forEach(delay => {
+      const timer = setTimeout(() => {
+        let target: Element | null = null
+        try {
+          target =
+            document.getElementById(hash) ||
+            document.querySelector(`[data-id="${hash}"], [data-toc-id="${hash}"]`) ||
+            (rawHash !== hash
+              ? document.getElementById(rawHash) ||
+                document.querySelector(`[data-id="${rawHash}"], [data-toc-id="${rawHash}"]`)
+              : null)
+        } catch {
+          target = document.getElementById(hash) || (rawHash ? document.getElementById(rawHash) : null)
+        }
+
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          clearPollingTimers()
+        }
+      }, delay)
+      pollingTimersRef.current.push(timer)
+    })
+  }, [clearPollingTimers])
+
   useEffect(() => {
     if (typeof window === 'undefined' || !editor) return
 
-    const scrollToAnchor = () => {
-      const hash = window.location.hash?.slice(1)
-      if (!hash) return
-
-      setTimeout(() => {
-        const target =
-          document.getElementById(hash) ||
-          document.querySelector(`[data-id="${hash}"], [data-toc-id="${hash}"]`)
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        }
-      }, 100)
-    }
-
     scrollToAnchor()
     window.addEventListener('hashchange', scrollToAnchor)
-    return () => window.removeEventListener('hashchange', scrollToAnchor)
-  }, [editor])
+
+    return () => {
+      window.removeEventListener('hashchange', scrollToAnchor)
+      clearPollingTimers()
+    }
+  }, [editor, scrollToAnchor, clearPollingTimers])
+
+  useEffect(() => {
+    const prevContent = prevContentRef.current
+    prevContentRef.current = content
+
+    const wasEmpty = !prevContent || prevContent.trim() === ''
+    const isNowNonEmpty = Boolean(content && content.trim() !== '')
+
+    if (wasEmpty && isNowNonEmpty && editor) {
+      scrollToAnchor()
+    }
+  }, [content, editor, scrollToAnchor])
 
 
   const { characters = 0, words = 0 } = useEditorState({
