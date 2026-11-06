@@ -18,49 +18,11 @@ import { ContentItemMenu } from '@/components/menus/ContentItemMenu'
 import { LinkMenu } from '@/components/menus/LinkMenu'
 import { PastePreviewDialog } from '@/components/menus/PastePreviewDialog'
 import { TableOfContents } from '../TableOfContents'
-import { UploadListDialog, UploadListDialogProps, UploadListItem } from '../../extensions/ImageUpload/components/UploadListDialog.tsx'
+import { UploadListDialog, UploadListItem } from '../../extensions/ImageUpload/components/UploadListDialog.tsx'
 import { compareDocs, getStats, trimHTML } from '@/lib/utils/getStats'
-import { ConvertSrc, OnImageClick } from '@/extensions/ImageBlock/components/ImageBlockView'
 
-export interface EditorStats {
-  characters?: number;
-  words?: number;
-  percentage?: number;
-  embedCount?: number;
-  embedList?: string[];
-  plainText?: string;
-}
-
-export interface BlockEditorProps {
-  key?: string // Unique key for multiple editor instances
-  content?: string
-  onChange?: (content: string, isChanged: { isChanged: boolean, isStrictChanged: boolean }, stats: EditorStats) => void
-  className?: string
-  readOnly?: boolean
-  showDebug?: boolean | { altCharacterCounter?: boolean }
-  theme?: 'light' | 'dark'
-  themeColor?: string
-
-  maxCharacters?: number // Maximum number of characters (default: 5000)
-  altCharacterCounter?: boolean
-
-  maxEmbeddings?: number // Maximum number of embeds (default: 3)
-  image?: {
-    maxSize?: number // Maximum file size in bytes (default: 5MB)
-    disableBuiltInUploadDialog?: boolean
-    convertSrc?: ConvertSrc
-    onUploadImage?: (file: File) => Promise<string>
-    imageProxyUrl?: (url: string) => string
-    getUploadDialogProps?: (props: UploadListDialogProps) => void
-    onClick?: OnImageClick
-    onLoadingChange?: (hasUploading: boolean) => void
-  },
-
-  link?: {
-    disableDefaultAction?: boolean | ((url: string) => boolean)
-    onClick?: (url: string) => void
-  }
-}
+import { EditorStats, BlockEditorProps } from './types'
+export type { EditorStats, BlockEditorProps } from './types'
 
 const defaultUploadImage = async (): Promise<string> => {
   console.warn(
@@ -84,13 +46,28 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   readOnly,
   theme = 'light',
   themeColor = '#faaf2d',
-  maxEmbeddings = 3, // Default maximum number of images
-  maxCharacters, // Default maximum number of characters
+  maxEmbeddings = 3,
+  maxCharacters,
   showDebug = false,
   altCharacterCounter = false,
   key,
   image,
   link,
+  anchorOffset = 88,
+  bottomMenuOffset = 68,
+  scrollContainerSelector = '.memo-scroll-surface, [class*="overflow-auto"]',
+  scrollBehavior = 'smooth',
+  highlightDuration = 1600,
+  disableSlashCommand = false,
+  showToc = true,
+  initialTocExpanded = true,
+  tocStickyOffset = 8,
+  tocScrollSpy = true,
+  topScrollThreshold = 60,
+  autofocus = true,
+  placeholder = '',
+  editorPaddingBottom = 'pb-16',
+  showTableScrollIndicator = true,
 }) => {
   const {
     maxSize = 5 * 1024 * 1024, // Default 5MB
@@ -195,6 +172,9 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     className,
     maxCharacters,
     key,
+    autofocus,
+    placeholder,
+    disableSlashCommand,
   })
 
   // Global Escape guard for editor popovers & selections
@@ -240,14 +220,14 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
         }
 
         if (target) {
-          const scrollContainer = target.closest('.memo-scroll-surface') || target.closest('[class*="overflow-auto"]')
+          const scrollContainer = target.closest(scrollContainerSelector) || target.closest('.memo-scroll-surface') || target.closest('[class*="overflow-auto"]')
           if (scrollContainer && scrollContainer instanceof HTMLElement && scrollContainer.scrollHeight > scrollContainer.clientHeight) {
             const cRect = scrollContainer.getBoundingClientRect()
             const tRect = target.getBoundingClientRect()
-            const targetTop = scrollContainer.scrollTop + (tRect.top - cRect.top) - 88
-            scrollContainer.scrollTo({ top: Math.max(0, targetTop), behavior: delay < 350 ? 'auto' : 'smooth' })
+            const targetTop = scrollContainer.scrollTop + (tRect.top - cRect.top) - anchorOffset
+            scrollContainer.scrollTo({ top: Math.max(0, targetTop), behavior: delay < 350 ? 'auto' : scrollBehavior })
           } else {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            target.scrollIntoView({ behavior: scrollBehavior, block: 'start' })
           }
           if (delay >= 350) {
             clearPollingTimers()
@@ -412,6 +392,10 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           '--editor-accent-border': `color-mix(in srgb, ${themeColor} 25%, transparent)`,
         } as React.CSSProperties)
       : {}),
+    ...({
+      '--editor-bottom-menu-offset': typeof bottomMenuOffset === 'number' ? `${bottomMenuOffset}px` : bottomMenuOffset,
+      '--editor-anchor-offset': `${anchorOffset}px`,
+    } as React.CSSProperties),
   }
 
   return (
@@ -430,11 +414,23 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
             // users={users}
           /> */}
           {/* Sticky Table of Contents & Table Scroll Indicators (Client-only, works in both Edit and Read-only modes) */}
-          <TableOfContents editor={editor} />
-          <TableScrollIndicator editor={editor} appendTo={menuContainerRef} />
+          {showToc && (
+            <TableOfContents
+              editor={editor}
+              anchorOffset={anchorOffset}
+              scrollContainerSelector={scrollContainerSelector}
+              scrollBehavior={scrollBehavior}
+              highlightDuration={highlightDuration}
+              initialExpanded={initialTocExpanded}
+              stickyOffset={tocStickyOffset}
+              scrollSpy={tocScrollSpy}
+              topScrollThreshold={topScrollThreshold}
+            />
+          )}
+          {showTableScrollIndicator && <TableScrollIndicator editor={editor} appendTo={menuContainerRef} />}
           <EditorContent
             editor={editor}
-            className={`flex-1 w-full min-w-0 max-w-full focus:outline-none ${!readOnly ? 'pb-16' : ''}`.trim()}
+            className={`flex-1 w-full min-w-0 max-w-full focus:outline-none ${!readOnly ? editorPaddingBottom : ''}`.trim()}
           />
           <ContentItemMenu editor={editor} isEditable={!readOnly} appendTo={menuContainerRef} />
           <LinkMenu

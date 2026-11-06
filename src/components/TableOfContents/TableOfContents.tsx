@@ -1,18 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react'
-import { Editor, useEditorState } from '@tiptap/react'
+import { useEditorState } from '@tiptap/react'
 import { Icon } from '@/components/ui/Icon'
-
-interface TableOfContentsProps {
-  editor: Editor
-  className?: string
-}
-
-interface HeadingItem {
-  id: string
-  level: number
-  text: string
-  pos: number
-}
+import { TableOfContentsProps, HeadingItem } from './types'
 
 const getScrollParent = (node: HTMLElement | null): HTMLElement | Window => {
   if (!node || typeof window === 'undefined') return window
@@ -27,9 +16,20 @@ const getScrollParent = (node: HTMLElement | null): HTMLElement | Window => {
   return window
 }
 
-export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, className = '' }) => {
+export const TableOfContents: React.FC<TableOfContentsProps> = ({
+  editor,
+  className = '',
+  anchorOffset = 88,
+  scrollContainerSelector = '.memo-scroll-surface, [class*="overflow-auto"]',
+  scrollBehavior = 'smooth',
+  highlightDuration = 1600,
+  initialExpanded = true,
+  stickyOffset = 8,
+  scrollSpy = true,
+  topScrollThreshold = 60,
+}) => {
   const inlineContainerRef = useRef<HTMLDivElement>(null)
-  const [isInlineExpanded, setIsInlineExpanded] = useState(true)
+  const [isInlineExpanded, setIsInlineExpanded] = useState(initialExpanded)
   const [isScrolledOut, setIsScrolledOut] = useState(false)
   const [isStickyDropdownOpen, setIsStickyDropdownOpen] = useState(false)
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(() => {
@@ -116,7 +116,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
       }
 
       // If smooth programmatic scroll from TOC click or initial anchor restore is active, prevent scroll spy jitter
-      if (isProgrammaticScrollRef.current || isInitialAnchorJumpRef.current) {
+      if (isProgrammaticScrollRef.current || isInitialAnchorJumpRef.current || !scrollSpy) {
         return
       }
 
@@ -157,8 +157,8 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
         }
       }
 
-      // At top: scrollTop <= 60px OR before first heading
-      const isAtTop = scrollTop <= 60 || !currentActive
+      // At top: scrollTop <= topScrollThreshold OR before first heading
+      const isAtTop = scrollTop <= topScrollThreshold || !currentActive
 
       if (isAtTop) {
         // Only strip hash if not during initial anchor jump and target has already been scrolled to (or no target was requested)
@@ -260,18 +260,18 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
           hasScrolledToTargetRef.current = true
           initialHashRef.current = null
           setActiveHeadingId(hash)
-          const sp = getScrollParent(el)
+          const sp = (el.closest(scrollContainerSelector) as HTMLElement | null) || getScrollParent(el)
           if (sp instanceof HTMLElement && sp !== document.body && sp !== document.documentElement && sp.scrollHeight > sp.clientHeight) {
             const cRect = sp.getBoundingClientRect()
             const eRect = el.getBoundingClientRect()
-            sp.scrollTo({ top: Math.max(0, sp.scrollTop + (eRect.top - cRect.top) - 88), behavior: 'smooth' })
+            sp.scrollTo({ top: Math.max(0, sp.scrollTop + (eRect.top - cRect.top) - anchorOffset), behavior: scrollBehavior })
           } else {
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            el.scrollIntoView({ behavior: scrollBehavior, block: 'start' })
           }
           el.classList.remove('heading-toc-highlight')
           void el.offsetWidth
           el.classList.add('heading-toc-highlight')
-          setTimeout(() => el?.classList.remove('heading-toc-highlight'), 1600)
+          setTimeout(() => el?.classList.remove('heading-toc-highlight'), highlightDuration)
 
           if (programmaticScrollTimerRef.current) clearTimeout(programmaticScrollTimerRef.current)
           programmaticScrollTimerRef.current = setTimeout(() => {
@@ -324,7 +324,9 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
         }, 1000)
 
         setActiveHeadingId(id)
-        window.history.replaceState(window.history.state, '', `#${id}`)
+        if (scrollSpy) {
+          window.history.replaceState(window.history.state, '', `#${id}`)
+        }
       }
       if (editor.isEditable) {
         editor.chain().focus(undefined, { scrollIntoView: false }).setTextSelection(pos + 1).run()
@@ -341,18 +343,18 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
           element = dom && dom.nodeType === 1 ? dom : dom?.parentElement
         }
         if (element) {
-          const sp = getScrollParent(element)
+          const sp = (element.closest(scrollContainerSelector) as HTMLElement | null) || getScrollParent(element)
           if (sp instanceof HTMLElement && sp !== document.body && sp !== document.documentElement && sp.scrollHeight > sp.clientHeight) {
             const cRect = sp.getBoundingClientRect()
             const eRect = element.getBoundingClientRect()
-            sp.scrollTo({ top: Math.max(0, sp.scrollTop + (eRect.top - cRect.top) - 88), behavior: 'smooth' })
+            sp.scrollTo({ top: Math.max(0, sp.scrollTop + (eRect.top - cRect.top) - anchorOffset), behavior: scrollBehavior })
           } else {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            element.scrollIntoView({ behavior: scrollBehavior, block: 'start' })
           }
           element.classList.remove('heading-toc-highlight')
           void element.offsetWidth
           element.classList.add('heading-toc-highlight')
-          setTimeout(() => element?.classList.remove('heading-toc-highlight'), 1600)
+          setTimeout(() => element?.classList.remove('heading-toc-highlight'), highlightDuration)
         } else if (editor.isEditable) {
           editor.chain().focus(pos + 1, { scrollIntoView: true }).run()
         }
@@ -448,7 +450,8 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, classN
 
       {/* 2. Compact Sticky Header Bar: Slides in at top ONLY when inline TOC is scrolled out */}
       <div
-        className={`sticky top-2 z-20 w-fit mx-auto transition-all duration-300 select-none ${
+        style={{ top: typeof stickyOffset === 'number' ? `${stickyOffset}px` : stickyOffset }}
+        className={`sticky z-20 w-fit mx-auto transition-all duration-300 select-none ${
           isScrolledOut
             ? 'opacity-100 translate-y-0 pointer-events-auto h-auto mb-2'
             : 'opacity-0 -translate-y-2 pointer-events-none h-0 overflow-hidden'
