@@ -28,6 +28,9 @@ export const useBlockEditor = ({
   maxEmbeddings,
   maxCharacters,
   className = '',
+  autofocus = true,
+  placeholder = '',
+  disableSlashCommand = false,
   ...editorOptions
 }: {
   onUploadImage?: (file: File) => Promise<string>
@@ -39,6 +42,9 @@ export const useBlockEditor = ({
   maxCharacters?: number
   className?: string
   key?: string
+  autofocus?: boolean | 'start' | 'end' | 'all' | number
+  placeholder?: string
+  disableSlashCommand?: boolean
 } & Partial<Omit<EditorOptions, 'extensions'>>) => {
   const editorRef = useRef<Editor | null>(null)
   const onUploadImageRef = useRef(onUploadImage)
@@ -60,7 +66,7 @@ export const useBlockEditor = ({
       editable,
       immediatelyRender: false,
       shouldRerenderOnTransaction: false,
-      autofocus: true,
+      autofocus,
       extensions: ExtensionKit({
         limit: maxCharacters,
         onUploadImage: stableUploadImage,
@@ -69,6 +75,8 @@ export const useBlockEditor = ({
         imageProxyUrl,
         maxSize,
         maxEmbeddings,
+        placeholder,
+        disableSlashCommand,
       }),
       editorProps: {
         attributes: {

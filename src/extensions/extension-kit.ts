@@ -58,6 +58,8 @@ interface ExtensionKitProps {
   imageProxyUrl?: (url: string) => string
   maxSize?: number
   maxEmbeddings?: number
+  placeholder?: string
+  disableSlashCommand?: boolean
 }
 
 export const ExtensionKit = ({ 
@@ -68,6 +70,8 @@ export const ExtensionKit = ({
   convertSrc,
   onImageClick,
   imageProxyUrl,
+  placeholder,
+  disableSlashCommand = false,
 }: ExtensionKitProps) => [
   Document,
   TaskList,
@@ -164,9 +168,9 @@ export const ExtensionKit = ({
   Placeholder.configure({
     includeChildren: true,
     showOnlyCurrent: false,
-    placeholder: () => '',
+    placeholder: () => placeholder || '',
   }),
-  SlashCommand,
+  ...(disableSlashCommand ? [] : [SlashCommand]),
   Focus,
   Figcaption,
   BlockquoteFigure,
