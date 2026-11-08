@@ -43,9 +43,9 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
 
   useEffect(() => {
     const handleClose = (e: Event) => {
-      if ((e as CustomEvent).detail !== 'contentTypePicker') {
-        setOpen(false)
-      }
+      const detail = (e as CustomEvent).detail
+      if (detail === 'contentTypePicker' || detail === 'scroll') return
+      setOpen(false)
     }
     window.addEventListener('tiptap:close-menus', handleClose)
     return () => window.removeEventListener('tiptap:close-menus', handleClose)
@@ -53,6 +53,7 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
 
   return (
     <Dropdown.Root
+      modal={false}
       open={open}
       onOpenChange={(next) => {
         if (next) {
