@@ -30,11 +30,15 @@ export const getColumnAnchorVirtualElement = (editor: Editor) => {
     }
 
     const rect = topCell.getBoundingClientRect()
-    // Anchor precisely near the top column grip bar (15px above top cell)
-    const top = rect.top - 18
+    // Anchor precisely near the top column grip bar (15px above top cell), clamped inside viewport for mobile safety
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1024
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 768
+    const top = Math.max(8, Math.min(vh - 24, rect.top - 18))
+    const left = Math.max(8, Math.min(vw - 24, rect.left))
+    const width = Math.max(14, Math.min(rect.width, vw - left - 8))
     const height = 14
 
-    return new DOMRect(rect.left, top, rect.width, height)
+    return new DOMRect(left, top, width, height)
   }
 
   return {
@@ -73,11 +77,14 @@ export const getRowAnchorVirtualElement = (editor: Editor) => {
     }
 
     const rect = leftCell.getBoundingClientRect()
-    // Anchor precisely near the left row grip bar (15px left of left cell)
-    const left = rect.left - 18
+    // Anchor precisely near the left row grip bar (15px left of left cell), clamped inside viewport for mobile safety
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1024
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 768
+    const left = Math.max(4, Math.min(vw - 24, rect.left - 18))
+    const top = Math.max(8, Math.min(vh - 24, rect.top))
     const width = 14
 
-    return new DOMRect(left, rect.top, width, rect.height)
+    return new DOMRect(left, top, width, rect.height)
   }
 
   return {

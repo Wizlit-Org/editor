@@ -41,8 +41,9 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
   const [dragIndicator, setDragIndicator] = useState<DragIndicatorData | null>(null)
   const [dragGhost, setDragGhost] = useState<DragGhostData | null>(null)
 
-  const handleGripMouseDown = useCallback(
-    (type: 'col' | 'row', index: number) => (e: React.MouseEvent) => {
+  const handleGripPointerDown = useCallback(
+    (type: 'col' | 'row', index: number) => (e: React.PointerEvent) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return
       e.preventDefault()
       e.stopPropagation()
       if (!tableRect || tableRect.pos < 0) return
@@ -72,19 +73,10 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         end = gripSel.max
       } else if (isGripSelected && isCellSelection(editor.state.selection)) {
         try {
-          const map = TableMap.get(tableNode)
-          const selStart = (editor.state.selection as any).$anchorCell.start(-1)
-          const selRect = map.rectBetween(
-            (editor.state.selection as any).$anchorCell.pos - selStart,
-            (editor.state.selection as any).$headCell.pos - selStart,
-          )
-          if (type === 'col' && selRect.bottom - selRect.top === map.height) {
-            start = selRect.left
-            end = selRect.right - 1
-          } else if (type === 'row' && selRect.right - selRect.left === map.width) {
-            start = selRect.top
-            end = selRect.bottom - 1
-          }
+          const map = TableMap.get(tableNode), selStart = (editor.state.selection as any).$anchorCell.start(-1)
+          const selRect = map.rectBetween((editor.state.selection as any).$anchorCell.pos - selStart, (editor.state.selection as any).$headCell.pos - selStart)
+          if (type === 'col' && selRect.bottom - selRect.top === map.height) { start = selRect.left; end = selRect.right - 1 }
+          else if (type === 'row' && selRect.right - selRect.left === map.width) { start = selRect.top; end = selRect.bottom - 1 }
         } catch {}
       }
 
@@ -235,8 +227,9 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       const cleanUpDrag = () => {
         autoScroller.stop()
         ;(window as any).__isTableDragging = false
-        window.removeEventListener('mousemove', onMouseMove)
-        window.removeEventListener('mouseup', onMouseUp)
+        window.removeEventListener('pointermove', onPointerMove)
+        window.removeEventListener('pointerup', onPointerUp)
+        window.removeEventListener('pointercancel', onPointerUp)
         window.removeEventListener('keydown', onKeyDown, { capture: true })
         window.removeEventListener('tiptap:cancel-drag', handleCancelDrag)
         document.body.style.cursor = ''
@@ -260,12 +253,12 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         }
       }
 
-      const onMouseMove = (moveEvent: MouseEvent) => {
+      const onPointerMove = (moveEvent: PointerEvent) => {
         autoScroller.updateCoords(moveEvent.clientX, moveEvent.clientY)
         handleDragMoveAtCoords(moveEvent.clientX, moveEvent.clientY)
       }
 
-      const onMouseUp = () => {
+      const onPointerUp = () => {
         const wasDragging = isDragging
         const target = pendingTargetIdx
         cleanUpDrag()
@@ -302,12 +295,13 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         }
       }
 
-      window.addEventListener('mousemove', onMouseMove)
-      window.addEventListener('mouseup', onMouseUp)
+      window.addEventListener('pointermove', onPointerMove)
+      window.addEventListener('pointerup', onPointerUp)
+      window.addEventListener('pointercancel', onPointerUp)
       window.addEventListener('keydown', onKeyDown, { capture: true })
       window.addEventListener('tiptap:cancel-drag', handleCancelDrag)
     },
-    [editor, tableRect, columnGrips, rowGrips, updateTableRect, currentTableEl],
+    [editor, tableRect, columnGrips, rowGrips, updateTableRect, currentTableEl, appendTo],
   )
 
   const onAddColumnAtEnd = useCallback((e: React.MouseEvent) => {
@@ -382,9 +376,11 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
 
   const wrapperEl = currentTableEl ? (currentTableEl.closest('.tableWrapper') as HTMLElement | null) : null
   const hasLeftBlur = Boolean(wrapperEl && wrapperEl.scrollLeft > 2)
+  const isMobileViewport = typeof window !== 'undefined' && window.innerWidth < 768
+  const leftBlurInset = hasLeftBlur ? (isMobileViewport ? 20 : 40) : 0
   const wrapperLeft = tableRect.wrapperLeft !== undefined ? tableRect.wrapperLeft : tableRect.left
   const wrapperRight = tableRect.wrapperRight !== undefined ? tableRect.wrapperRight : (tableRect.left + tableRect.width)
-  const minColLeft = wrapperLeft + (hasLeftBlur ? 40 : 0)
+  const minColLeft = wrapperLeft + leftBlurInset
 
   const isColVisible = (g: { left: number; width: number }) =>
     g.left + g.width > minColLeft + 6 && g.left < wrapperRight - 6
@@ -399,14 +395,14 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
   const isLastCol = hoveredColIndex !== null && columnGrips.length > 0 && hoveredColIndex === columnGrips.length - 1
   const isLastRow = hoveredRowIndex !== null && rowGrips.length > 0 && hoveredRowIndex === rowGrips.length - 1
 
-  const pillClass = "fixed rounded-full backdrop-blur-md shadow-2xs transition-all flex items-center justify-center p-0 cursor-pointer select-none"
+  const pillClass = "fixed rounded-full backdrop-blur-md shadow-2xs transition-all flex items-center justify-center p-0 cursor-pointer select-none touch-none after:content-[''] after:absolute after:-inset-2"
   const colSinglePillClass = `${pillClass} z-[9] bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-[color-mix(in_srgb,var(--editor-primary)_90%,transparent)] dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-[color-mix(in_srgb,var(--editor-primary)_90%,transparent)] border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white`
   const colMergedPillClass = `${pillClass} z-[9] bg-[color-mix(in_srgb,var(--editor-primary)_35%,transparent)] hover:bg-[color-mix(in_srgb,var(--editor-primary)_50%,transparent)] active:bg-[color-mix(in_srgb,var(--editor-primary)_90%,transparent)] border border-[color-mix(in_srgb,var(--editor-primary)_40%,transparent)] text-[var(--editor-primary)] active:text-white`
   const rowSinglePillClass = `${pillClass} z-[15] bg-zinc-500/15 hover:bg-zinc-500/25 active:bg-[color-mix(in_srgb,var(--editor-primary)_90%,transparent)] dark:bg-white/10 dark:hover:bg-white/20 dark:active:bg-[color-mix(in_srgb,var(--editor-primary)_90%,transparent)] border border-black/[0.06] dark:border-white/10 text-zinc-500 dark:text-zinc-300 active:text-white`
   const rowMergedPillClass = `${pillClass} z-[15] bg-[color-mix(in_srgb,var(--editor-primary)_35%,transparent)] hover:bg-[color-mix(in_srgb,var(--editor-primary)_50%,transparent)] active:bg-[color-mix(in_srgb,var(--editor-primary)_90%,transparent)] border border-[color-mix(in_srgb,var(--editor-primary)_40%,transparent)] text-[var(--editor-primary)] active:text-white`
 
   const originLeft = tableRect.originLeft !== undefined ? tableRect.originLeft : tableRect.left
-  const rowGripLeft = originLeft - 15 - offset.x
+  const rowGripLeft = Math.max(4 - offset.x, originLeft - 15 - offset.x)
 
   return createPortal(
     <>
@@ -427,14 +423,14 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
         }}
       >
         {mergedCol && isColVisible(mergedCol) && getColOpacity(mergedCol) > 0 ? (
-          <button key="active-col-grip" type="button" onMouseDown={handleGripMouseDown('col', mergedCol.startIdx)}
+          <button key="active-col-grip" type="button" onPointerDown={handleGripPointerDown('col', mergedCol.startIdx)}
             className={`${colMergedPillClass} h-[12px] pointer-events-auto`}
             style={{ top: tableRect.top - 15 - offset.y, left: mergedCol.left - offset.x, width: mergedCol.width, zIndex: 9, opacity: getColOpacity(mergedCol) }}
             title="Click for options, drag to move selected columns">
             <div className="flex items-center gap-0.5"><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /></div>
           </button>
         ) : activeColGrip && isColVisible(activeColGrip) && getColOpacity(activeColGrip) > 0 ? (
-          <button key="active-col-grip" type="button" onMouseDown={handleGripMouseDown('col', activeColGrip.index)}
+          <button key="active-col-grip" type="button" onPointerDown={handleGripPointerDown('col', activeColGrip.index)}
             className={`${colSinglePillClass} h-[12px] pointer-events-auto`}
             style={{ top: tableRect.top - 15 - offset.y, left: activeColGrip.left - offset.x, width: activeColGrip.width, zIndex: 9, opacity: getColOpacity(activeColGrip) }}
             title={`Click to select, drag to move column ${activeColGrip.index + 1}`}>
@@ -446,14 +442,14 @@ export const TableAddButtons: React.FC<TableAddButtonsProps> = ({ editor, append
       {/* 2. Row Grip (Merged Stretched Pill or Single Hovered Pill) - Isolated Stacking Context z-index: 15 (above blur z-12) */}
       <div id="table-row-grips" style={{ position: 'fixed', top: 0, left: 0, width: 0, height: 0, zIndex: 15, pointerEvents: 'none' }}>
         {mergedRow ? (
-          <button key="active-row-grip" type="button" onMouseDown={handleGripMouseDown('row', mergedRow.startIdx)}
+          <button key="active-row-grip" type="button" onPointerDown={handleGripPointerDown('row', mergedRow.startIdx)}
             className={`${rowMergedPillClass} w-[12px] pointer-events-auto`}
             style={{ top: mergedRow.top - offset.y, left: rowGripLeft, height: mergedRow.height, zIndex: 15 }}
             title="Click for options, drag to move selected rows">
             <div className="flex flex-col items-center gap-0.5"><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /><span className="w-1 h-1 rounded-full bg-current opacity-80" /></div>
           </button>
         ) : activeRowGrip ? (
-          <button key="active-row-grip" type="button" onMouseDown={handleGripMouseDown('row', activeRowGrip.index)}
+          <button key="active-row-grip" type="button" onPointerDown={handleGripPointerDown('row', activeRowGrip.index)}
             className={`${rowSinglePillClass} w-[12px] pointer-events-auto`}
             style={{ top: activeRowGrip.top - offset.y, left: rowGripLeft, height: activeRowGrip.height, zIndex: 15 }}
             title={`Click to select, drag to move row ${activeRowGrip.index + 1}`}>

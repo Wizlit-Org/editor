@@ -3,6 +3,7 @@ import { Editor, NodeViewWrapper } from '@tiptap/react'
 import { Node } from '@tiptap/pm/model'
 import { cn } from '@/lib/utils'
 import { Icon } from '@/components/ui/Icon'
+import { MEDIA_PILL_HANDLE_CLASS, useMediaBlockResize } from '@/hooks/useMediaBlockResize'
 import type { NodeViewProps } from '@tiptap/react'
 
 interface ImageBlockViewProps extends NodeViewProps {
@@ -53,8 +54,6 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
   const [src, setSrc] = useState<string | 'EXTERNAL_IMAGE' | undefined>(originalSrc)
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
-  const [isResizing, setIsResizing] = useState(false)
-  const [isHovered, setIsHovered] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [isEditingCaption, setIsEditingCaption] = useState(false)
@@ -63,6 +62,23 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
   const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const captionInputRef = useRef<HTMLInputElement>(null)
+
+  const isFocused = Boolean(editorEditable && (selected || isNodeSelected))
+  const {
+    isResizing,
+    isHovered,
+    onMouseEnter,
+    onMouseLeave,
+    handleResizeStart,
+    handleResizeTouchStart,
+  } = useMediaBlockResize({
+    editorEditable,
+    width,
+    align,
+    containerRef,
+    updateAttributes,
+    isFocused,
+  })
 
   useEffect(() => {
     const syncSelection = () => {
@@ -127,58 +143,6 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
     editor.commands.uploadImageByUrl({ url: rawSrc, pos: getPos() })
     editor.chain().focus().deleteRange({ from: getPos(), to: getPos() + 1 }).run()
   }, [editor, rawSrc, getPos])
-
-  // Notion-style horizontal pill resize handle logic (with center-pivot physics)
-  const handleResizeStart = useCallback(
-    (direction: 'left' | 'right') => (e: React.MouseEvent) => {
-      if (!editorEditable) return
-      e.preventDefault()
-      e.stopPropagation()
-
-      setIsResizing(true)
-      document.body.style.userSelect = 'none'
-      document.body.style.cursor = 'ew-resize'
-
-      const startX = e.clientX
-      const currentWidthPercent = parseFloat(width) || 100
-      const parentElement = containerRef.current?.parentElement || document.body
-      const parentWidth = parentElement.getBoundingClientRect().width || 624
-      let latestWidth = currentWidthPercent
-
-      if (containerRef.current) {
-        containerRef.current.style.transition = 'none'
-      }
-
-      const onMouseMove = (moveEvent: MouseEvent) => {
-        const deltaX = moveEvent.clientX - startX
-        const deltaPercent = (deltaX / parentWidth) * 100
-        const factor = direction === 'right' ? 1 : -1
-        const widthMultiplier = align === 'center' ? 2 : 1
-        const rawNewWidth = currentWidthPercent + deltaPercent * factor * widthMultiplier
-        latestWidth = Math.max(20, Math.min(100, Math.round(rawNewWidth)))
-
-        if (containerRef.current) {
-          containerRef.current.style.width = `${latestWidth}%`
-        }
-      }
-
-      const onMouseUp = () => {
-        setIsResizing(false)
-        document.body.style.userSelect = ''
-        document.body.style.cursor = ''
-        if (containerRef.current) {
-          containerRef.current.style.transition = ''
-        }
-        window.removeEventListener('mousemove', onMouseMove)
-        window.removeEventListener('mouseup', onMouseUp)
-        updateAttributes({ width: `${latestWidth}%` })
-      }
-
-      window.addEventListener('mousemove', onMouseMove)
-      window.addEventListener('mouseup', onMouseUp)
-    },
-    [editorEditable, width, align, updateAttributes],
-  )
 
   const handleAddCaption = useCallback(
     (e: React.MouseEvent) => {
@@ -253,11 +217,7 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
   )
 
   // Show hover UI when editable and hovered/resizing, and track focused/selected state
-  const isFocused = Boolean(editorEditable && (selected || isNodeSelected))
   const isInteracting = editorEditable && (isHovered || isResizing || isFocused || isEditingCaption)
-
-  const PILL_HANDLE_CLASS =
-    'w-[6px] h-[48px] rounded-full cursor-ew-resize z-30 transition-all duration-150 bg-white/60 dark:bg-white/45 backdrop-blur-md border border-white/90 dark:border-white/70 shadow-[0_2px_12px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.95)] hover:bg-white/85 dark:hover:bg-white/75 hover:scale-y-105'
 
   return (
     <NodeViewWrapper
@@ -272,10 +232,8 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
           position: 'relative',
         }}
         data-drag-handle
-        onMouseEnter={() => {
-          if (editorEditable) setIsHovered(true)
-        }}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
       >
         {/* Main image container: overflow-visible so the focus ring & hover ring are never clipped */}
         <div className="relative group/image w-full flex flex-col p-0 m-0 leading-none overflow-visible">
@@ -422,9 +380,10 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
           {editorEditable && !hasError && !isLoading && !isUploading && (
             <div
               onMouseDown={handleResizeStart('left')}
+              onTouchStart={handleResizeTouchStart('left')}
               className={cn(
                 'tiptap-image-handle left absolute left-1.5 top-1/2 -translate-y-1/2',
-                PILL_HANDLE_CLASS,
+                MEDIA_PILL_HANDLE_CLASS,
                 isInteracting ? 'opacity-100' : 'opacity-0 pointer-events-none',
               )}
               title="Resize width"
@@ -437,9 +396,10 @@ export const ImageBlockView: React.FC<ImageBlockViewProps> = ({
           {editorEditable && !hasError && !isLoading && !isUploading && (
             <div
               onMouseDown={handleResizeStart('right')}
+              onTouchStart={handleResizeTouchStart('right')}
               className={cn(
                 'tiptap-image-handle right absolute right-1.5 top-1/2 -translate-y-1/2',
-                PILL_HANDLE_CLASS,
+                MEDIA_PILL_HANDLE_CLASS,
                 isInteracting ? 'opacity-100' : 'opacity-0 pointer-events-none',
               )}
               title="Resize width"

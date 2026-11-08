@@ -8,7 +8,8 @@ import { getRenderContainer } from '@/lib/utils'
 
 const IMAGE_BLOCK_MENU_OPTIONS = {
   offset: 8,
-  flip: false,
+  flip: true,
+  shift: { padding: 12 },
 }
 
 export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => {
@@ -140,7 +141,8 @@ export const ImageBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => 
     >
       <div
         ref={menuRef}
-        className="inline-flex h-full leading-none gap-0.5 p-1 rounded-xl items-center z-[1340] bg-white/85 dark:bg-[#202020]/90 backdrop-blur-xl border border-black/[0.08] dark:border-white/[0.1] shadow-xl ring-1 ring-white/40 dark:ring-white/5 text-zinc-800 dark:text-zinc-200"
+        onMouseDown={e => e.preventDefault()}
+        className="inline-flex h-full max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar leading-none gap-0.5 p-1 rounded-xl items-center z-[1340] bg-white/85 dark:bg-[#202020]/90 backdrop-blur-xl border border-black/[0.08] dark:border-white/[0.1] shadow-xl ring-1 ring-white/40 dark:ring-white/5 text-zinc-800 dark:text-zinc-200"
       >
         <Toolbar.Button
           tooltip="Align left"

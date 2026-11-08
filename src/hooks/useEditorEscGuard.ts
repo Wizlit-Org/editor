@@ -34,7 +34,7 @@ export function useEditorEscGuard(editor: Editor | null) {
         document.querySelector('[data-radix-popper-content-wrapper]')
       )
       const hasOpenGlassMenu = Boolean(
-        document.querySelector('.glass-menu')
+        document.querySelector('.glass-menu, [data-code-lang-dropdown="true"]')
       )
       const hasOpenSlashMenu = Boolean(
         document.querySelector('.slash-command-menu, [data-slash-menu="true"]')
@@ -73,8 +73,22 @@ export function useEditorEscGuard(editor: Editor | null) {
     // Attach to capture phase so this runs BEFORE any bubble listeners on window or document
     window.addEventListener('keydown', handleKeyDownCapture, { capture: true })
 
-    // Global Scroll Listener: instantly close all editor menus on editor or window scroll
-    const handleScrollCapture = () => {
+    // Global Scroll Listener: instantly close floating editor menus on editor or window scroll
+    // Ignores scroll events originating from inputs, textareas, contenteditables, and active popovers/menus
+    const handleScrollCapture = (e: Event) => {
+      const target = e.target as HTMLElement | null
+      if (target && typeof target.closest === 'function') {
+        if (
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable ||
+          target.closest(
+            '.glass-menu, [role="menu"], [role="listbox"], [data-code-lang-dropdown="true"], [data-paste-preview-dialog="true"], [data-bottom-text-menu="true"], [data-radix-popper-content-wrapper], [data-radix-dropdown-menu-content], [data-radix-popover-content], .link-editor-panel, .link-preview-panel'
+          )
+        ) {
+          return
+        }
+      }
       window.dispatchEvent(
         new CustomEvent('tiptap:close-menus', { detail: 'scroll' })
       )

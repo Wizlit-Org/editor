@@ -17,9 +17,9 @@ export const EditLinkPopover = ({ editor, onSetLink }: EditLinkPopoverProps) => 
 
   useEffect(() => {
     const handleClose = (e: Event) => {
-      if ((e as CustomEvent).detail !== 'editLink') {
-        setOpen(false)
-      }
+      const detail = (e as CustomEvent).detail
+      if (detail === 'editLink' || detail === 'scroll') return
+      setOpen(false)
     }
     window.addEventListener('tiptap:close-menus', handleClose)
     return () => window.removeEventListener('tiptap:close-menus', handleClose)
@@ -59,31 +59,38 @@ export const EditLinkPopover = ({ editor, onSetLink }: EditLinkPopoverProps) => 
     [onSetLink],
   )
 
+  const isDark = Boolean(editor?.view?.dom?.closest('.editor-theme-dark'))
+  const themeClass = isDark ? 'editor-theme-dark dark theme-dark' : 'editor-theme-light theme-light'
+
   return (
-    <Popover.Root open={open} onOpenChange={handleOpenChange}>
+    <Popover.Root modal={false} open={open} onOpenChange={handleOpenChange}>
       <Popover.Trigger asChild>
         <Toolbar.Button
-          className="h-7 w-7 p-0 inline-flex items-center justify-center leading-none text-zinc-700 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white hover:bg-white/60 active:bg-white/80 dark:hover:bg-white/[0.1] dark:active:bg-white/[0.16] rounded-lg border border-transparent hover:border-white/50 dark:hover:border-white/[0.08] transition-all duration-150"
+          className="h-7 w-7 p-0 shrink-0 inline-flex items-center justify-center leading-none text-zinc-700 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white hover:bg-white/60 active:bg-white/80 dark:hover:bg-white/[0.1] dark:active:bg-white/[0.16] rounded-lg border border-transparent hover:border-white/50 dark:hover:border-white/[0.08] transition-all duration-150"
           activeClassname="bg-black/10 text-neutral-800 dark:bg-white/20 dark:text-neutral-200"
           tooltip="Set link"
         >
           <Icon name="Link" className="w-3.5 h-3.5" />
         </Toolbar.Button>
       </Popover.Trigger>
-      <Popover.Content
-        side="top"
-        align="center"
-        sideOffset={10}
-        collisionPadding={12}
-        className="z-[1360] outline-none"
-      >
-        <LinkEditorPanel
-          initialText={initialText}
-          initialUrl={initialUrl}
-          onSetLink={handleSetLink}
-          onCancel={() => setOpen(false)}
-        />
-      </Popover.Content>
+      <Popover.Portal>
+        <Popover.Content
+          side="top"
+          align="center"
+          sideOffset={10}
+          collisionPadding={12}
+          className={`z-[1360] outline-none max-w-[calc(100vw-24px)] ${themeClass}`}
+          data-theme={isDark ? 'dark' : 'light'}
+          data-editor-theme={isDark ? 'dark' : 'light'}
+        >
+          <LinkEditorPanel
+            initialText={initialText}
+            initialUrl={initialUrl}
+            onSetLink={handleSetLink}
+            onCancel={() => setOpen(false)}
+          />
+        </Popover.Content>
+      </Popover.Portal>
     </Popover.Root>
   )
 }

@@ -105,13 +105,13 @@ export const YoutubeDialog: React.FC<YoutubeDialogProps> = ({ editor, appendTo }
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-0 duration-150"
+      className="fixed inset-0 z-[1360] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-0 duration-150"
       onClick={handleClose}
       onKeyDown={handleKeyDown}
       onPaste={e => e.stopPropagation()}
     >
       <div
-        className="w-full max-w-md rounded-2xl bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl p-5 flex flex-col gap-4 text-zinc-800 dark:text-zinc-100 animate-in zoom-in-95 duration-150"
+        className="w-full max-w-[min(28rem,calc(100vw-24px))] rounded-2xl bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl p-5 flex flex-col gap-4 text-zinc-800 dark:text-zinc-100 animate-in zoom-in-95 duration-150"
         onClick={e => e.stopPropagation()}
         onPaste={e => e.stopPropagation()}
       >

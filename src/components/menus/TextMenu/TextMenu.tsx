@@ -117,6 +117,9 @@ export const TextMenu = ({ editor, appendTo, theme }: TextMenuProps) => {
     window.addEventListener('resize', handleLayoutChange, { passive: true })
     window.addEventListener('scroll', handleLayoutChange, { capture: true, passive: true })
     window.addEventListener('wizlit:editor-theme-change', handleLayoutChange)
+    const vv = window.visualViewport
+    vv?.addEventListener('resize', handleLayoutChange, { passive: true })
+    vv?.addEventListener('scroll', handleLayoutChange, { passive: true })
 
     const pmDom = editor?.view?.dom as HTMLElement | undefined
     const containerEl =
@@ -142,6 +145,8 @@ export const TextMenu = ({ editor, appendTo, theme }: TextMenuProps) => {
       window.removeEventListener('resize', handleLayoutChange)
       window.removeEventListener('scroll', handleLayoutChange, { capture: true })
       window.removeEventListener('wizlit:editor-theme-change', handleLayoutChange)
+      vv?.removeEventListener('resize', handleLayoutChange)
+      vv?.removeEventListener('scroll', handleLayoutChange)
       ro?.disconnect()
       mo?.disconnect()
     }
@@ -196,11 +201,12 @@ export const TextMenu = ({ editor, appendTo, theme }: TextMenuProps) => {
             pointerEvents: isVisible ? 'auto' : 'none',
             display: 'inline-flex',
             alignItems: 'center',
-            justifyContent: 'center',
             gap: '2px',
             padding: '5px 8px',
             borderRadius: '16px',
             maxWidth: 'calc(100vw - 16px)',
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
             backgroundColor: isDark ? 'rgba(24, 24, 27, 0.56)' : 'rgba(255, 255, 255, 0.54)',
             backgroundImage: isDark
               ? 'linear-gradient(135deg, rgba(39, 39, 42, 0.62) 0%, rgba(15, 23, 42, 0.48) 100%)'
@@ -214,13 +220,32 @@ export const TextMenu = ({ editor, appendTo, theme }: TextMenuProps) => {
               ? '0 12px 32px -4px rgba(0, 0, 0, 0.55), 0 4px 12px -2px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.16)'
               : '0 10px 28px -4px rgba(15, 23, 42, 0.14), 0 4px 10px -2px rgba(15, 23, 42, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.92)',
           }}
-          className={`inline-flex h-full leading-none gap-0.5 p-1.5 rounded-2xl items-center justify-center text-zinc-800 dark:text-zinc-100 transition-all duration-200 ease-out ${
+          className={`inline-flex h-full leading-none gap-0.5 p-1.5 rounded-2xl items-center justify-start sm:justify-center overflow-x-auto no-scrollbar text-zinc-800 dark:text-zinc-100 transition-all duration-200 ease-out ${
             isVisible
               ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
               : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
           }`}
         >
-          <MemoContentTypePicker options={blockOptions} />
+          <MemoButton
+            tooltip="Undo"
+            tooltipShortcut={['Mod', 'Z']}
+            onClick={commands.onUndo}
+            disabled={!states.canUndo}
+            className={`${BTN_CLASS} disabled:opacity-35 disabled:pointer-events-none`}
+          >
+            <Icon name="Undo2" className="w-3.5 h-3.5" />
+          </MemoButton>
+          <MemoButton
+            tooltip="Redo"
+            tooltipShortcut={['Mod', 'Shift', 'Z']}
+            onClick={commands.onRedo}
+            disabled={!states.canRedo}
+            className={`${BTN_CLASS} disabled:opacity-35 disabled:pointer-events-none`}
+          >
+            <Icon name="Redo2" className="w-3.5 h-3.5" />
+          </MemoButton>
+          <div className="h-4 w-[1px] bg-zinc-900/10 dark:bg-white/15 mx-1 shrink-0" />
+          <MemoContentTypePicker options={blockOptions} isDark={isDark} />
           <div className="h-4 w-[1px] bg-zinc-900/10 dark:bg-white/15 mx-1 shrink-0" />
           <MemoButton
             tooltip="Bold"

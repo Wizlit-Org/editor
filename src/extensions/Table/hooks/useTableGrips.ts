@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Editor } from '@tiptap/react'
 import { TableMap } from '@tiptap/pm/tables'
+import { findTable, isCellSelection } from '../utils'
+
+const isMobileOrTouch = () =>
+  typeof window !== 'undefined' &&
+  (window.innerWidth < 768 || window.matchMedia?.('(pointer: coarse)').matches)
 
 export interface TableRectInfo {
   top: number
@@ -215,15 +220,85 @@ export function useTableGrips(editor: Editor) {
   useEffect(() => {
     if (!editor) return
 
-    const handleSelectionChange = () => {
+    const syncSelectionWithTableGrips = () => {
+      if (!editor?.view?.dom) return
+      const { selection } = editor.state
+      const table = findTable(selection)
       const isCell =
-        editor.state.selection.constructor.name === 'CellSelection' ||
-        Boolean((editor.state.selection as any).$anchorCell)
+        isCellSelection(selection) ||
+        Boolean((selection as any).$anchorCell)
+
+      if (table) {
+        try {
+          const dom = editor.view.nodeDOM(table.pos) as HTMLElement | null
+          const resolvedTableEl = (
+            dom && dom.nodeType === 1
+              ? dom.tagName === 'TABLE'
+                ? dom
+                : dom.querySelector('table')
+              : (editor.view.domAtPos(table.start).node as HTMLElement)?.closest?.('table')
+          ) as HTMLTableElement | null
+
+          if (resolvedTableEl) {
+            if (isMobileOrTouch() || !isHovered || currentTableEl !== resolvedTableEl) {
+              clearHoverTimer()
+              if (currentTableEl !== resolvedTableEl) {
+                setCurrentTableEl(resolvedTableEl)
+              }
+              setIsHovered(true)
+            }
+
+            const map = TableMap.get(table.node)
+            let activeRow: number | null = null
+            let activeCol: number | null = null
+
+            if (isCellSelection(selection)) {
+              const start = selection.$anchorCell.start(-1)
+              const rect = map.rectBetween(
+                selection.$anchorCell.pos - start,
+                selection.$headCell.pos - start,
+              )
+              activeRow = rect.bottom - 1
+              activeCol = rect.right - 1
+            } else {
+              const $pos = selection.$from
+              for (let d = $pos.depth; d > 0; d--) {
+                const n = $pos.node(d)
+                if (n.type.spec.tableRole === 'cell' || n.type.spec.tableRole === 'header_cell') {
+                  const cellOffset = $pos.before(d) - table.start
+                  const rect = map.findCell(cellOffset)
+                  activeRow = rect.top
+                  activeCol = rect.left
+                  break
+                }
+              }
+            }
+
+            if (isMobileOrTouch() || hoveredColIndex === null) {
+              if (activeCol !== null) setHoveredColIndex(activeCol)
+            }
+            if (isMobileOrTouch() || hoveredRowIndex === null) {
+              if (activeRow !== null) setHoveredRowIndex(activeRow)
+            }
+
+            if (isMobileOrTouch()) {
+              setShowRightAddBar(true)
+              setShowBottomAddBar(true)
+            } else {
+              if (activeCol !== null) setShowRightAddBar(activeCol === map.width - 1)
+              if (activeRow !== null) setShowBottomAddBar(activeRow === map.height - 1)
+            }
+          }
+        } catch {}
+        triggerUpdate()
+        return
+      }
+
       if (!isCell && !isHovered) {
-        clearHoverTimer()
-        setIsHovered(false)
-        setCurrentTableEl(null)
-        setTableRect(null)
+        clearHoverTimer(); setIsHovered(false); setCurrentTableEl(null); setTableRect(null)
+      } else if (!table && isMobileOrTouch()) {
+        clearHoverTimer(); setIsHovered(false); setCurrentTableEl(null); setTableRect(null)
+        setHoveredColIndex(null); setHoveredRowIndex(null); setShowRightAddBar(false); setShowBottomAddBar(false)
       } else {
         triggerUpdate()
       }
@@ -231,16 +306,16 @@ export function useTableGrips(editor: Editor) {
 
     editor.on('transaction', triggerUpdate)
     editor.on('update', triggerUpdate)
-    editor.on('selectionUpdate', handleSelectionChange)
+    editor.on('selectionUpdate', syncSelectionWithTableGrips)
 
     return () => {
       editor.off('transaction', triggerUpdate)
       editor.off('update', triggerUpdate)
-      editor.off('selectionUpdate', handleSelectionChange)
+      editor.off('selectionUpdate', syncSelectionWithTableGrips)
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
     }
-  }, [editor, triggerUpdate])
+  }, [editor, triggerUpdate, isHovered, currentTableEl, hoveredColIndex, hoveredRowIndex, clearHoverTimer])
 
   // Observe active table DOM resize and mutations (colgroup, style, cell dimensions)
   useEffect(() => {
@@ -331,6 +406,10 @@ export function useTableGrips(editor: Editor) {
           const inBottomBar = Boolean(target.closest('[aria-label="Add row at end"]'))
           setShowBottomAddBar(Boolean(isLastRow || isNearBottomEdge || inBottomBar))
         } else {
+          // On mobile/touch devices, preserve active table controls while focus remains inside the table
+          if (isMobileOrTouch() && findTable(editor.state.selection)) {
+            return
+          }
           // Table / buffer zone out: 0ms hide if no cell is selected
           const isCellSelected =
             editor.state.selection.constructor.name === 'CellSelection' ||

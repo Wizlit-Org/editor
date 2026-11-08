@@ -99,7 +99,7 @@ export const LinkMenu = ({
     return false
   }, [editor])
 
-  const { link, target, linkPos } = useEditorState({
+  const { link, linkPos } = useEditorState({
     editor,
     selector: ctx => {
       const { $from, from } = ctx.editor.state.selection
@@ -303,15 +303,15 @@ export const LinkMenu = ({
   useEffect(() => {
     const handleCloseMenus = (e?: Event) => {
       if (showEditRef.current) return
-      if (e) {
+      if (e && e.type === 'scroll') {
         const target = e.target as HTMLElement | null
-        if (target) {
+        if (target && typeof target.closest === 'function') {
           if (
             target.tagName === 'INPUT' ||
             target.tagName === 'TEXTAREA' ||
             target.isContentEditable ||
-            target.closest?.(
-              '.glass-menu, [role="dialog"], [role="menu"], [data-radix-popper-content-wrapper], .link-editor-panel, .link-preview-panel'
+            target.closest(
+              '.glass-menu, [role="menu"], [data-radix-popper-content-wrapper], [data-radix-dropdown-menu-content], [data-radix-popover-content], .link-editor-panel, .link-preview-panel'
             )
           ) {
             return
@@ -333,7 +333,7 @@ export const LinkMenu = ({
   }, [dismissMenu])
 
   const shouldShow = useCallback(() => {
-    if (isDismissedRef.current) return false
+    if (isDismissedRef.current || isClosedByScrollRef.current) return false
     const storage = (editor.storage as any)?.link
     if (storage?.isDismissed) return false
 
@@ -355,11 +355,6 @@ export const LinkMenu = ({
     if (showEditRef.current) return true
     const isLink = checkIsLinkActive()
     if (!isLink) return false
-
-    if (isClosedByScrollRef.current) {
-      isClosedByScrollRef.current = false
-      setIsClosedByScroll(false)
-    }
 
     const isMedia =
       editor.isActive('youtube') ||

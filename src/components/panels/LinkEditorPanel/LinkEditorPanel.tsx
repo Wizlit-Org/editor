@@ -110,7 +110,7 @@ export const LinkEditorPanel: React.FC<LinkEditorPanelProps> = ({
         backdropFilter: 'blur(20px) saturate(190%)',
         WebkitBackdropFilter: 'blur(20px) saturate(190%)',
       }}
-      className="link-editor-panel p-2.5 bg-white/75 dark:bg-[#202020]/80 backdrop-blur-2xl backdrop-saturate-150 border border-white/75 dark:border-white/[0.14] ring-1 ring-slate-900/[0.06] dark:ring-black/50 shadow-2xl rounded-2xl min-w-[18rem]"
+      className="link-editor-panel p-2.5 bg-white/75 dark:bg-[#202020]/80 backdrop-blur-2xl backdrop-saturate-150 border border-white/75 dark:border-white/[0.14] ring-1 ring-slate-900/[0.06] dark:ring-black/50 shadow-2xl rounded-2xl w-[min(20rem,calc(100vw-24px))] max-w-[calc(100vw-24px)]"
     >
       <form onSubmit={state.handleSubmit} className="flex flex-col gap-2">
         {/* 1. Link Display Text Input */}
@@ -118,7 +118,7 @@ export const LinkEditorPanel: React.FC<LinkEditorPanelProps> = ({
           <Icon name="Type" className="w-3.5 h-3.5 flex-none text-zinc-500 dark:text-zinc-400" />
           <input
             type="text"
-            className="flex-1 bg-transparent outline-none min-w-[13rem] text-zinc-800 dark:text-zinc-100 text-xs placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+            className="flex-1 bg-transparent outline-none min-w-0 w-full text-zinc-800 dark:text-zinc-100 text-xs placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
             placeholder="표시 텍스트 (이름)..."
             value={state.text}
             onChange={state.onTextChange}
@@ -132,7 +132,7 @@ export const LinkEditorPanel: React.FC<LinkEditorPanelProps> = ({
           <input
             ref={urlInputRef}
             type="text"
-            className="flex-1 bg-transparent outline-none min-w-[13rem] text-zinc-800 dark:text-zinc-100 text-xs placeholder:text-zinc-400 dark:placeholder:text-zinc-500 font-mono"
+            className="flex-1 bg-transparent outline-none min-w-0 w-full text-zinc-800 dark:text-zinc-100 text-xs placeholder:text-zinc-400 dark:placeholder:text-zinc-500 font-mono"
             placeholder="링크 URL (https://...)..."
             value={state.url}
             onChange={state.onUrlChange}

@@ -226,18 +226,77 @@ export const CodeBlock = CodeBlockLowlight.extend({
         }
 
         const { state, view } = editor
-        const { $from } = state.selection
+        const { $from, empty } = state.selection
+        if (!empty) {
+          return originalEnter ? originalEnter({ editor }) : false
+        }
 
         const text = $from.parent.textContent
-        const lastNL = text.lastIndexOf('\n', $from.parentOffset - 1)
+        const textBefore = text.slice(0, $from.parentOffset)
+        const textAfter = text.slice($from.parentOffset)
+        const lastNL = textBefore.lastIndexOf('\n')
         const lineOff = lastNL < 0 ? 0 : lastNL + 1
-        const currentLine = text.slice(lineOff, $from.parentOffset)
-        
-        // Find leading whitespace (tabs or spaces)
+        const currentLine = textBefore.slice(lineOff)
+        const nextNL = text.indexOf('\n', $from.parentOffset)
+        const fullCurrentLine = text.slice(lineOff, nextNL < 0 ? text.length : nextNL)
+
+        // 1) 커서 뒤에 코드가 없고(코드 블록 끝), 직전 줄들이 공백/탭만 있는 빈 줄(2줄 이상 연속)이면
+        //    끝에 쌓인 모든 공백/빈 줄을 제거하고 코드 블록 밖 하단에 새 paragraph를 생성하여 탈출
+        if (textAfter.trim() === '') {
+          const linesBefore = textBefore.split('\n')
+          const trailingBlankCount = (() => {
+            let count = 0
+            for (let i = linesBefore.length - 1; i >= 0; i--) {
+              if (linesBefore[i].trim() === '') {
+                count++
+              } else {
+                break
+              }
+            }
+            return count
+          })()
+
+          if (trailingBlankCount >= 2) {
+            const blockStart = $from.start()
+            const keptLines = linesBefore.slice(0, linesBefore.length - trailingBlankCount)
+            const cleanTextEndOffset = keptLines.length > 0 ? keptLines.join('\n').length : 0
+            const deleteFrom = blockStart + cleanTextEndOffset
+            const deleteTo = blockStart + text.length
+
+            const tr = state.tr
+            if (deleteTo > deleteFrom) {
+              tr.delete(deleteFrom, deleteTo)
+            }
+
+            const codeBlockEndAfterDelete = tr.mapping.map($from.after())
+            const paragraphType = state.schema.nodes.paragraph
+            if (paragraphType) {
+              tr.insert(codeBlockEndAfterDelete, paragraphType.create())
+              tr.setSelection(TextSelection.create(tr.doc, codeBlockEndAfterDelete + 1))
+              view.dispatch(tr.scrollIntoView())
+              return true
+            }
+          }
+        }
+
+        // 2) 현재 줄이 공백/탭만 있는 인덴트 빈 줄인 경우:
+        //    현재 줄의 불필요한 공백을 비우고 새 줄(동일 인덴트 유지 또는 빈 줄)을 추가하여 다음 Enter 시 탈출 가능하게 함
         const match = currentLine.match(/^[\t ]+/)
         if (match) {
           const indent = match[0]
-          view.dispatch(state.tr.insertText('\n' + indent))
+          if (fullCurrentLine.trim() === '') {
+            const blockStart = $from.start()
+            const lineStartPos = blockStart + lineOff
+            const lineEndPos = blockStart + (nextNL < 0 ? text.length : nextNL)
+            const tr = state.tr.replaceWith(
+              lineStartPos,
+              lineEndPos,
+              state.schema.text('\n' + indent),
+            )
+            view.dispatch(tr.scrollIntoView())
+            return true
+          }
+          view.dispatch(state.tr.insertText('\n' + indent).scrollIntoView())
           return true
         }
 
@@ -268,14 +327,25 @@ export const CodeBlock = CodeBlockLowlight.extend({
         const to   = blockStart + lineEndOff
         const line = text.slice(lineOff, lineEndOff)
 
-        // 2) 현재 줄이 공백(스페이스/탭)만 있으면 해당 줄+개행 삭제
+        // 2) 첫 번째 줄이고 비어있거나 커서가 맨 앞(offset 0)이면 기본 Backspace(블록 해제/삭제)로 위임
+        if (beforeNL < 0) {
+          if (line.length === 0 || $from.parentOffset === 0) {
+            return originalBackspace ? originalBackspace({ editor }) : false
+          }
+          if (/^[\t ]+$/.test(line)) {
+            const tr = state.tr.delete(from, to)
+            tr.setSelection(TextSelection.create(tr.doc, from))
+            view.dispatch(tr)
+            return true
+          }
+          return originalBackspace ? originalBackspace({ editor }) : false
+        }
+
+        // 3) 둘째 줄 이상에서 현재 줄이 공백(스페이스/탭)만 있으면 직전 개행(\n)과 해당 줄 공백을 함께 삭제하여 이전 줄 끝으로 이동
         if (/^[\t ]*$/.test(line)) {
-          const tr = state.tr.delete(from, to + (afterNL >= 0 ? 1 : 0))
-          
-          // 3) 커서를 이전 줄 끝으로 이동
-          const prevLineEnd = beforeNL < 0 ? 0 : beforeNL
-          const newPos = blockStart + prevLineEnd
-          tr.setSelection(TextSelection.create(tr.doc, newPos))
+          const deleteFrom = blockStart + beforeNL
+          const tr = state.tr.delete(deleteFrom, to)
+          tr.setSelection(TextSelection.create(tr.doc, deleteFrom))
           view.dispatch(tr)
           return true
         }
