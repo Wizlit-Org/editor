@@ -34,6 +34,7 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   const [isButtonVisible, setIsButtonVisible] = useState(false)
   const [isScrolling, setIsScrolling] = useState(false)
   const isDraggingHandleRef = useRef(false)
+  const lastOpenTimeRef = useRef(0)
   const scrollTimerRef = useRef<NodeJS.Timeout | null>(null), animFrameRef = useRef<number | null>(null), timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const anchorRef = useRef<HTMLDivElement>(null)
@@ -50,35 +51,25 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
 
     if (table && isCellSelection(selection)) {
       try {
-        const map = TableMap.get(table.node)
-        const start = selection.$anchorCell.start(-1)
+        const map = TableMap.get(table.node), start = selection.$anchorCell.start(-1)
         const rawRect = map.rectBetween(selection.$anchorCell.pos - start, selection.$headCell.pos - start)
         const expandedRect = expandRectToMergedCells(table.node, rawRect)
-        const domCells: HTMLElement[] = []
-        const seen = new Set<number>()
-
+        const domCells: HTMLElement[] = [], seen = new Set<number>()
         for (let r = expandedRect.top; r < expandedRect.bottom; r++) {
           for (let c = expandedRect.left; c < expandedRect.right; c++) {
             const offset = map.map[r * map.width + c]
             if (seen.has(offset)) continue
             seen.add(offset)
             try {
-              const cellPos = table.start + offset
-              const nodeDom = editor.view.nodeDOM(cellPos) as HTMLElement | null
-              const cellEl =
-                nodeDom && nodeDom.nodeType === 1
-                  ? nodeDom
-                  : ((editor.view.domAtPos(cellPos + 1).node as HTMLElement)?.closest?.('td, th') as HTMLElement | null)
+              const cellPos = table.start + offset, nodeDom = editor.view.nodeDOM(cellPos) as HTMLElement | null
+              const cellEl = nodeDom && nodeDom.nodeType === 1 ? nodeDom : ((editor.view.domAtPos(cellPos + 1).node as HTMLElement)?.closest?.('td, th') as HTMLElement | null)
               if (cellEl) {
                 domCells.push(cellEl)
-                if (!cellEl.classList.contains('selectedCell')) {
-                  cellEl.classList.add('selectedCell')
-                }
+                if (!cellEl.classList.contains('selectedCell')) cellEl.classList.add('selectedCell')
               }
             } catch {}
           }
         }
-
         if (domCells.length > 0) return domCells
       } catch {}
     }
@@ -124,7 +115,8 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
         const tableWrapper = tableEl.closest('.tableWrapper') as HTMLElement | null
         const wRect = tableWrapper ? tableWrapper.getBoundingClientRect() : null
         const hasLeftBlur = Boolean(tableWrapper && tableWrapper.scrollLeft > 2)
-        const minColLeft = wRect ? wRect.left + (hasLeftBlur ? 40 : 0) : undefined, wrapperRight = wRect ? wRect.right : undefined
+        const leftBlurW = hasLeftBlur ? (typeof window !== 'undefined' && window.innerWidth < 768 ? 20 : 40) : 0
+        const minColLeft = wRect ? wRect.left + leftBlurW : undefined, wrapperRight = wRect ? wRect.right : undefined
         const isVisibleInWrapper = wRect ? maxRight >= (minColLeft ?? wRect.left) + 8 && maxRight <= wRect.right + 15 : true
         setSelectionRect({ top: minTop, left: minLeft, width: maxRight - minLeft, height: maxBottom - minTop, minColLeft, wrapperRight })
         setIsButtonVisible(isVisibleInWrapper && isWithinContainer)
@@ -161,7 +153,8 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
       const tableWrapper = cells[0].closest('.tableWrapper') as HTMLElement | null
       const wRect = tableWrapper ? tableWrapper.getBoundingClientRect() : null
       const hasLeftBlur = Boolean(tableWrapper && tableWrapper.scrollLeft > 2)
-      const minColLeft = wRect ? wRect.left + (hasLeftBlur ? 40 : 0) : undefined
+      const leftBlurW = hasLeftBlur ? (typeof window !== 'undefined' && window.innerWidth < 768 ? 20 : 40) : 0
+      const minColLeft = wRect ? wRect.left + leftBlurW : undefined
       const wrapperRight = wRect ? wRect.right : undefined
       const isVisibleInWrapper = Boolean(wRect && maxRight >= (minColLeft ?? wRect.left) + 8 && maxRight <= wRect.right + 15 && minTop < window.innerHeight && maxBottom > 0)
 
@@ -188,7 +181,12 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
   }, [menuOpen])
 
   useEffect(() => {
-    const handleScroll = () => { if (menuOpen) setMenuOpen(false) }
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement | null
+      if (target && typeof target.closest === 'function' && target.closest('.glass-menu')) return
+      if (Date.now() - lastOpenTimeRef.current < 350) return
+      if (menuOpen) setMenuOpen(false)
+    }
     window.addEventListener('scroll', handleScroll, { passive: true, capture: true })
     return () => window.removeEventListener('scroll', handleScroll, { capture: true })
   }, [menuOpen])
@@ -221,25 +219,12 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
     const dom = editor.view?.dom
     if (!dom) return
     const ro = new ResizeObserver(() => triggerUpdate())
-    ro.observe(dom)
-    dom.querySelectorAll('table').forEach(t => ro.observe(t))
+    ro.observe(dom); dom.querySelectorAll('table').forEach(t => ro.observe(t))
     const mo = new MutationObserver(() => triggerUpdate())
-    mo.observe(dom, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-      attributes: true,
-      attributeFilter: ['style', 'width', 'colwidth', 'class', 'rowspan', 'colspan', 'height'],
-    })
-    const onMouseMove = (e: MouseEvent) => {
-      if (e.buttons > 0) updateSelectionRect()
-    }
+    mo.observe(dom, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style', 'width', 'colwidth', 'class', 'rowspan', 'colspan', 'height'] })
+    const onMouseMove = (e: MouseEvent) => { if (e.buttons > 0) updateSelectionRect() }
     window.addEventListener('mousemove', onMouseMove, { passive: true })
-    return () => {
-      ro.disconnect()
-      mo.disconnect()
-      window.removeEventListener('mousemove', onMouseMove)
-    }
+    return () => { ro.disconnect(); mo.disconnect(); window.removeEventListener('mousemove', onMouseMove) }
   }, [editor, triggerUpdate, updateSelectionRect])
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
@@ -297,10 +282,14 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
     }
     const handlePointerUp = () => {
       cleanUpPointerDrag()
-      if (!hasMoved) setMenuOpen(prev => !prev)
+      if (!hasMoved) {
+        lastOpenTimeRef.current = Date.now()
+        setMenuOpen(prev => !prev)
+      }
     }
     window.addEventListener('pointermove', handlePointerMove)
     window.addEventListener('pointerup', handlePointerUp)
+    window.addEventListener('pointercancel', handlePointerUp)
     window.addEventListener('keydown', onKeyDown, { capture: true })
   }, [editor, getActiveCells, appendTo])
 
@@ -411,7 +400,8 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
 
   const itemClass = "w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-zinc-700 dark:text-[#e3e3e3] hover:bg-black/5 dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12] select-none cursor-pointer"
   const dangerClass = "w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-left transition-colors text-red-600 dark:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 select-none cursor-pointer"
-  const isExpanded = isBtnHovered || menuOpen
+  const isTouchOrMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || window.matchMedia?.('(pointer: coarse)').matches)
+  const isExpanded = isBtnHovered || menuOpen || isTouchOrMobile
 
   const isMultiCells = getActiveCells().length > 1
   const shouldRender = mounted && (!isScrolling || isDraggingHandleRef.current) && typeof document !== 'undefined' && selectionRect && !editor.view?.dragging && (isCellSelected || editor.isActive('tableCell') || editor.isActive('tableHeader') || Boolean(tableGripPluginKey.getState(editor.state)))
@@ -455,12 +445,12 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
           {/* 2. Expandable 4-dot Circle Trigger & Popover Menu - z-index: 9 (below blur z-12) */}
           {isButtonVisible && (
             <div className="fixed z-[9] -translate-y-1/2 flex items-center" style={{ top: selectionRect.top + selectionRect.height / 2 - offset.y, left: selectionRect.left + selectionRect.width - offset.x, zIndex: 9 }}>
-              <Popover.Root open={menuOpen} onOpenChange={open => { if (open) window.dispatchEvent(new CustomEvent('tiptap:close-menus', { detail: 'tableCell' })); setMenuOpen(open) }}>
+              <Popover.Root open={menuOpen} onOpenChange={open => { if (open) { lastOpenTimeRef.current = Date.now(); window.dispatchEvent(new CustomEvent('tiptap:close-menus', { detail: 'tableCell' })) }; setMenuOpen(open) }}>
                 <Popover.Anchor asChild>
                   <button type="button" onPointerDown={handlePointerDown} onClick={e => { e.preventDefault(); e.stopPropagation() }}
                     onMouseEnter={() => setIsBtnHovered(true)} onMouseLeave={() => setIsBtnHovered(false)}
                     style={{ backgroundColor: 'var(--editor-primary, #faaf2d)' }}
-                    className={`rounded-full bg-[var(--editor-primary)] text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-[9] select-none ${isExpanded ? 'w-4 h-4 -ml-2' : 'w-2 h-2 -ml-1'}`}
+                    className={`relative rounded-full bg-[var(--editor-primary)] text-white shadow-xs cursor-pointer transition-all duration-150 flex items-center justify-center p-0 outline-none z-[9] select-none touch-none after:content-[''] after:absolute after:-inset-2.5 ${isExpanded ? 'w-4 h-4 -ml-2' : 'w-2 h-2 -ml-1'}`}
                     title="Click for options, drag to adjust cell selection" aria-label="Table cells option">
                     <svg className={`w-2.5 h-2.5 fill-current transition-opacity duration-150 ${isExpanded ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`} viewBox="0 0 16 16">
                       <circle cx="5" cy="5" r="1.5" /><circle cx="11" cy="5" r="1.5" /><circle cx="5" cy="11" r="1.5" /><circle cx="11" cy="11" r="1.5" />
@@ -468,10 +458,10 @@ export const TableCellMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.E
                   </button>
                 </Popover.Anchor>
                 <Popover.Portal container={typeof document !== 'undefined' ? ((appendTo?.current as HTMLElement) || document.body) : undefined}>
-                  <Popover.Content side="right" align="center" sideOffset={10} collisionPadding={16} data-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
+                  <Popover.Content side="right" align="center" sideOffset={10} collisionPadding={12} data-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
                     className={cn('z-[1340] outline-none animate-in fade-in-0 zoom-in-95 duration-150', editor?.view?.dom?.closest('.editor-theme-dark') ? 'editor-theme-dark dark theme-dark' : 'editor-theme-light theme-light')}
                   >
-                    <div className="glass-menu min-w-[12rem] p-1.5 shadow-2xl rounded-xl flex flex-col gap-0.5 bg-white dark:bg-[#202020]/95 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
+                    <div className="glass-menu min-w-[12rem] max-w-[calc(100vw-24px)] max-h-[calc(100vh-32px)] overflow-y-auto p-1.5 shadow-2xl rounded-xl flex flex-col gap-0.5 bg-white dark:bg-[#202020]/95 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200">
                       <TableAlignmentSubmenu editor={editor} scope="cell" />
                       <div className="h-[1px] bg-black/5 dark:bg-white/10 my-0.5" />
                       {canMerge && <button type="button" onClick={onMergeCells} className={itemClass}><Icon name="Combine" className="w-3.5 h-3.5 text-zinc-500 dark:text-[#9b9b9b]" /><span>Merge cells</span></button>}

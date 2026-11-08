@@ -114,13 +114,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
       nextStates.push({
         id: `table-wrapper-${index}`,
         wrapper,
-        rect: {
-          top: rect.top,
-          left: rect.left,
-          width: rect.width,
-          height: rect.height,
-          bottom: rect.bottom,
-        },
+        rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height, bottom: rect.bottom },
         showLeft,
         showRight,
       })
@@ -154,11 +148,14 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
           clearTimeout(existingTimer)
           maskClearTimersRef.current.delete(t.id)
         }
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+        const fadeMid = isMobile ? 8 : 16
+        const fadeEnd = isMobile ? 20 : 48
         const editorDomLeft = editor.view?.dom ? editor.view.dom.getBoundingClientRect().left : t.rect.left
         const gutter = shouldCompact ? 0 : Math.max(0, Math.round(editorDomLeft - t.rect.left))
         const mask = gutter > 0
-          ? `linear-gradient(to right, transparent 0px, transparent ${gutter}px, rgba(0,0,0,0.3) ${gutter + 16}px, black ${gutter + 48}px)`
-          : `linear-gradient(to right, transparent 0px, rgba(0,0,0,0.3) 16px, black 48px)`
+          ? `linear-gradient(to right, transparent 0px, transparent ${gutter}px, rgba(0,0,0,0.3) ${gutter + fadeMid}px, black ${gutter + fadeEnd}px)`
+          : `linear-gradient(to right, transparent 0px, rgba(0,0,0,0.3) ${fadeMid}px, black ${fadeEnd}px)`
         t.wrapper.style.maskImage = mask
         ;(t.wrapper.style as any).webkitMaskImage = mask
       } else {
@@ -387,9 +384,12 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
         const visibleLeft = Math.max(t.rect.left, containerRect.left)
         const visibleRight = Math.min(t.rect.left + t.rect.width, containerRect.right)
 
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+        const baseBlurSpan = isMobile ? 20 : 48
+        const halfBlurSpan = isMobile ? 10 : 24
         const editorContentLeft = editor.view?.dom ? editor.view.dom.getBoundingClientRect().left : visibleLeft
         const gutterWidth = Math.max(0, Math.round(editorContentLeft - visibleLeft))
-        const blurWidth = gutterWidth + 48
+        const blurWidth = gutterWidth + baseBlurSpan
         const isBlurVisible = Boolean(editor.isEditable && t.showLeft && (hoveredWrapper === t.wrapper || activeWrapper === t.wrapper))
 
         return (
@@ -411,8 +411,8 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
                   background: 'transparent',
                   backdropFilter: 'blur(8px)',
                   WebkitBackdropFilter: 'blur(8px)',
-                  maskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
-                  WebkitMaskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + 24}px, transparent ${blurWidth}px)`,
+                  maskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + halfBlurSpan}px, transparent ${blurWidth}px)`,
+                  WebkitMaskImage: `linear-gradient(to right, black 0px, black ${gutterWidth}px, rgba(0,0,0,0.6) ${gutterWidth + halfBlurSpan}px, transparent ${blurWidth}px)`,
                 }}
               />
             )}
@@ -432,7 +432,7 @@ export const TableScrollIndicator: React.FC<TableScrollIndicatorProps> = ({ edit
                   zIndex: 12,
                   top: t.rect.top - 24 - offset.y,
                   left: editorContentLeft - offset.x,
-                  width: '48px',
+                  width: `${baseBlurSpan}px`,
                   height: t.rect.height + 48,
                   background: 'transparent',
                 }}

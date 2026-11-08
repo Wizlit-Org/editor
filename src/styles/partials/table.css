@@ -68,6 +68,17 @@
       min-width: 100% !important;
     }
 
+    @media (max-width: 767px), (pointer: coarse) {
+      table-layout: auto !important;
+      width: max-content !important;
+      min-width: 100% !important;
+
+      td,
+      th {
+        min-width: 72px !important;
+      }
+    }
+
     td,
     th {
       border: 1px solid rgba(47, 50, 55, 0.2) !important;

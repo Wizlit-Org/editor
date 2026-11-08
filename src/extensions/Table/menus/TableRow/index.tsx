@@ -25,6 +25,7 @@ const TABLE_ROW_MENU_OPTIONS = {
   offset: 6,
   placement: 'right-start' as const,
   flip: true,
+  shift: { padding: 8 },
 }
 
 export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.Element => {
@@ -51,7 +52,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       setTick(t => t + 1)
     }
 
-    const handleDocumentMouseDown = (e: MouseEvent) => {
+    const handleDocumentPointerDown = (e: PointerEvent | MouseEvent) => {
       const target = e.target as HTMLElement | null
       if (!target) return
       if (target.closest('.glass-menu') || target.closest('#table-row-grips')) return
@@ -60,7 +61,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
 
     const handleSelectionUpdate = ({ transaction }: { transaction: any }) => {
       if (transaction?.getMeta('tableRowMenu') === 'show') return
-      if (Date.now() - lastOpenTimeRef.current < 80) return
+      if (Date.now() - lastOpenTimeRef.current < 150) return
       handleClose()
     }
 
@@ -73,7 +74,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
     window.addEventListener('tiptap:open-table-row-menu', handleOpen)
     window.addEventListener('tiptap:close-table-menus', handleClose)
     window.addEventListener('tiptap:close-menus', handleClose)
-    window.addEventListener('mousedown', handleDocumentMouseDown, { capture: true })
+    window.addEventListener('pointerdown', handleDocumentPointerDown, { capture: true })
     window.addEventListener('keydown', handleKeyDown)
     editor.on('selectionUpdate', handleSelectionUpdate)
 
@@ -81,16 +82,18 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
       window.removeEventListener('tiptap:open-table-row-menu', handleOpen)
       window.removeEventListener('tiptap:close-table-menus', handleClose)
       window.removeEventListener('tiptap:close-menus', handleClose)
-      window.removeEventListener('mousedown', handleDocumentMouseDown, { capture: true })
+      window.removeEventListener('pointerdown', handleDocumentPointerDown, { capture: true })
       window.removeEventListener('keydown', handleKeyDown)
       editor.off('selectionUpdate', handleSelectionUpdate)
     }
   }, [editor])
 
   useEffect(() => {
-    const handleScroll = () => {
-      // Ignore micro-scroll within 180ms of opening to prevent focus auto-scroll from closing menu
-      if (Date.now() - lastOpenTimeRef.current < 180) return
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement | null
+      if (target && typeof target.closest === 'function' && target.closest('.glass-menu')) return
+      // Ignore micro-scroll within 350ms of opening to prevent mobile focus/keyboard auto-scroll from closing menu
+      if (Date.now() - lastOpenTimeRef.current < 350) return
       isClosedByScrollRef.current = true
       setIsClosedByScroll(true)
       isMenuOpenRef.current = false
@@ -242,7 +245,7 @@ export const TableRowMenu = React.memo(({ editor, appendTo }: MenuProps): JSX.El
         data-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
         data-editor-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
         className={cn(
-          'glass-menu min-w-[14rem] p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200',
+          'glass-menu min-w-[13rem] max-w-[calc(100vw-24px)] max-h-[calc(100vh-32px)] overflow-y-auto p-1.5 shadow-2xl rounded-lg flex flex-col gap-0.5 bg-white/85 dark:bg-[#202020]/90 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200',
           editor?.view?.dom?.closest('.editor-theme-dark')
             ? 'editor-theme-dark dark theme-dark'
             : 'editor-theme-light theme-light',
