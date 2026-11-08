@@ -58,7 +58,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   topScrollThreshold = 60,
   autofocus = true,
   placeholder = '',
-  editorPaddingBottom = 'pb-36',
+  editorPaddingBottom = 'pb-6',
   showTableScrollIndicator = true,
 }) => {
   const {
@@ -155,7 +155,14 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           if (!selection.empty) return
           const coords = editor.view.coordsAtPos(selection.to)
           const parsedOffset = typeof bottomMenuOffset === 'number' ? bottomMenuOffset : parseInt(String(bottomMenuOffset), 10) || 68
-          const safeBottomMargin = parsedOffset + 92 // ~160px above container bottom (covers bottom blur + TextMenu + breathing room)
+          const isMobile = window.innerWidth < 768 || Boolean(window.matchMedia?.('(pointer: coarse)').matches)
+          const vv = window.visualViewport
+          const isKeyboardActive = Boolean(isMobile && vv && window.innerHeight - vv.height > 120)
+          const safeBottomMargin = isKeyboardActive
+            ? 72
+            : isMobile
+            ? Math.max(parsedOffset + 52, 108)
+            : Math.max(parsedOffset + 48, 104)
 
           const dom = editor.view.dom
           const scrollContainer = (
@@ -481,10 +488,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       )}
 
       {image?.disableBuiltInUploadDialog === false && !readOnly && (
-        <UploadListDialog
-          {...uploadDialog}
-          className="fixed bottom-4 right-4"
-        />
+        <UploadListDialog {...uploadDialog} className="fixed bottom-4 right-4" />
       )}
     </>
   )
