@@ -20,11 +20,25 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
   const [shouldWrap, setShouldWrap] = useState(false)
   const [search, setSearch] = useState('')
   const [isOpen, setIsOpen] = useState(false)
+  const [isInputFocused, setIsInputFocused] = useState(false)
+  const isInputFocusedRef = useRef(false)
+  const inputFocusTimestampRef = useRef(0)
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
   const menuRef = useRef<HTMLDivElement>(null)
   const dropdownPortalRef = useRef<HTMLDivElement>(null)
   const buttonPositionRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+
+  const detectIsMobile = useCallback(() => {
+    if (typeof window === 'undefined') return false
+    return (
+      window.innerWidth < 768 ||
+      Boolean(window.matchMedia?.('(pointer: coarse)').matches) ||
+      Boolean(window.matchMedia?.('(hover: none)').matches) ||
+      (typeof navigator !== 'undefined' &&
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))
+    )
+  }, [])
 
   const detectedLanguage = useMemo(() => {
     if (language === 'auto' || !language) {
@@ -118,6 +132,15 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
         ) {
           return
         }
+        // When mobile virtual keyboard opens right after tapping search input (<500ms),
+        // viewport scroll is triggered by browser — reposition dropdown instead of closing it
+        if (
+          (isInputFocusedRef.current || document.activeElement === searchInputRef.current) &&
+          Date.now() - inputFocusTimestampRef.current < 500
+        ) {
+          updateMenuPosition()
+          return
+        }
         setIsOpen(false)
       }
       const handleResize = () => {
@@ -126,10 +149,12 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
       window.addEventListener('scroll', handleWindowScroll, { capture: true, passive: true })
       window.addEventListener('resize', handleResize, { passive: true })
       window.visualViewport?.addEventListener('resize', handleResize, { passive: true })
+      window.visualViewport?.addEventListener('scroll', handleResize, { passive: true })
       return () => {
         window.removeEventListener('scroll', handleWindowScroll, { capture: true })
         window.removeEventListener('resize', handleResize)
         window.visualViewport?.removeEventListener('resize', handleResize)
+        window.visualViewport?.removeEventListener('scroll', handleResize)
       }
     }
   }, [actualOpen, updateMenuPosition])
@@ -176,16 +201,31 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
   )
 
   useEffect(() => {
-    if (!actualOpen) return
+    if (!actualOpen) {
+      isInputFocusedRef.current = false
+      setIsInputFocused(false)
+      setSearch('')
+      return
+    }
     setSearch('')
+    const isMobile = detectIsMobile()
+    if (isMobile) {
+      isInputFocusedRef.current = false
+      setIsInputFocused(false)
+      // Ensure editor contenteditable or any active element is blurred on mobile so virtual keyboard does not pop up on open
+      if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur()
+      }
+    } else {
+      isInputFocusedRef.current = true
+      setIsInputFocused(true)
+    }
+
     const rafId = requestAnimationFrame(() => {
-      if (typeof window !== 'undefined') {
-        const isMobile =
-          window.innerWidth < 768 ||
-          Boolean(window.matchMedia?.('(pointer: coarse)').matches)
-        if (!isMobile) {
-          searchInputRef.current?.focus({ preventScroll: true })
-        }
+      if (!isMobile) {
+        searchInputRef.current?.focus({ preventScroll: true })
+      } else {
+        searchInputRef.current?.blur()
       }
       const container = menuRef.current
       if (container) {
@@ -208,7 +248,7 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
       }
     })
     return () => cancelAnimationFrame(rafId)
-  }, [actualOpen])
+  }, [actualOpen, detectIsMobile])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -256,8 +296,17 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
             <div className="relative min-w-0" ref={buttonPositionRef}>
               <button
                 type="button"
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => setIsOpen(prev => !prev)}
+                onMouseDown={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                }}
+                onClick={e => {
+                  e.stopPropagation()
+                  if (!isOpen && detectIsMobile() && typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+                    document.activeElement.blur()
+                  }
+                  setIsOpen(prev => !prev)
+                }}
                 tabIndex={-1}
                 className={cn(
                   'inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 min-h-[22px] max-md:min-h-[26px] rounded-md transition-colors cursor-pointer touch-manipulation',
@@ -345,13 +394,55 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
             style={{ top: menuPosition.top, left: menuPosition.left }}
             ref={dropdownPortalRef}
           >
-            <div className="flex items-center border-b border-black/5 dark:border-white/10 px-2.5 py-1.5">
-              <Icon name="Search" className="mr-1.5 h-3.5 w-3.5 shrink-0 opacity-50" />
+            <div
+              className="flex items-center border-b border-black/5 dark:border-white/10 px-2.5 py-1.5 cursor-text"
+              onTouchStart={() => {
+                inputFocusTimestampRef.current = Date.now()
+                isInputFocusedRef.current = true
+                setIsInputFocused(true)
+                if (searchInputRef.current) {
+                  searchInputRef.current.readOnly = false
+                  searchInputRef.current.removeAttribute('readonly')
+                }
+              }}
+              onMouseDown={e => {
+                e.stopPropagation()
+                inputFocusTimestampRef.current = Date.now()
+                isInputFocusedRef.current = true
+                setIsInputFocused(true)
+                if (searchInputRef.current) {
+                  searchInputRef.current.readOnly = false
+                  searchInputRef.current.removeAttribute('readonly')
+                }
+              }}
+              onClick={e => {
+                e.stopPropagation()
+                inputFocusTimestampRef.current = Date.now()
+                isInputFocusedRef.current = true
+                setIsInputFocused(true)
+                if (searchInputRef.current) {
+                  searchInputRef.current.readOnly = false
+                  searchInputRef.current.removeAttribute('readonly')
+                  searchInputRef.current.focus({ preventScroll: true })
+                }
+              }}
+            >
+              <Icon name="Search" className="mr-1.5 h-3.5 w-3.5 shrink-0 opacity-50 pointer-events-none" />
               <input
                 ref={searchInputRef}
                 type="text"
+                readOnly={detectIsMobile() && !isInputFocused}
                 placeholder="언어 검색..."
                 value={search}
+                onFocus={() => {
+                  inputFocusTimestampRef.current = Date.now()
+                  isInputFocusedRef.current = true
+                  setIsInputFocused(true)
+                }}
+                onBlur={() => {
+                  isInputFocusedRef.current = false
+                  setIsInputFocused(false)
+                }}
                 onChange={e => setSearch(e.target.value)}
                 onScroll={e => e.stopPropagation()}
                 className="flex h-7 w-full min-w-0 bg-transparent text-xs outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
