@@ -69,7 +69,7 @@
 
   /* 편집 모드에서 문서 마지막 줄 타이핑 시 하단 블러 및 플로팅 TextMenu 위로 자동 스크롤될 수 있는 물리적 scrollHeight 여유 보장 */
   &[contenteditable="true"] {
-    padding-bottom: 180px !important;
+    padding-bottom: 72px !important;
   }
 
   & > .react-renderer {
@@ -273,7 +273,7 @@
 
   .ProseMirror {
     &[contenteditable="true"] {
-      padding-bottom: 200px !important;
+      padding-bottom: 84px !important;
     }
 
     /* 모바일 뷰포트에서 좌측 거터(-68px) 가상 히트박스로 인한 불필요한 화면 밖 가로 오버플로우만 방어 */

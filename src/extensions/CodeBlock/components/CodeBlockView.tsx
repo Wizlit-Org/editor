@@ -96,18 +96,23 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
   useEffect(() => {
     if (actualOpen) {
       updateMenuPosition()
-      const handleScrollOrResize = (e: Event) => {
+      const handleWindowScroll = (e: Event) => {
         const target = e.target as HTMLElement | null
-        if (target && menuRef.current?.contains(target)) return
+        if (target && menuRef.current && menuRef.current.contains(target)) {
+          return
+        }
+        setIsOpen(false)
+      }
+      const handleResize = () => {
         updateMenuPosition()
       }
-      window.addEventListener('scroll', handleScrollOrResize, { capture: true, passive: true })
-      window.addEventListener('resize', handleScrollOrResize, { passive: true })
-      window.visualViewport?.addEventListener('resize', handleScrollOrResize, { passive: true })
+      window.addEventListener('scroll', handleWindowScroll, { capture: true, passive: true })
+      window.addEventListener('resize', handleResize, { passive: true })
+      window.visualViewport?.addEventListener('resize', handleResize, { passive: true })
       return () => {
-        window.removeEventListener('scroll', handleScrollOrResize, { capture: true })
-        window.removeEventListener('resize', handleScrollOrResize)
-        window.visualViewport?.removeEventListener('resize', handleScrollOrResize)
+        window.removeEventListener('scroll', handleWindowScroll, { capture: true })
+        window.removeEventListener('resize', handleResize)
+        window.visualViewport?.removeEventListener('resize', handleResize)
       }
     }
   }, [actualOpen, updateMenuPosition])
