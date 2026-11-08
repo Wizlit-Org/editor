@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Editor } from '@tiptap/react'
 import { Icon } from '@/components/ui/Icon'
 import { icons } from 'lucide-react'
@@ -104,10 +104,31 @@ export const TurnIntoSubmenu: React.FC<TurnIntoSubmenuProps> = ({
   onBack,
   onClose,
 }) => {
+  const listContainerRef = useRef<HTMLDivElement | null>(null)
+  const activeBtnRef = useRef<HTMLButtonElement | null>(null)
+
   const currentNode =
     currentNodePos >= 0 && editor?.state?.doc
       ? editor.state.doc.nodeAt(currentNodePos)
       : null
+
+  useEffect(() => {
+    const rafId = requestAnimationFrame(() => {
+      const item = activeBtnRef.current
+      if (!item) return
+      const container =
+        (item.closest('.glass-menu') as HTMLElement | null) || listContainerRef.current
+      if (!container || container.scrollHeight <= container.clientHeight) return
+      const cRect = container.getBoundingClientRect()
+      const iRect = item.getBoundingClientRect()
+      if (iRect.top < cRect.top + 8) {
+        container.scrollTop -= cRect.top + 8 - iRect.top
+      } else if (iRect.bottom > cRect.bottom - 8) {
+        container.scrollTop += iRect.bottom - (cRect.bottom - 8)
+      }
+    })
+    return () => cancelAnimationFrame(rafId)
+  }, [currentNodePos])
 
   const isOptionActive = (option: TurnIntoOption) => {
     if (!editor) return false
@@ -155,13 +176,14 @@ export const TurnIntoSubmenu: React.FC<TurnIntoSubmenuProps> = ({
         <Icon name="ArrowLeft" className="w-3.5 h-3.5" />
         <span>Turn into</span>
       </button>
-      <div className="flex flex-col gap-0.5">
+      <div ref={listContainerRef} className="flex flex-col gap-0.5 max-h-[min(65vh,20rem)] overflow-y-auto">
         {TURN_INTO_OPTIONS.map((option) => {
           const isActive = isOptionActive(option)
 
           return (
             <button
               key={option.label}
+              ref={isActive ? activeBtnRef : null}
               type="button"
               onClick={() => {
                 option.action(editor, currentNodePos)

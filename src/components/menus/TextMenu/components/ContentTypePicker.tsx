@@ -1,6 +1,6 @@
 import { Icon } from '@/components/ui/Icon'
 import { icons } from 'lucide-react'
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import * as Dropdown from '@radix-ui/react-dropdown-menu'
 import { Toolbar } from '@/components/ui/Toolbar'
 
@@ -41,6 +41,8 @@ export const ContentTypePicker = ({ options, isDark = false }: ContentTypePicker
   const activeLabel = activeItem?.label || 'Paragraph'
   const activeIcon = activeItem?.icon || 'Pilcrow'
   const [open, setOpen] = useState(false)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+  const activeBtnRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
     const handleClose = (e: Event) => {
@@ -51,6 +53,23 @@ export const ContentTypePicker = ({ options, isDark = false }: ContentTypePicker
     window.addEventListener('tiptap:close-menus', handleClose)
     return () => window.removeEventListener('tiptap:close-menus', handleClose)
   }, [])
+
+  useEffect(() => {
+    if (!open) return
+    const rafId = requestAnimationFrame(() => {
+      const container = scrollContainerRef.current
+      const item = activeBtnRef.current
+      if (!container || !item) return
+      const cRect = container.getBoundingClientRect()
+      const iRect = item.getBoundingClientRect()
+      if (iRect.top < cRect.top + 8) {
+        container.scrollTop -= cRect.top + 8 - iRect.top
+      } else if (iRect.bottom > cRect.bottom - 8) {
+        container.scrollTop += iRect.bottom - (cRect.bottom - 8)
+      }
+    })
+    return () => cancelAnimationFrame(rafId)
+  }, [open, activeItem?.id])
 
   return (
     <Dropdown.Root
@@ -88,6 +107,7 @@ export const ContentTypePicker = ({ options, isDark = false }: ContentTypePicker
           data-editor-theme={isDark ? 'dark' : 'light'}
         >
           <div
+            ref={scrollContainerRef}
             onMouseDown={e => e.preventDefault()}
             style={{
               backdropFilter: 'blur(20px) saturate(190%)',
@@ -102,6 +122,7 @@ export const ContentTypePicker = ({ options, isDark = false }: ContentTypePicker
                   <button
                     type="button"
                     key={option.id}
+                    ref={isActive ? activeBtnRef : null}
                     onClick={option.onClick}
                     disabled={option.disabled()}
                     className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium rounded-lg border border-transparent transition-colors text-left select-none ${

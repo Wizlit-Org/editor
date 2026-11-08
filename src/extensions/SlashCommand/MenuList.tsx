@@ -95,13 +95,24 @@ export const MenuList = React.forwardRef((props: MenuListProps, ref) => {
   }))
 
   useEffect(() => {
-    if (activeItem.current && scrollContainer.current) {
-      const offsetTop = activeItem.current.offsetTop
-      const offsetHeight = activeItem.current.offsetHeight
-
-      scrollContainer.current.scrollTop = offsetTop - offsetHeight
-    }
-  }, [selectedCommandIndex, selectedGroupIndex])
+    const rafId = requestAnimationFrame(() => {
+      const container = scrollContainer.current
+      const item = activeItem.current
+      if (!container || !item) return
+      if (selectedGroupIndex === 0 && selectedCommandIndex === 0) {
+        container.scrollTop = 0
+        return
+      }
+      const cRect = container.getBoundingClientRect()
+      const iRect = item.getBoundingClientRect()
+      if (iRect.top < cRect.top + 8) {
+        container.scrollTop -= cRect.top + 8 - iRect.top
+      } else if (iRect.bottom > cRect.bottom - 8) {
+        container.scrollTop += iRect.bottom - (cRect.bottom - 8)
+      }
+    })
+    return () => cancelAnimationFrame(rafId)
+  }, [selectedCommandIndex, selectedGroupIndex, props.items])
 
   const createCommandClickHandler = useCallback(
     (groupIndex: number, commandIndex: number) => {

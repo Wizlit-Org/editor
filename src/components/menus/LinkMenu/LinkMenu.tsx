@@ -21,7 +21,6 @@ export const LinkMenu = ({
   const isClosedByScrollRef = useRef(false)
   const [isDismissed, setIsDismissed] = useState(false)
   const isDismissedRef = useRef(false)
-  const lastLinkClickTimeRef = useRef(0)
 
   useEffect(() => {
     if (menuRef.current) {
@@ -266,7 +265,6 @@ export const LinkMenu = ({
   // Reset scroll lock on editor interaction & mousedown on links
   useEffect(() => {
     const handleReset = () => {
-      lastLinkClickTimeRef.current = Date.now()
       isClosedByScrollRef.current = false
       setIsClosedByScroll(false)
     }
@@ -277,7 +275,6 @@ export const LinkMenu = ({
       const target = e.target as HTMLElement | null
       const linkEl = target?.closest?.('a') as HTMLAnchorElement | null
       if (linkEl && dom?.contains(linkEl)) {
-        lastLinkClickTimeRef.current = Date.now()
         handleReset()
         resetDismissal()
         const storage = (editor.storage as any)?.link
@@ -307,7 +304,6 @@ export const LinkMenu = ({
     const handleCloseMenus = (e?: Event) => {
       if (showEditRef.current) return
       if (e && e.type === 'scroll') {
-        if (Date.now() - lastLinkClickTimeRef.current < 120) return
         const target = e.target as HTMLElement | null
         if (target && typeof target.closest === 'function') {
           if (
@@ -321,8 +317,6 @@ export const LinkMenu = ({
             return
           }
         }
-      } else if (e && (e as CustomEvent).detail === 'scroll') {
-        if (Date.now() - lastLinkClickTimeRef.current < 120) return
       }
       isClosedByScrollRef.current = true
       setIsClosedByScroll(true)
