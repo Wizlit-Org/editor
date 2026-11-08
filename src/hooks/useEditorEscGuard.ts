@@ -34,7 +34,7 @@ export function useEditorEscGuard(editor: Editor | null) {
         document.querySelector('[data-radix-popper-content-wrapper]')
       )
       const hasOpenGlassMenu = Boolean(
-        document.querySelector('.glass-menu')
+        document.querySelector('.glass-menu, [data-code-lang-dropdown="true"]')
       )
       const hasOpenSlashMenu = Boolean(
         document.querySelector('.slash-command-menu, [data-slash-menu="true"]')
@@ -83,7 +83,7 @@ export function useEditorEscGuard(editor: Editor | null) {
           target.tagName === 'TEXTAREA' ||
           target.isContentEditable ||
           target.closest(
-            '.glass-menu, [role="menu"], [data-paste-preview-dialog="true"], [data-bottom-text-menu="true"], [data-radix-popper-content-wrapper], [data-radix-dropdown-menu-content], [data-radix-popover-content], .link-editor-panel, .link-preview-panel'
+            '.glass-menu, [role="menu"], [role="listbox"], [data-code-lang-dropdown="true"], [data-paste-preview-dialog="true"], [data-bottom-text-menu="true"], [data-radix-popper-content-wrapper], [data-radix-dropdown-menu-content], [data-radix-popover-content], .link-editor-panel, .link-preview-panel'
           )
         ) {
           return

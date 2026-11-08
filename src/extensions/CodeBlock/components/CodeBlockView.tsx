@@ -22,6 +22,7 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
   const [isOpen, setIsOpen] = useState(false)
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
   const menuRef = useRef<HTMLDivElement>(null)
+  const dropdownPortalRef = useRef<HTMLDivElement>(null)
   const buttonPositionRef = useRef<HTMLDivElement>(null)
 
   const detectedLanguage = useMemo(() => {
@@ -54,18 +55,27 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
   const actualOpen = isOpen && editor.isEditable
 
   useEffect(() => {
+    const isInsideDropdownOrTrigger = (target: HTMLElement | null) => {
+      if (!target) return false
+      return Boolean(
+        menuRef.current?.contains(target) ||
+          dropdownPortalRef.current?.contains(target) ||
+          buttonPositionRef.current?.contains(target) ||
+          target.closest?.('[data-code-lang-dropdown="true"]'),
+      )
+    }
+
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       const target = event.target as HTMLElement | null
       if (!target) return
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(target) &&
-        (!buttonPositionRef.current || !buttonPositionRef.current.contains(target))
-      ) {
+      if (!isInsideDropdownOrTrigger(target)) {
         setIsOpen(false)
       }
     }
-    const handleCloseMenus = () => setIsOpen(false)
+    const handleCloseMenus = (e: Event) => {
+      if ((e as CustomEvent)?.detail === 'scroll') return
+      setIsOpen(false)
+    }
     document.addEventListener('mousedown', handleClickOutside)
     document.addEventListener('touchstart', handleClickOutside, { passive: true })
     window.addEventListener('tiptap:close-menus', handleCloseMenus)
@@ -98,7 +108,13 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
       updateMenuPosition()
       const handleWindowScroll = (e: Event) => {
         const target = e.target as HTMLElement | null
-        if (target && menuRef.current && menuRef.current.contains(target)) {
+        if (
+          target &&
+          (menuRef.current?.contains(target) ||
+            dropdownPortalRef.current?.contains(target) ||
+            buttonPositionRef.current?.contains(target) ||
+            target.closest?.('[data-code-lang-dropdown="true"]'))
+        ) {
           return
         }
         setIsOpen(false)
@@ -286,16 +302,18 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
         typeof document !== 'undefined' &&
         createPortal(
           <div
+            data-code-lang-dropdown="true"
+            role="listbox"
             data-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
             data-editor-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
             className={cn(
-              'fixed w-[200px] max-w-[calc(100vw-24px)] rounded-xl border border-black/5 dark:border-white/10 bg-white/95 dark:bg-[#202020]/95 backdrop-blur-xl shadow-2xl overflow-hidden z-[1360] text-zinc-800 dark:text-zinc-200 animate-in fade-in zoom-in-95 duration-150',
+              'glass-menu fixed w-[200px] max-w-[calc(100vw-24px)] rounded-xl border border-black/5 dark:border-white/10 bg-white/95 dark:bg-[#202020]/95 backdrop-blur-xl shadow-2xl overflow-hidden z-[1360] text-zinc-800 dark:text-zinc-200 animate-in fade-in zoom-in-95 duration-150',
               editor?.view?.dom?.closest('.editor-theme-dark')
                 ? 'editor-theme-dark dark theme-dark'
                 : 'editor-theme-light theme-light',
             )}
             style={{ top: menuPosition.top, left: menuPosition.left }}
-            ref={menuRef}
+            ref={dropdownPortalRef}
           >
             <div className="flex items-center border-b border-black/5 dark:border-white/10 px-2.5 py-1.5">
               <Icon name="Search" className="mr-1.5 h-3.5 w-3.5 shrink-0 opacity-50" />
@@ -310,7 +328,9 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
               />
             </div>
             <div
+              ref={menuRef}
               onMouseDown={e => e.preventDefault()}
+              onScroll={e => e.stopPropagation()}
               className="max-h-[220px] overflow-y-auto p-1 space-y-0.5"
             >
               {search &&
