@@ -316,7 +316,7 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
       computePositionConfig={positionConfig}
     >
       <div
-        className={`w-[48px] h-[32px] flex items-center gap-0 select-none relative !pointer-events-auto after:content-[''] after:absolute after:top-0 after:bottom-0 after:-right-6 after:w-6 after:pointer-events-auto transition-opacity duration-150 ease-out ${
+        className={`w-[48px] h-[32px] flex items-center gap-0 select-none relative !pointer-events-auto after:content-[''] after:absolute after:top-0 after:bottom-0 after:-right-1.5 after:w-1.5 after:pointer-events-auto transition-opacity duration-150 ease-out ${
           shouldHideHandle ? 'hidden pointer-events-none opacity-0 !w-0 !h-0 overflow-hidden' : ''
         }`}
         style={shouldHideHandle ? { display: 'none', pointerEvents: 'none', visibility: 'hidden' } : { pointerEvents: 'auto' }}
@@ -381,7 +381,7 @@ export const ContentItemMenu = ({ editor, isEditable = true, appendTo }: Content
               data-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
               data-editor-theme={editor?.view?.dom?.closest('.editor-theme-dark') ? 'dark' : 'light'}
             >
-              <div className="glass-menu p-1.5 flex flex-col min-w-[15rem] max-h-[24rem] overflow-y-auto bg-white dark:bg-[#202020]/95 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200 shadow-xl rounded-xl transition-all duration-150">
+              <div className="glass-menu p-1.5 flex flex-col min-w-[15rem] max-w-[calc(100vw-24px)] max-h-[24rem] overflow-y-auto bg-white dark:bg-[#202020]/95 backdrop-blur-md border border-black/5 dark:border-white/10 text-zinc-800 dark:text-zinc-200 shadow-xl rounded-xl transition-all duration-150">
                 {menuView === 'main' && (
                   <div className="flex flex-col gap-0.5">
                     <button

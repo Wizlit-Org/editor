@@ -242,8 +242,8 @@
 @media (max-width: 767px) {
   .notion-light-canvas,
   .notion-dark-canvas {
-    padding-left: 16px !important;
-    padding-right: 16px !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
     box-sizing: border-box !important;
   }
 
@@ -257,8 +257,13 @@
 
   .notion-light-canvas .w-\[300px\],
   .notion-dark-canvas .w-\[300px\] {
-    max-width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 24px) !important;
     min-width: 0 !important;
+  }
+
+  .drag-handle {
+    display: none !important;
+    pointer-events: none !important;
   }
 
   .ProseMirror {

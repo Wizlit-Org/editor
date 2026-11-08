@@ -24,8 +24,8 @@ export const SlashCommand = Extension.create({
       trigger: 'manual',
       placement: 'bottom-start',
       theme: 'slash-command',
-      maxWidth: '16rem',
-      offset: [16, 4],
+      maxWidth: 'calc(100vw - 24px)',
+      offset: [0, 4],
       hideOnClick: false,
       popperOptions: {
         strategy: 'fixed',
@@ -33,6 +33,13 @@ export const SlashCommand = Extension.create({
           {
             name: 'flip',
             enabled: false,
+          },
+          {
+            name: 'preventOverflow',
+            options: {
+              boundary: 'viewport',
+              padding: 12,
+            },
           },
         ],
       },
@@ -144,10 +151,13 @@ export const SlashCommand = Extension.create({
 
                 if (rect.top + component.element.offsetHeight + 40 > window.innerHeight) {
                   const diff = rect.top + component.element.offsetHeight - window.innerHeight + 40
-                  yPos = rect.y - diff
+                  yPos = Math.max(12, rect.y - diff)
                 }
 
-                return new DOMRect(rect.x, yPos, rect.width, rect.height)
+                const menuWidth = component.element.offsetWidth || 256
+                const xPos = Math.max(12, Math.min(rect.x, window.innerWidth - menuWidth - 12))
+
+                return new DOMRect(xPos, yPos, rect.width, rect.height)
               }
 
               scrollHandler = () => {
@@ -187,10 +197,13 @@ export const SlashCommand = Extension.create({
 
                 if (rect.top + component.element.offsetHeight + 40 > window.innerHeight) {
                   const diff = rect.top + component.element.offsetHeight - window.innerHeight + 40
-                  yPos = rect.y - diff
+                  yPos = Math.max(12, rect.y - diff)
                 }
 
-                return new DOMRect(rect.x, yPos, rect.width, rect.height)
+                const menuWidth = component.element.offsetWidth || 256
+                const xPos = Math.max(12, Math.min(rect.x, window.innerWidth - menuWidth - 12))
+
+                return new DOMRect(xPos, yPos, rect.width, rect.height)
               }
 
               scrollHandler = () => {

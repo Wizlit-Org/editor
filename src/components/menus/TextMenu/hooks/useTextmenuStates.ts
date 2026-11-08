@@ -8,6 +8,8 @@ export const useTextmenuStates = (editor: Editor) => {
     editor,
     selector: ctx => {
       return {
+        canUndo: ctx.editor.can().undo(),
+        canRedo: ctx.editor.can().redo(),
         isBold: ctx.editor.isActive('bold'),
         isItalic: ctx.editor.isActive('italic'),
         isStrike: ctx.editor.isActive('strike'),

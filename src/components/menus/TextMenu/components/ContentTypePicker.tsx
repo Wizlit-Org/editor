@@ -24,6 +24,7 @@ export type ContentPickerOptions = Array<ContentTypePickerOption | ContentTypePi
 
 export type ContentTypePickerProps = {
   options: ContentPickerOptions
+  isDark?: boolean
 }
 
 const isOption = (option: ContentTypePickerOption | ContentTypePickerCategory): option is ContentTypePickerOption =>
@@ -31,7 +32,7 @@ const isOption = (option: ContentTypePickerOption | ContentTypePickerCategory): 
 const isCategory = (option: ContentTypePickerOption | ContentTypePickerCategory): option is ContentTypePickerCategory =>
   option.type === 'category'
 
-export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
+export const ContentTypePicker = ({ options, isDark = false }: ContentTypePickerProps) => {
   const activeItem = useMemo(
     () => options.find(option => option.type === 'option' && option.isActive()) as ContentTypePickerOption | undefined,
     [options],
@@ -65,7 +66,7 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
       <Dropdown.Trigger asChild>
         <Toolbar.Button
           active={activeItem?.id !== 'paragraph' && !!activeItem?.type}
-          className="h-7 px-2.5 inline-flex items-center justify-center gap-1.5 leading-none text-zinc-700 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white hover:bg-white/60 active:bg-white/80 dark:hover:bg-white/[0.1] dark:active:bg-white/[0.16] rounded-lg border border-transparent hover:border-white/50 dark:hover:border-white/[0.08] transition-all duration-150 text-xs font-medium"
+          className="h-7 px-2.5 shrink-0 inline-flex items-center justify-center gap-1.5 leading-none text-zinc-700 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white hover:bg-white/60 active:bg-white/80 dark:hover:bg-white/[0.1] dark:active:bg-white/[0.16] rounded-lg border border-transparent hover:border-white/50 dark:hover:border-white/[0.08] transition-all duration-150 text-xs font-medium"
           activeClassname="bg-black/10 text-neutral-800 dark:bg-white/20 dark:text-neutral-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5)]"
         >
           <Icon name={activeIcon} className="w-3.5 h-3.5 shrink-0" />
@@ -73,56 +74,63 @@ export const ContentTypePicker = ({ options }: ContentTypePickerProps) => {
           <Icon name="ChevronDown" className="w-2.5 h-2.5 opacity-60 shrink-0" />
         </Toolbar.Button>
       </Dropdown.Trigger>
-      <Dropdown.Content
-        asChild
-        side="top"
-        align="start"
-        sideOffset={10}
-        collisionPadding={12}
-        className="z-[1360] outline-none animate-in fade-in-0 zoom-in-95 duration-150"
-      >
-        <div
-          style={{
-            backdropFilter: 'blur(20px) saturate(190%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(190%)',
-          }}
-          className="glass-menu flex flex-col gap-0.5 p-1.5 min-w-[13rem] max-h-[22rem] overflow-y-auto rounded-2xl bg-white dark:bg-[#202020]/95 backdrop-blur-2xl border border-black/10 dark:border-white/[0.14] ring-1 ring-slate-900/[0.06] dark:ring-black/50 shadow-[0_12px_36px_-4px_rgba(0,0,0,0.16),inset_0_1px_0_0_rgba(255,255,255,0.85)] dark:shadow-[0_12px_36px_-4px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.14)] text-zinc-800 dark:text-zinc-100"
+      <Dropdown.Portal>
+        <Dropdown.Content
+          asChild
+          side="top"
+          align="start"
+          sideOffset={10}
+          collisionPadding={12}
+          className={`z-[1360] outline-none animate-in fade-in-0 zoom-in-95 duration-150 ${
+            isDark ? 'editor-theme-dark dark theme-dark' : 'editor-theme-light theme-light'
+          }`}
+          data-theme={isDark ? 'dark' : 'light'}
+          data-editor-theme={isDark ? 'dark' : 'light'}
         >
-          {options.map(option => {
-            if (isOption(option)) {
-              const isActive = option.isActive()
-              return (
-                <button
-                  type="button"
-                  key={option.id}
-                  onClick={option.onClick}
-                  disabled={option.disabled()}
-                  className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium rounded-lg border border-transparent transition-colors text-left select-none ${
-                    isActive
-                      ? 'bg-black/10 text-zinc-900 dark:bg-white/[0.12] dark:text-white'
-                      : 'text-zinc-700 hover:text-zinc-900 hover:bg-black/5 dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12]'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Icon name={option.icon} className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400 shrink-0" />
-                    <span>{option.label}</span>
+          <div
+            onMouseDown={e => e.preventDefault()}
+            style={{
+              backdropFilter: 'blur(20px) saturate(190%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(190%)',
+            }}
+            className="glass-menu flex flex-col gap-0.5 p-1.5 min-w-[13rem] max-w-[calc(100vw-24px)] max-h-[22rem] overflow-y-auto rounded-2xl bg-white dark:bg-[#202020]/95 backdrop-blur-2xl border border-black/10 dark:border-white/[0.14] ring-1 ring-slate-900/[0.06] dark:ring-black/50 shadow-[0_12px_36px_-4px_rgba(0,0,0,0.16),inset_0_1px_0_0_rgba(255,255,255,0.85)] dark:shadow-[0_12px_36px_-4px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.14)] text-zinc-800 dark:text-zinc-100"
+          >
+            {options.map(option => {
+              if (isOption(option)) {
+                const isActive = option.isActive()
+                return (
+                  <button
+                    type="button"
+                    key={option.id}
+                    onClick={option.onClick}
+                    disabled={option.disabled()}
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium rounded-lg border border-transparent transition-colors text-left select-none ${
+                      isActive
+                        ? 'bg-black/10 text-zinc-900 dark:bg-white/[0.12] dark:text-white'
+                        : 'text-zinc-700 hover:text-zinc-900 hover:bg-black/5 dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.08] active:bg-black/10 dark:active:bg-white/[0.12]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon name={option.icon} className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400 shrink-0" />
+                      <span>{option.label}</span>
+                    </div>
+                    {isActive && <Icon name="Check" className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 shrink-0" />}
+                  </button>
+                )
+              } else if (isCategory(option)) {
+                return (
+                  <div
+                    className="text-[10px] font-semibold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase px-2 pt-2 pb-0.5 mt-1 first:mt-0 select-none"
+                    key={option.id}
+                  >
+                    {option.label}
                   </div>
-                  {isActive && <Icon name="Check" className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 shrink-0" />}
-                </button>
-              )
-            } else if (isCategory(option)) {
-              return (
-                <div
-                  className="text-[10px] font-semibold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase px-2 pt-2 pb-0.5 mt-1 first:mt-0 select-none"
-                  key={option.id}
-                >
-                  {option.label}
-                </div>
-              )
-            }
-          })}
-        </div>
-      </Dropdown.Content>
+                )
+              }
+            })}
+          </div>
+        </Dropdown.Content>
+      </Dropdown.Portal>
     </Dropdown.Root>
   )
 }

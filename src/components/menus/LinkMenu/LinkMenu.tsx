@@ -99,7 +99,7 @@ export const LinkMenu = ({
     return false
   }, [editor])
 
-  const { link, target, linkPos } = useEditorState({
+  const { link, linkPos } = useEditorState({
     editor,
     selector: ctx => {
       const { $from, from } = ctx.editor.state.selection

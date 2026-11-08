@@ -2,6 +2,8 @@ import { Editor } from '@tiptap/react'
 import { useCallback } from 'react'
 
 export const useTextmenuCommands = (editor: Editor) => {
+  const onUndo = useCallback(() => editor.chain().focus().undo().run(), [editor])
+  const onRedo = useCallback(() => editor.chain().focus().redo().run(), [editor])
   const onBold = useCallback(() => editor.chain().focus().toggleBold().run(), [editor])
   const onItalic = useCallback(() => editor.chain().focus().toggleItalic().run(), [editor])
   const onStrike = useCallback(() => editor.chain().focus().toggleStrike().run(), [editor])
@@ -48,6 +50,8 @@ export const useTextmenuCommands = (editor: Editor) => {
   )
 
   return {
+    onUndo,
+    onRedo,
     onBold,
     onItalic,
     onStrike,

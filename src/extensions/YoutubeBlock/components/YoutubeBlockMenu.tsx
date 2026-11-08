@@ -8,11 +8,8 @@ import { getRenderContainer } from '@/lib/utils'
 
 const YOUTUBE_BLOCK_MENU_OPTIONS = {
   offset: 8,
-  flip: false,
-  tippyOptions: {
-    interactive: true,
-    delay: [0, 300],
-  },
+  flip: true,
+  shift: { padding: 12 },
 }
 
 export const YoutubeBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element => {
@@ -111,11 +108,15 @@ export const YoutubeBlockMenu = ({ editor, appendTo }: MenuProps): JSX.Element =
       pluginKey="youtubeBlockMenu"
       shouldShow={shouldShow}
       updateDelay={0}
+      className="z-[1340]"
       appendTo={appendTo?.current || undefined}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={YOUTUBE_BLOCK_MENU_OPTIONS}
     >
-      <div className="flex items-center gap-1 p-1 rounded-xl bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl ring-1 ring-white/40 dark:ring-white/5 text-zinc-800 dark:text-zinc-200">
+      <div
+        onMouseDown={e => e.preventDefault()}
+        className="flex items-center max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar gap-1 p-1 rounded-xl z-[1340] bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl ring-1 ring-white/40 dark:ring-white/5 text-zinc-800 dark:text-zinc-200"
+      >
         <Toolbar.Button
           tooltip="Align left"
           active={isLeft}

@@ -237,7 +237,7 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
           }
         >
           <NodeViewContent
-            as="code"
+            as={'code' as any}
             className={cn('font-mono block', shouldWrap ? 'whitespace-pre-wrap break-all' : 'whitespace-pre')}
             style={shouldWrap ? { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } : { whiteSpace: 'pre' }}
           />
