@@ -146,7 +146,7 @@ export const TurnIntoSubmenu: React.FC<TurnIntoSubmenuProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-0.5">
+    <div onMouseDown={e => e.preventDefault()} className="flex flex-col gap-0.5">
       <button
         type="button"
         onClick={onBack}

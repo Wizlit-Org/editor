@@ -67,6 +67,11 @@
     background-color: transparent !important;
   }
 
+  /* 편집 모드에서 문서 마지막 줄 타이핑 시 하단 블러 및 플로팅 TextMenu 위로 자동 스크롤될 수 있는 물리적 scrollHeight 여유 보장 */
+  &[contenteditable="true"] {
+    padding-bottom: 180px !important;
+  }
+
   & > .react-renderer {
     margin: 0 !important;
   }
@@ -267,6 +272,10 @@
   }
 
   .ProseMirror {
+    &[contenteditable="true"] {
+      padding-bottom: 200px !important;
+    }
+
     /* 모바일 뷰포트에서 좌측 거터(-68px) 가상 히트박스로 인한 불필요한 화면 밖 가로 오버플로우만 방어 */
     &::before {
       display: none !important;
@@ -290,6 +299,7 @@
 [data-paste-preview-dialog="true"] [data-live-preview-viewport="true"] .editor-theme-dark {
   background-color: transparent !important;
   background: transparent !important;
+  padding-bottom: 0 !important;
 }
 
 /* ==========================================================================

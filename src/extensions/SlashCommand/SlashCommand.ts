@@ -126,6 +126,33 @@ export const SlashCommand = Extension.create({
           let component: any
 
           let scrollHandler: (() => void) | null = null
+          let closeMenusHandler: (() => void) | null = null
+
+          const computeSafeRect = (props: SuggestionProps) => {
+            if (!props.clientRect) {
+              return (props.editor.storage as any)[extensionName].rect
+            }
+
+            const rect = props.clientRect()
+            if (!rect) {
+              return (props.editor.storage as any)[extensionName].rect
+            }
+
+            const viewportH = window.visualViewport?.height || window.innerHeight
+            const viewportTop = window.visualViewport?.offsetTop || 0
+            const safeBottomLimit = viewportTop + viewportH - 64
+            const menuHeight = component?.element?.offsetHeight || 280
+            const menuWidth = component?.element?.offsetWidth || 256
+
+            let yPos = rect.y
+            if (rect.top + menuHeight + 16 > safeBottomLimit) {
+              const diff = rect.top + menuHeight + 16 - safeBottomLimit
+              yPos = Math.max(viewportTop + 12, rect.y - diff)
+            }
+
+            const xPos = Math.max(12, Math.min(rect.x, window.innerWidth - menuWidth - 12))
+            return new DOMRect(xPos, yPos, rect.width, rect.height)
+          }
 
           return {
             onStart: (props: SuggestionProps) => {
@@ -136,37 +163,22 @@ export const SlashCommand = Extension.create({
 
               const { view } = props.editor
 
-              const getReferenceClientRect = () => {
-                if (!props.clientRect) {
-                  return (props.editor.storage as any)[extensionName].rect
-                }
+              const getReferenceClientRect = () => computeSafeRect(props)
 
-                const rect = props.clientRect()
-
-                if (!rect) {
-                  return (props.editor.storage as any)[extensionName].rect
-                }
-
-                let yPos = rect.y
-
-                if (rect.top + component.element.offsetHeight + 40 > window.innerHeight) {
-                  const diff = rect.top + component.element.offsetHeight - window.innerHeight + 40
-                  yPos = Math.max(12, rect.y - diff)
-                }
-
-                const menuWidth = component.element.offsetWidth || 256
-                const xPos = Math.max(12, Math.min(rect.x, window.innerWidth - menuWidth - 12))
-
-                return new DOMRect(xPos, yPos, rect.width, rect.height)
+              if (scrollHandler) {
+                view.dom.parentElement?.removeEventListener('scroll', scrollHandler)
               }
-
               scrollHandler = () => {
                 popup?.[0].setProps({
                   getReferenceClientRect,
                 })
               }
+              closeMenusHandler = () => {
+                popup?.[0].hide()
+              }
 
-              view.dom.parentElement?.addEventListener('scroll', scrollHandler)
+              view.dom.parentElement?.addEventListener('scroll', scrollHandler, { passive: true })
+              window.addEventListener('tiptap:close-menus', closeMenusHandler)
 
               popup?.[0].setProps({
                 getReferenceClientRect,
@@ -182,37 +194,18 @@ export const SlashCommand = Extension.create({
 
               const { view } = props.editor
 
-              const getReferenceClientRect = () => {
-                if (!props.clientRect) {
-                  return (props.editor.storage as any)[extensionName].rect
-                }
+              const getReferenceClientRect = () => computeSafeRect(props)
 
-                const rect = props.clientRect()
-
-                if (!rect) {
-                  return (props.editor.storage as any)[extensionName].rect
-                }
-
-                let yPos = rect.y
-
-                if (rect.top + component.element.offsetHeight + 40 > window.innerHeight) {
-                  const diff = rect.top + component.element.offsetHeight - window.innerHeight + 40
-                  yPos = Math.max(12, rect.y - diff)
-                }
-
-                const menuWidth = component.element.offsetWidth || 256
-                const xPos = Math.max(12, Math.min(rect.x, window.innerWidth - menuWidth - 12))
-
-                return new DOMRect(xPos, yPos, rect.width, rect.height)
+              if (scrollHandler) {
+                view.dom.parentElement?.removeEventListener('scroll', scrollHandler)
               }
-
               scrollHandler = () => {
                 popup?.[0].setProps({
                   getReferenceClientRect,
                 })
               }
 
-              view.dom.parentElement?.addEventListener('scroll', scrollHandler);
+              view.dom.parentElement?.addEventListener('scroll', scrollHandler, { passive: true });
 
               // eslint-disable-next-line no-param-reassign
               (props.editor.storage as any)[extensionName].rect = props.clientRect
@@ -252,6 +245,11 @@ export const SlashCommand = Extension.create({
               if (scrollHandler) {
                 const { view } = props.editor
                 view.dom.parentElement?.removeEventListener('scroll', scrollHandler)
+                scrollHandler = null
+              }
+              if (closeMenusHandler) {
+                window.removeEventListener('tiptap:close-menus', closeMenusHandler)
+                closeMenusHandler = null
               }
               component.destroy()
             },
