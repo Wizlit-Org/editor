@@ -25,19 +25,11 @@ import { EditorStats, BlockEditorProps } from './types'
 export type { EditorStats, BlockEditorProps } from './types'
 
 const defaultUploadImage = async (): Promise<string> => {
-  console.warn(
-    'Image upload is disabled in the demo… implement your API.uploadImage'
-  );
-  await new Promise((r) =>
-    setTimeout(r, Math.floor(Math.random() * 5000) + 1000)
-  );
-  if (Math.random() < 0.5) {
-    throw new Error('Demo upload failed');
-  }
-  return `https://picsum.photos/${
-    Math.floor(Math.random() * 300) + 100
-  }/${Math.floor(Math.random() * 200) + 100}`;
-};
+  console.warn('Image upload is disabled in the demo… implement your API.uploadImage')
+  await new Promise(r => setTimeout(r, Math.floor(Math.random() * 5000) + 1000))
+  if (Math.random() < 0.5) throw new Error('Demo upload failed')
+  return `https://picsum.photos/${Math.floor(Math.random() * 300) + 100}/${Math.floor(Math.random() * 200) + 100}`
+}
 
 export const BlockEditor: React.FC<BlockEditorProps> = ({
   content = '',
@@ -66,7 +58,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   topScrollThreshold = 60,
   autofocus = true,
   placeholder = '',
-  editorPaddingBottom = 'pb-16',
+  editorPaddingBottom = 'pb-36',
   showTableScrollIndicator = true,
 }) => {
   const {
@@ -83,45 +75,12 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
   
   useEffect(() => {
-    const preventDefault = (e: DragEvent) => {
-      e.preventDefault()
-    }
-
-    // Prevent default behavior for drag events
+    const preventDefault = (e: DragEvent) => e.preventDefault()
     window.addEventListener('dragover', preventDefault)
     window.addEventListener('drop', preventDefault)
-
     return () => {
       window.removeEventListener('dragover', preventDefault)
       window.removeEventListener('drop', preventDefault)
-    }
-  }, [])
-
-  // Global scroll listener: Auto-close all popover menus on page scroll (0ms delay)
-  // Ignores scroll events originating from inputs, textareas, contenteditables, and active popovers
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    const handleScroll = (e: Event) => {
-      const target = e.target as HTMLElement | null
-      if (target) {
-        if (
-          target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable ||
-          target.closest?.(
-            '.glass-menu, [role="dialog"], [role="menu"], [data-paste-preview-dialog="true"], [data-bottom-text-menu="true"], [data-radix-popper-content-wrapper], .link-editor-panel, .link-preview-panel'
-          )
-        ) {
-          return
-        }
-      }
-      window.dispatchEvent(new CustomEvent('tiptap:close-menus', { detail: 'scroll' }))
-    }
-
-    window.addEventListener('scroll', handleScroll, { capture: true, passive: true })
-    return () => {
-      window.removeEventListener('scroll', handleScroll, { capture: true })
     }
   }, [])
 
@@ -179,6 +138,54 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
   // Global Escape guard for editor popovers & selections
   useEditorEscGuard(editor)
+
+  // Bottom safe-zone auto-scroll when typing or pressing Enter near the bottom blur / TextMenu
+  useEffect(() => {
+    if (!editor || readOnly || typeof window === 'undefined') return
+
+    const ensureCaretAboveBottomZone = ({ transaction }: { transaction?: any }) => {
+      if (!editor.isEditable || !editor.isFocused || !editor.view?.dom) return
+      if (transaction && !transaction.docChanged && !transaction.selectionSet) return
+      if ((window as any).__isTableDragging || editor.view.dragging) return
+
+      requestAnimationFrame(() => {
+        if (!editor || editor.isDestroyed || !editor.isEditable || !editor.isFocused) return
+        try {
+          const { selection } = editor.state
+          if (!selection.empty) return
+          const coords = editor.view.coordsAtPos(selection.to)
+          const parsedOffset = typeof bottomMenuOffset === 'number' ? bottomMenuOffset : parseInt(String(bottomMenuOffset), 10) || 68
+          const safeBottomMargin = parsedOffset + 92 // ~160px above container bottom (covers bottom blur + TextMenu + breathing room)
+
+          const dom = editor.view.dom
+          const scrollContainer = (
+            dom.closest(scrollContainerSelector) ||
+            dom.closest('.memo-scroll-surface') ||
+            dom.closest('[class*="overflow-auto"]')
+          ) as HTMLElement | null
+
+          if (scrollContainer && scrollContainer.scrollHeight > scrollContainer.clientHeight) {
+            const cRect = scrollContainer.getBoundingClientRect()
+            const safeLimitY = cRect.bottom - safeBottomMargin
+            if (coords.bottom > safeLimitY && coords.top <= cRect.bottom + 80) {
+              const delta = coords.bottom - safeLimitY
+              scrollContainer.scrollTop += delta
+            }
+          } else {
+            const safeLimitY = window.innerHeight - safeBottomMargin
+            if (coords.bottom > safeLimitY && coords.top <= window.innerHeight + 80) {
+              window.scrollBy({ top: coords.bottom - safeLimitY, behavior: 'auto' })
+            }
+          }
+        } catch {}
+      })
+    }
+
+    editor.on('update', ensureCaretAboveBottomZone)
+    return () => {
+      editor.off('update', ensureCaretAboveBottomZone)
+    }
+  }, [editor, readOnly, bottomMenuOffset, scrollContainerSelector])
 
   // Anchor jump smooth scroll on mount, hashchange, and content transition with exponential backoff polling
   const pollingTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
