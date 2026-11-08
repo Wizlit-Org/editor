@@ -24,6 +24,7 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
   const menuRef = useRef<HTMLDivElement>(null)
   const dropdownPortalRef = useRef<HTMLDivElement>(null)
   const buttonPositionRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   const detectedLanguage = useMemo(() => {
     if (language === 'auto' || !language) {
@@ -175,9 +176,38 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
   )
 
   useEffect(() => {
-    if (actualOpen) {
-      setSearch('')
-    }
+    if (!actualOpen) return
+    setSearch('')
+    const rafId = requestAnimationFrame(() => {
+      if (typeof window !== 'undefined') {
+        const isMobile =
+          window.innerWidth < 768 ||
+          Boolean(window.matchMedia?.('(pointer: coarse)').matches)
+        if (!isMobile) {
+          searchInputRef.current?.focus({ preventScroll: true })
+        }
+      }
+      const container = menuRef.current
+      if (container) {
+        const selectedEl = container.querySelector(
+          '[data-selected="true"], [aria-selected="true"]',
+        ) as HTMLElement | null
+        if (selectedEl) {
+          const containerHeight = container.clientHeight
+          const itemTop = selectedEl.offsetTop
+          const itemBottom = itemTop + selectedEl.offsetHeight
+          const viewTop = container.scrollTop
+          const viewBottom = viewTop + containerHeight
+          if (itemTop < viewTop || itemBottom > viewBottom) {
+            container.scrollTop = Math.max(
+              0,
+              itemTop - containerHeight / 2 + selectedEl.offsetHeight / 2,
+            )
+          }
+        }
+      }
+    })
+    return () => cancelAnimationFrame(rafId)
   }, [actualOpen])
 
   useEffect(() => {
@@ -318,20 +348,20 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
             <div className="flex items-center border-b border-black/5 dark:border-white/10 px-2.5 py-1.5">
               <Icon name="Search" className="mr-1.5 h-3.5 w-3.5 shrink-0 opacity-50" />
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="언어 검색..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 onScroll={e => e.stopPropagation()}
                 className="flex h-7 w-full min-w-0 bg-transparent text-xs outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
-                autoFocus
               />
             </div>
             <div
               ref={menuRef}
               onMouseDown={e => e.preventDefault()}
               onScroll={e => e.stopPropagation()}
-              className="max-h-[220px] overflow-y-auto p-1 space-y-0.5"
+              className="relative max-h-[220px] overflow-y-auto p-1 space-y-0.5"
             >
               {search &&
                 !filteredLanguages.some((lang: string) => lang.toLowerCase() === search.toLowerCase()) && (
@@ -344,18 +374,29 @@ export const CodeBlockView = ({ editor, node, updateAttributes, extension }: Cod
                     <span>Custom: {search}</span>
                   </button>
                 )}
-              {filteredLanguages.map((lang: string) => (
-                <button
-                  type="button"
-                  key={lang}
-                  onClick={() => handleLanguageChange(lang)}
-                  className="flex w-full items-center justify-between px-2 py-1.5 text-xs rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
-                  tabIndex={-1}
-                >
-                  <span>{lang}</span>
-                  {lang === language && <Icon name="Check" className="h-3.5 w-3.5 text-blue-500" />}
-                </button>
-              ))}
+              {filteredLanguages.map((lang: string) => {
+                const isSelected = lang === language
+                return (
+                  <button
+                    type="button"
+                    key={lang}
+                    role="option"
+                    aria-selected={isSelected}
+                    data-selected={isSelected ? 'true' : undefined}
+                    onClick={() => handleLanguageChange(lang)}
+                    className={cn(
+                      'flex w-full items-center justify-between px-2 py-1.5 text-xs rounded-md transition-colors text-left cursor-pointer',
+                      isSelected
+                        ? 'bg-black/5 dark:bg-white/10 font-medium text-zinc-900 dark:text-white'
+                        : 'hover:bg-black/5 dark:hover:bg-white/10',
+                    )}
+                    tabIndex={-1}
+                  >
+                    <span>{lang}</span>
+                    {isSelected && <Icon name="Check" className="h-3.5 w-3.5 text-blue-500" />}
+                  </button>
+                )
+              })}
             </div>
           </div>,
           document.body,
